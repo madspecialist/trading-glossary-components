@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Sentiment Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        /* Custom slider styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right, 
+                #FF4444 0%, #FF4444 30%, 
+                #3B82F6 30%, #3B82F6 70%,
+                #079A4F 70%, #079A4F 100%);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            border: 2px solid #4B5563;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            border: 2px solid #4B5563;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const MarketSentimentVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [sentiment, setSentiment] = React.useState(50);
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+
+            const generatePriceData = (sentimentValue) => {
+                const basePrice = 100;
+                const volatility = 5;
+                const trend = (sentimentValue - 50) / 10;
+                
+                return Array.from({ length: 8 }, (_, i) => basePrice + (trend * i) + (Math.random() - 0.5) * volatility);
+            };
+
+            const getSentimentColor = (value) => {
+                if (value < 30) return '#FF4444';  // Bearish - Red
+                if (value > 70) return '#079A4F';  // Bullish - Green
+                return '#3B82F6';  // Neutral - Blue
+            };
+
+            const getSentimentText = (value) => {
+                if (value < 30) return 'Bearish';
+                if (value > 70) return 'Bullish';
+                return 'Neutral';
+            };
+
+            const sentimentCharacteristics = {
+                Bearish: [
+                    "Widespread pessimism",
+                    "Selling pressure dominates",
+                    "Risk aversion high"
+                ],
+                Neutral: [
+                    "Balanced market views",
+                    "Mixed trading signals",
+                    "Awaiting market direction"
+                ],
+                Bullish: [
+                    "Strong market confidence",
+                    "Buying pressure dominates",
+                    "Risk appetite high"
+                ]
+            };
+
+            React.useEffect(() => {
+                if (chartRef.current) {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    const priceData = generatePriceData(sentiment);
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+                            datasets: [{
+                                label: 'Price',
+                                data: priceData,
+                                borderColor: getSentimentColor(sentiment),
+                                backgroundColor: `${getSentimentColor(sentiment)}20`,
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    displayColors: false,
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `Price: ${context.parsed.y.toFixed(2)}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    setChart(newChart);
+                }
+            }, [sentiment, isDarkMode]);
+
+            return (
+                <div className="min-h-screen bg-gray-900 py-8">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Market Sentiment Indicator
+                            </h2>
+
+                            {/* Sentiment Gauge */}
+                            <div className="mb-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-red-500">Bearish</span>
+                                    <span className="text-blue-500">Neutral</span>
+                                    <span className="text-green-500">Bullish</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    value={sentiment}
+                                    onChange={(e) => setSentiment(Number(e.target.value))}
+                                    className="w-full cursor-pointer"
+                                />
+                                <div className="text-center mt-2">
+                                    <span className="text-white font-bold">
+                                        Current Sentiment: 
+                                        <span style={{ color: getSentimentColor(sentiment) }}>
+                                            {` ${getSentimentText(sentiment)}`}
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Price Chart */}
+                            <div className="h-64 mb-6">
+                                <canvas ref={chartRef}></canvas>
+                            </div>
+
+                            {/* Characteristics */}
+                            <div className="space-y-4">
+                                {sentimentCharacteristics[getSentimentText(sentiment)].map((characteristic, index) => (
+                                    <div key={index} className="flex items-center">
+                                        <div 
+                                            className="w-3 h-3 rounded-full mr-2" 
+                                            style={{ backgroundColor: getSentimentColor(sentiment) }}
+                                        ></div>
+                                        <p className="text-gray-200">
+                                            {characteristic}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<MarketSentimentVisual />);
+    </script>
+</body>
+</html>
