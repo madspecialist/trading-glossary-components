@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Trends Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const MarketTrendsVisual = () => {
+            const [selectedTrend, setSelectedTrend] = React.useState('uptrend');
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+
+            const trendData = {
+                uptrend: [100, 120, 115, 140, 135, 160, 155, 180],
+                downtrend: [180, 160, 165, 140, 145, 120, 125, 100],
+                sideways: [140, 155, 135, 150, 130, 145, 135, 140]
+            };
+
+            const trendColors = {
+                uptrend: '#079A4F',
+                downtrend: '#FF4444',
+                sideways: '#3B82F6'
+            };
+
+            const trendCharacteristics = {
+                uptrend: [
+                    "Higher highs and higher lows",
+                    "Generally increasing price levels",
+                    "Strong buying pressure"
+                ],
+                downtrend: [
+                    "Lower highs and lower lows",
+                    "Generally decreasing price levels",
+                    "Strong selling pressure"
+                ],
+                sideways: [
+                    "Price moves within a range",
+                    "No clear directional bias",
+                    "Equal buying and selling pressure"
+                ]
+            };
+
+            React.useEffect(() => {
+                if (chartRef.current) {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    const newChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+                            datasets: [{
+                                label: 'Price',
+                                data: trendData[selectedTrend],
+                                borderColor: trendColors[selectedTrend],
+                                backgroundColor: `${trendColors[selectedTrend]}20`,
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    displayColors: false,
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `Price: ${context.parsed.y}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    setChart(newChart);
+                }
+            }, [selectedTrend, isDarkMode]);
+
+            return (
+                <div className="min-h-screen bg-gray-900 py-8">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Market Trend Types
+                            </h2>
+
+                            <div className="flex space-x-4 mb-6">
+                                <button
+                                    onClick={() => setSelectedTrend('uptrend')}
+                                    className={`px-4 py-2 rounded-lg ${
+                                        selectedTrend === 'uptrend'
+                                            ? 'bg-green-600 text-white'
+                                            : 'bg-gray-700 text-gray-300'
+                                    }`}
+                                >
+                                    Uptrend
+                                </button>
+                                <button
+                                    onClick={() => setSelectedTrend('downtrend')}
+                                    className={`px-4 py-2 rounded-lg ${
+                                        selectedTrend === 'downtrend'
+                                            ? 'bg-red-600 text-white'
+                                            : 'bg-gray-700 text-gray-300'
+                                    }`}
+                                >
+                                    Downtrend
+                                </button>
+                                <button
+                                    onClick={() => setSelectedTrend('sideways')}
+                                    className={`px-4 py-2 rounded-lg ${
+                                        selectedTrend === 'sideways'
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-gray-700 text-gray-300'
+                                    }`}
+                                >
+                                    Sideways
+                                </button>
+                            </div>
+                            
+                            <div className="h-64 mb-6">
+                                <canvas ref={chartRef}></canvas>
+                            </div>
+
+                            <div className="space-y-4">
+                                {trendCharacteristics[selectedTrend].map((characteristic, index) => (
+                                    <div key={index} className="flex items-center">
+                                        <div 
+                                            className="w-3 h-3 rounded-full mr-2" 
+                                            style={{ backgroundColor: trendColors[selectedTrend] }}
+                                        ></div>
+                                        <p className="text-gray-200">
+                                            {characteristic}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<MarketTrendsVisual />);
+    </script>
+</body>
+</html>
