@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Foreign Exchange (Forex) Markets</title>
+
+  <!-- Import Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Import Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    // Configure Tailwind with dark mode
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              primary: '#079A4F',
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    body {
+      background-color: #111827;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .currency-card {
+      transition: all 0.3s ease;
+    }
+
+    .currency-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .selected-currency {
+      background-color: #079A4F !important;
+    }
+
+    .info-box {
+      display: none;
+    }
+
+    .info-box.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    /* Tooltip styles */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: help;
+    }
+
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 200px;
+      background-color: #111827;
+      color: #fff;
+      text-align: left;
+      border-radius: 6px;
+      padding: 8px;
+      position: absolute;
+      z-index: 1;
+      top: 125%;
+      left: 50%;
+      margin-left: -100px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 0.75rem;
+      line-height: 1.2;
+    }
+
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    /* Animation for fade in effect */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body class="dark">
+  <div class="container mx-auto py-8 px-4">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-white text-center">Foreign Exchange (Forex) Markets</h1>
+      <p class="text-gray-400 text-center mt-2">The largest and most liquid financial market worldwide, processing over $6.6 trillion in daily trading volume</p>
+    </header>
+
+    <div class="w-full max-w-4xl mx-auto bg-gray-800 rounded-lg p-6">
+      <header class="mb-6">
+        <h2 class="text-2xl font-bold text-white">Foreign Exchange (Forex) Markets</h2>
+        <p class="text-gray-400 mt-2">These dynamic global marketplaces facilitate the trading of international currencies, serving as the foundation for worldwide commerce and investment.</p>
+        <div class="mt-4 p-3 bg-gray-800/60 rounded-lg border-l-4 border-brand-primary">
+          <p class="text-sm text-gray-300">
+            When you participate in the forex market, you're essentially exchanging one currency for another based on their relative values, which fluctuate constantly due to economic indicators, central bank policies, geopolitical events, and market sentiment.
+          </p>
+        </div>
+      </header>
+
+      <!-- Currency Pair Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div id="eurusd-card" class="currency-card selected-currency rounded-lg p-4 cursor-pointer" onclick="selectCurrency('eurusd')">
+          <div class="flex justify-center mb-2">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-white/20">
+              <span class="text-xl font-bold">€/$</span>
+            </div>
+          </div>
+          <h4 class="font-medium text-center text-sm">EUR/USD</h4>
+          <p class="text-xs text-center mt-1 text-gray-300">Euro/US Dollar</p>
+        </div>
+        <div id="usdjpy-card" class="currency-card bg-gray-700 rounded-lg p-4 cursor-pointer" onclick="selectCurrency('usdjpy')">
+            <div class="flex justify-center mb-2">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-800/60">
+                <span class="text-xl font-bold">$/¥</span>
+              </div>
+            </div>
+            <h4 class="font-medium text-center text-sm">USD/JPY</h4>
+            <p class="text-xs text-center mt-1 text-gray-300">US Dollar/Japanese Yen</p>
+          </div>
+          
+          <div id="gbpusd-card" class="currency-card bg-gray-700 rounded-lg p-4 cursor-pointer" onclick="selectCurrency('gbpusd')">
+            <div class="flex justify-center mb-2">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-800/60">
+                <span class="text-xl font-bold">£/$</span>
+              </div>
+            </div>
+            <h4 class="font-medium text-center text-sm">GBP/USD</h4>
+            <p class="text-xs text-center mt-1 text-gray-300">British Pound/US Dollar</p>
+          </div>
+  
+          <div id="usdchf-card" class="currency-card bg-gray-700 rounded-lg p-4 cursor-pointer" onclick="selectCurrency('usdchf')">
+            <div class="flex justify-center mb-2">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-800/60">
+                <span class="text-xl font-bold">$/Fr</span>
+              </div>
+            </div>
+            <h4 class="font-medium text-center text-sm">USD/CHF</h4>
+            <p class="text-xs text-center mt-1 text-gray-300">US Dollar/Swiss Franc</p>
+          </div>
+        </div>
+  
+        <!-- EUR/USD Details -->
+        <div id="eurusd-info" class="info-box bg-gray-700 rounded-lg p-6 active">
+          <div class="flex items-start space-x-3 mb-4">
+            <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+              <span class="text-xl font-bold text-white">€/$</span>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold text-white">EUR/USD (Euro/US Dollar)</h3>
+              <p class="text-gray-300 mt-1">The most traded currency pair in the world, accounting for approximately 28% of daily forex trading volume.</p>
+            </div>
+          </div>
+  
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Average Spread
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline text-gray-400">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">The difference between the buy (ask) and sell (bid) price, measured in pips.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">0.1-0.7 pips</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                  <polyline points="16 7 22 7 22 13"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Volatility</p>
+                  <p class="text-white">Moderate</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Daily Volume (2023)</p>
+                  <p class="text-white">~$1.5 trillion</p>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Key Influences</p>
+                  <p class="text-white">ECB policy, Fed policy, Eurozone economics</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Notable Characteristics</p>
+                  <p class="text-white">Most traded pair, highest liquidity</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Trading Hours</p>
+                  <p class="text-white">24 hours, 5 days a week</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-4 bg-gray-800 p-4 rounded-lg">
+            <p class="text-sm text-gray-300">
+              <span class="text-green-400 font-medium">Did you know?</span> The EUR/USD pair is often called "Fiber" by professional traders, a nickname that originated after the introduction of the euro in 1999.
+            </p>
+          </div>
+        </div>
+        <!-- USD/JPY Details -->
+      <div id="usdjpy-info" class="info-box bg-gray-700 rounded-lg p-6">
+        <div class="flex items-start space-x-3 mb-4">
+          <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+            <span class="text-xl font-bold text-white">$/¥</span>
+          </div>
+          <div>
+            <h3 class="text-xl font-semibold text-white">USD/JPY (US Dollar/Japanese Yen)</h3>
+            <p class="text-gray-300 mt-1">The second most traded currency pair, representing major economies and known for its strong correlation with US Treasury yields.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <div class="mb-4 flex items-start space-x-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+              </svg>
+              <div>
+                <p class="text-gray-400 text-sm">
+                  Average Spread
+                  <span class="tooltip ml-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline text-gray-400">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M12 16v-4"></path>
+                      <path d="M12 8h.01"></path>
+                    </svg>
+                    <span class="tooltiptext">The difference between the buy (ask) and sell (bid) price, measured in pips.</span>
+                  </span>
+                </p>
+                <p class="text-white">0.2-0.9 pips</p>
+              </div>
+            </div>
+            <div class="mb-4 flex items-start space-x-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                <polyline points="16 7 22 7 22 13"></polyline>
+              </svg>
+              <div>
+                <p class="text-gray-400 text-sm">Volatility</p>
+                <p class="text-white">Moderate</p>
+              </div>
+            </div>
+            <div class="mb-4 flex items-start space-x-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <div>
+                <p class="text-gray-400 text-sm">Daily Volume (2023)</p>
+                <p class="text-white">~$1.1 trillion</p>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <div class="mb-4 flex items-start space-x-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              <div>
+                <p class="text-gray-400 text-sm">Key Influences</p>
+                <p class="text-white">Fed policy, BOJ policy, risk sentiment</p>
+              </div>
+            </div>
+            <div class="mb-4 flex items-start space-x-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+              <div>
+                <p class="text-gray-400 text-sm">Notable Characteristics</p>
+                <p class="text-white">Safe-haven currency in times of market stress</p>
+              </div>
+            </div>
+            <div class="mb-4 flex items-start space-x-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+              <div>
+                <p class="text-gray-400 text-sm">Trading Hours</p>
+                <p class="text-white">24 hours, 5 days a week</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mt-4 bg-gray-800 p-4 rounded-lg">
+          <p class="text-sm text-gray-300">
+            <span class="text-green-400 font-medium">Did you know?</span> The USD/JPY pair is nicknamed "Ninja" in trading circles, referencing its Japanese connection and sometimes unpredictable movements.
+          </p>
+        </div>
+      </div>
+
+      <!-- GBP/USD Details -->
+      <div id="gbpusd-info" class="info-box bg-gray-700 rounded-lg p-6">
+        <div class="flex items-start space-x-3 mb-4">
+          <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+            <span class="text-xl font-bold text-white">£/$</span>
+          </div>
+          <div>
+            <h3 class="text-xl font-semibold text-white">GBP/USD (British Pound/US Dollar)</h3>
+            <p class="text-gray-300 mt-1">Known as "Cable" due to the transatlantic cable that once connected bid/ask quotes between London and New York.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <div class="mb-4 flex items-start space-x-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+              </svg>
+              <div>
+                <p class="text-gray-400 text-sm">
+                  Average Spread
+                  <span class="tooltip ml-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline text-gray-400">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M12 16v-4"></path>
+                      <path d="M12 8h.01"></path>
+                    </svg>
+                    <span class="tooltiptext">The difference between the buy (ask) and sell (bid) price, measured in pips.</span>
+                  </span>
+                </p>
+                <p class="text-white">0.5-1.2 pips</p>
+              </div>
+            </div>
+            <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                  <polyline points="16 7 22 7 22 13"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Volatility</p>
+                  <p class="text-white">High</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Daily Volume (2023)</p>
+                  <p class="text-white">~$630 billion</p>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Key Influences</p>
+                  <p class="text-white">BOE policy, Fed policy, UK economic data</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Notable Characteristics</p>
+                  <p class="text-white">"Cable," known for sharp movements</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Trading Hours</p>
+                  <p class="text-white">24 hours, 5 days a week</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-4 bg-gray-800 p-4 rounded-lg">
+            <p class="text-sm text-gray-300">
+              <span class="text-green-400 font-medium">Did you know?</span> GBP/USD is one of the oldest currency pairs in the world, with trading history dating back to the 1800s, well before electronic forex trading.
+            </p>
+          </div>
+        </div>
+  
+        <!-- USD/CHF Details -->
+        <div id="usdchf-info" class="info-box bg-gray-700 rounded-lg p-6">
+          <div class="flex items-start space-x-3 mb-4">
+            <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+              <span class="text-xl font-bold text-white">$/Fr</span>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold text-white">USD/CHF (US Dollar/Swiss Franc)</h3>
+              <p class="text-gray-300 mt-1">Often called "Swissy," this pair is known for its stability and the Swiss franc's traditional role as a safe-haven currency.</p>
+            </div>
+          </div>
+  
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Average Spread
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline text-gray-400">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">The difference between the buy (ask) and sell (bid) price, measured in pips.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">0.3-1.0 pips</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                  <polyline points="16 7 22 7 22 13"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Volatility</p>
+                  <p class="text-white">Low to moderate</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Daily Volume (2023)</p>
+                  <p class="text-white">~$440 billion</p>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Key Influences</p>
+                  <p class="text-white">Fed policy, SNB policy, risk-off flows</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Notable Characteristics</p>
+                  <p class="text-white">Traditional safe-haven asset during crises</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Trading Hours</p>
+                  <p class="text-white">24 hours, 5 days a week</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-4 bg-gray-800 p-4 rounded-lg">
+            <p class="text-sm text-gray-300">
+              <span class="text-green-400 font-medium">Did you know?</span> The Swiss Franc is considered one of the most stable currencies in the world, earning it the nickname "Swissy" among traders.
+            </p>
+          </div>
+        </div>
+  
+        <!-- Forex Facts Section -->
+        <div class="mt-6 bg-gray-700 p-4 rounded-lg">
+          <h4 class="text-lg font-semibold text-white mb-2">Key Forex Facts</h4>
+          <ul class="space-y-2 text-gray-300 text-sm">
+            <li><span class="text-green-400 font-medium">24-Hour Market:</span> The forex market operates 24 hours a day, five days a week, enabling traders to react to events as they happen.</li>
+            <li><span class="text-green-400 font-medium">Decentralized:</span> Unlike stock exchanges, forex trading occurs over-the-counter (OTC) with no central exchange or clearing house.</li>
+            <li><span class="text-green-400 font-medium">Major Trading Centers:</span> London, New York, Tokyo, and Singapore are the world's largest forex trading hubs.</li>
+            <li><span class="text-green-400 font-medium">Leverage:</span> Forex trading typically offers higher leverage than other markets, allowing traders to control large positions with relatively small amounts of capital.</li>
+          </ul>
+        </div>
+  
+        <div class="mt-4 text-sm text-gray-400">
+          <p>Click on a currency pair above to view detailed information</p>
+        </div>
+      </div>
+    </div>
+  
+    <script>
+      // Function to handle currency selection
+      function selectCurrency(currencyId) {
+        // Reset all cards
+        document.querySelectorAll('.currency-card').forEach(card => {
+          card.classList.remove('selected-currency');
+          card.classList.add('bg-gray-700');
+        });
+  
+        // Highlight selected card
+        const selectedCard = document.getElementById(`${currencyId}-card`);
+        if (selectedCard) {
+          selectedCard.classList.add('selected-currency');
+          selectedCard.classList.remove('bg-gray-700');
+        }
+  
+        // Hide all info boxes
+        document.querySelectorAll('.info-box').forEach(box => {
+          box.classList.remove('active');
+        });
+  
+        // Show selected info box
+        const infoBox = document.getElementById(`${currencyId}-info`);
+        if (infoBox) {
+          infoBox.classList.add('active');
+        }
+      }
+  
+      // Set default selection
+      document.addEventListener('DOMContentLoaded', function() {
+        selectCurrency('eurusd');
+      });
+    </script>
+  </body>
+  </html>
