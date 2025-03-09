@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Commodity Markets</title>
+
+  <!-- Import Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Import Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    // Configure Tailwind with dark mode
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              primary: '#079A4F',
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    body {
+      background-color: #111827;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .commodity-card {
+      transition: all 0.3s ease;
+    }
+
+    .commodity-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .selected-commodity {
+      background-color: #079A4F !important;
+    }
+
+    .info-box {
+      display: none;
+    }
+
+    .info-box.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    /* Tooltip styles */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: help;
+    }
+
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 200px;
+      background-color: #111827;
+      color: #fff;
+      text-align: left;
+      border-radius: 6px;
+      padding: 8px;
+      position: absolute;
+      z-index: 1;
+      top: 125%;
+      left: 50%;
+      margin-left: -100px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 0.75rem;
+      line-height: 1.2;
+    }
+
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    /* Animation for fade in effect */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body class="dark">
+  <div class="container mx-auto py-8 px-4">
+    <div class="w-full max-w-4xl mx-auto bg-gray-800 rounded-lg p-6">
+      <header class="mb-6">
+        <h2 class="text-2xl font-bold text-white text-center">Commodity Markets</h2>
+        <p class="text-gray-400 text-center mt-2">The foundation of global supply chains and industrial production</p>
+        <div class="mt-4 p-3 bg-gray-800/60 rounded-lg border-l-4 border-brand-primary">
+          <p class="text-sm text-gray-300">
+            These dynamic global marketplaces facilitate the exchange of raw materials and primary products. When you participate in commodity markets, you're trading standardized contracts for physical goods ranging from agricultural products to energy resources and precious metals.
+          </p>
+        </div>
+      </header>
+
+      <!-- Commodity Category Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div id="agricultural-card" class="commodity-card selected-commodity rounded-lg p-4 cursor-pointer" onclick="selectCommodity('agricultural')">
+          <div class="flex justify-center mb-2">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-white/20">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+            </div>
+          </div>
+          <h4 class="font-medium text-center text-sm text-white">Agricultural</h4>
+          <p class="text-xs text-center mt-1 text-gray-300">Wheat, Corn, Soybeans</p>
+        </div>
+        <div id="energy-card" class="commodity-card bg-gray-700 rounded-lg p-4 cursor-pointer" onclick="selectCommodity('energy')">
+            <div class="flex justify-center mb-2">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-800/60">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+            </div>
+            <h4 class="font-medium text-center text-sm text-white">Energy</h4>
+            <p class="text-xs text-center mt-1 text-gray-300">Oil, Gas, Coal</p>
+          </div>
+          
+          <div id="metals-card" class="commodity-card bg-gray-700 rounded-lg p-4 cursor-pointer" onclick="selectCommodity('metals')">
+            <div class="flex justify-center mb-2">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-800/60">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <h4 class="font-medium text-center text-sm text-white">Metals</h4>
+            <p class="text-xs text-center mt-1 text-gray-300">Gold, Silver, Copper</p>
+          </div>
+  
+          <div id="soft-card" class="commodity-card bg-gray-700 rounded-lg p-4 cursor-pointer" onclick="selectCommodity('soft')">
+            <div class="flex justify-center mb-2">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-800/60">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+              </div>
+            </div>
+            <h4 class="font-medium text-center text-sm text-white">Soft Commodities</h4>
+            <p class="text-xs text-center mt-1 text-gray-300">Cotton, Sugar, Coffee</p>
+          </div>
+        </div>
+  
+        <!-- Agricultural Details -->
+        <div id="agricultural-info" class="info-box bg-gray-700 rounded-lg p-6 active">
+          <div class="flex items-start space-x-3 mb-4">
+            <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold text-white">Agricultural Commodities</h3>
+              <p class="text-gray-300 mt-1">Trading standardized contracts for physical goods essential to global economies and industries.</p>
+            </div>
+          </div>
+  
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Examples</p>
+                  <p class="text-white">Wheat, corn, soybeans</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Major Exchanges</p>
+                  <p class="text-white">CME Group, ICE</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Trading Vehicles</p>
+                  <p class="text-white">Futures, options, ETFs</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                  <polyline points="16 7 22 7 22 13"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Price Influencers
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline text-gray-400">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">Primary factors that drive price movements in this commodity category.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">Weather, crop yields, demand</p>
+                </div>
+              </div>
+            </div>
+            <div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3v18"></path>
+                    <circle cx="6" cy="9" r="3"></circle>
+                    <circle cx="18" cy="9" r="3"></circle>
+                    <path d="M3 15h18"></path>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Key Participants</p>
+                    <p class="text-white">Farmers, food producers, speculators</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Market Size (2023)</p>
+                    <p class="text-white">~$2.4 trillion</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Volatility Level</p>
+                    <p class="text-white">High (seasonal patterns)</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Storage Considerations</p>
+                    <p class="text-white">Perishable, seasonal</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mt-4 bg-gray-800 p-4 rounded-lg">
+              <p class="text-sm text-gray-300">
+                <span class="text-green-400 font-medium">Did you know?</span> Agricultural commodities are among the oldest traded goods, with futures contracts dating back to ancient Japan and rice markets.
+              </p>
+            </div>
+          </div>
+    
+          <!-- Energy Details -->
+          <div id="energy-info" class="info-box bg-gray-700 rounded-lg p-6">
+            <div class="flex items-start space-x-3 mb-4">
+              <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-semibold text-white">Energy Commodities</h3>
+                <p class="text-gray-300 mt-1">Trading standardized contracts for physical goods essential to global economies and industries.</p>
+              </div>
+            </div>
+    
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Examples</p>
+                    <p class="text-white">Crude oil, natural gas, coal</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Major Exchanges</p>
+                    <p class="text-white">NYMEX, ICE</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Trading Vehicles</p>
+                    <p class="text-white">Futures, options, ETFs, spreads</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                    <polyline points="16 7 22 7 22 13"></polyline>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">
+                      Price Influencers
+                      <span class="tooltip ml-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline text-gray-400">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <path d="M12 16v-4"></path>
+                          <path d="M12 8h.01"></path>
+                        </svg>
+                        <span class="tooltiptext">Primary factors that drive price movements in this commodity category.</span>
+                      </span>
+                    </p>
+                    <p class="text-white">Geopolitics, production levels, reserves</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3v18"></path>
+                    <circle cx="6" cy="9" r="3"></circle>
+                    <circle cx="18" cy="9" r="3"></circle>
+                    <path d="M3 15h18"></path>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Key Participants</p>
+                    <p class="text-white">Energy companies, airlines, traders</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="1" x2="12" y2="23"></line>
+                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Market Size (2023)</p>
+                      <p class="text-white">~$5.7 trillion</p>
+                    </div>
+                  </div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Volatility Level</p>
+                      <p class="text-white">Very high (geopolitical factors)</p>
+                    </div>
+                  </div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Storage Considerations</p>
+                      <p class="text-white">Complex, location-specific</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="mt-4 bg-gray-800 p-4 rounded-lg">
+                <p class="text-sm text-gray-300">
+                  <span class="text-green-400 font-medium">Did you know?</span> Oil is priced in different grades (WTI, Brent, etc.) with quality and location affecting price. Brent crude represents about two-thirds of all oil contracts worldwide.
+                </p>
+              </div>
+            </div>
+      
+            <!-- Metals Details -->
+            <div id="metals-info" class="info-box bg-gray-700 rounded-lg p-6">
+              <div class="flex items-start space-x-3 mb-4">
+                <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="text-xl font-semibold text-white">Metals Commodities</h3>
+                  <p class="text-gray-300 mt-1">Trading standardized contracts for physical goods essential to global economies and industries.</p>
+                </div>
+              </div>
+      
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="16" x2="12" y2="12"></line>
+                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Examples</p>
+                      <p class="text-white">Gold, silver, copper</p>
+                    </div>
+                  </div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Major Exchanges</p>
+                      <p class="text-white">COMEX, LME</p>
+                    </div>
+                  </div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Trading Vehicles</p>
+                      <p class="text-white">Futures, options, ETFs, physical</p>
+                    </div>
+                  </div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                      <polyline points="16 7 22 7 22 13"></polyline>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">
+                        Price Influencers
+                        <span class="tooltip ml-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline text-gray-400">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 16v-4"></path>
+                            <path d="M12 8h.01"></path>
+                          </svg>
+                          <span class="tooltiptext">Primary factors that drive price movements in this commodity category.</span>
+                        </span>
+                      </p>
+                      <p class="text-white">Economic conditions, industrial demand</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 3v18"></path>
+                      <circle cx="6" cy="9" r="3"></circle>
+                      <circle cx="18" cy="9" r="3"></circle>
+                      <path d="M3 15h18"></path>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Key Participants</p>
+                      <p class="text-white">Mining companies, manufacturers, investors</p>
+                    </div>
+                  </div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="1" x2="12" y2="23"></line>
+                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Market Size (2023)</p>
+                      <p class="text-white">~$3.8 trillion</p>
+                    </div>
+                  </div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Volatility Level</p>
+                      <p class="text-white">Moderate to high</p>
+                    </div>
+                  </div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Storage Considerations</p>
+                      <p class="text-white">Durable, compact</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="mt-4 bg-gray-800 p-4 rounded-lg">
+                <p class="text-sm text-gray-300">
+                  <span class="text-green-400 font-medium">Did you know?</span> Gold has maintained its value throughout human history, with approximately 190,000 tonnes of gold having been mined in total—enough to fill three Olympic-sized swimming pools.
+                </p>
+              </div>
+            </div>
+      
+            <!-- Soft Commodities Details -->
+            <div id="soft-info" class="info-box bg-gray-700 rounded-lg p-6">
+              <div class="flex items-start space-x-3 mb-4">
+                <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="text-xl font-semibold text-white">Soft Commodities</h3>
+                  <p class="text-gray-300 mt-1">Trading standardized contracts for physical goods essential to global economies and industries.</p>
+                </div>
+              </div>
+      
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="16" x2="12" y2="12"></line>
+                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Examples</p>
+                      <p class="text-white">Cotton, sugar, coffee</p>
+                    </div>
+                  </div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Major Exchanges</p>
+                      <p class="text-white">ICE, NYBOT</p>
+                    </div>
+                  </div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Trading Vehicles</p>
+                      <p class="text-white">Futures, options, ETFs</p>
+                    </div>
+                  </div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                      <polyline points="16 7 22 7 22 13"></polyline>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">
+                        Price Influencers
+                        <span class="tooltip ml-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline text-gray-400">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 16v-4"></path>
+                            <path d="M12 8h.01"></path>
+                          </svg>
+                          <span class="tooltiptext">Primary factors that drive price movements in this commodity category.</span>
+                        </span>
+                      </p>
+                      <p class="text-white">Climate, harvests, consumer trends</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 3v18"></path>
+                      <circle cx="6" cy="9" r="3"></circle>
+                      <circle cx="18" cy="9" r="3"></circle>
+                      <path d="M3 15h18"></path>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Key Participants</p>
+                      <p class="text-white">Manufacturers, processors, traders</p>
+                    </div>
+                  </div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="1" x2="12" y2="23"></line>
+                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Market Size (2023)</p>
+                      <p class="text-white">~$1.5 trillion</p>
+                    </div>
+                  </div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Volatility Level</p>
+                      <p class="text-white">High (weather dependent)</p>
+                    </div>
+                  </div>
+                  <div class="mb-4 flex items-start space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <div>
+                      <p class="text-gray-400 text-sm">Storage Considerations</p>
+                      <p class="text-white">Varying shelf-life, condition-sensitive</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="mt-4 bg-gray-800 p-4 rounded-lg">
+                <p class="text-sm text-gray-300">
+                  <span class="text-green-400 font-medium">Did you know?</span> Coffee is the second most traded commodity in the world after oil, with over 2.25 billion cups consumed worldwide every day.
+                </p>
+              </div>
+            </div>
+      
+            <!-- Commodity Markets Facts -->
+            <div class="mt-6 bg-gray-700 p-4 rounded-lg">
+              <h4 class="text-lg font-semibold text-white mb-2">Key Commodity Market Facts</h4>
+              <ul class="space-y-2 text-gray-300 text-sm">
+                <li><span class="text-green-400 font-medium">Standardized Contracts:</span> Most commodities trade via futures contracts with specified quantity, quality, and delivery locations.</li>
+                <li><span class="text-green-400 font-medium">Price Discovery:</span> Commodity markets provide transparent price discovery for essential goods used worldwide.</li>
+                <li><span class="text-green-400 font-medium">Risk Management:</span> Producers and consumers use commodity markets to hedge against future price fluctuations.</li>
+                <li><span class="text-green-400 font-medium">Global Infrastructure:</span> Modern commodity markets rely on sophisticated global storage, transportation, and delivery systems.</li>
+              </ul>
+            </div>
+      
+            <div class="mt-4 text-sm text-gray-400">
+              <p>Click on a commodity category above to view detailed information</p>
+            </div>
+          </div>
+        </div>
+      
+        <script>
+          // Function to handle commodity selection
+          function selectCommodity(commodityId) {
+            // Reset all cards
+            document.querySelectorAll('.commodity-card').forEach(card => {
+              card.classList.remove('selected-commodity');
+              card.classList.add('bg-gray-700');
+            });
+      
+            // Highlight selected card
+            const selectedCard = document.getElementById(`${commodityId}-card`);
+            if (selectedCard) {
+              selectedCard.classList.add('selected-commodity');
+              selectedCard.classList.remove('bg-gray-700');
+            }
+      
+            // Hide all info boxes
+            document.querySelectorAll('.info-box').forEach(box => {
+              box.classList.remove('active');
+            });
+      
+            // Show selected info box
+            const infoBox = document.getElementById(`${commodityId}-info`);
+            if (infoBox) {
+              infoBox.classList.add('active');
+            }
+          }
+      
+          // Set default selection
+          document.addEventListener('DOMContentLoaded', function() {
+            selectCommodity('agricultural');
+          });
+        </script>
+      </body>
+      </html>
