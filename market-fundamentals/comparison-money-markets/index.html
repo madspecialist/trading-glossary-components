@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Money Markets</title>
+
+  <!-- Import Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Import Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    // Configure Tailwind with dark mode
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              primary: '#079A4F',
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    body {
+      background-color: #111827;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .instrument-card {
+      transition: all 0.3s ease;
+    }
+
+    .instrument-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .selected-instrument {
+      background-color: #079A4F !important;
+    }
+
+    .info-box {
+      display: none;
+    }
+
+    .info-box.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    /* Tooltip styles */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: help;
+    }
+
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 200px;
+      background-color: #111827;
+      color: #fff;
+      text-align: left;
+      border-radius: 6px;
+      padding: 8px;
+      position: absolute;
+      z-index: 1;
+      top: 125%;
+      left: 50%;
+      margin-left: -100px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 0.75rem;
+      line-height: 1.2;
+    }
+
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    /* Animation for fade in effect */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .risk-meter {
+      height: 12px;
+      border-radius: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body class="dark">
+  <div class="container mx-auto py-8 px-4">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-white text-center">Money Markets</h1>
+      <p class="text-gray-400 text-center mt-2">Specialized markets for short-term borrowing, lending, and trading of highly liquid financial instruments</p>
+    </header>
+
+    <div class="w-full max-w-4xl mx-auto bg-gray-800 rounded-lg p-6">
+      <header class="mb-6">
+        <h2 class="text-2xl font-bold text-white">Money Markets</h2>
+        <p class="text-gray-400 mt-2">These specialized financial marketplaces facilitate the trading of highly liquid, short-term debt instruments with maturities typically of one year or less.</p>
+        <div class="mt-4 p-3 bg-gray-800/60 rounded-lg border-l-4 border-brand-primary">
+          <p class="text-sm text-gray-300">
+            When you participate in money markets, you're essentially lending money for brief periods in exchange for security, liquidity, and modest returns.
+          </p>
+        </div>
+      </header>
+
+      <!-- Instrument Type Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div id="treasury-card" class="instrument-card selected-instrument rounded-lg p-4 cursor-pointer" onclick="selectInstrument('treasury')">
+          <div class="flex justify-center mb-2">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-white/20">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+          </div>
+          <h4 class="font-medium text-center text-sm text-white">Treasury</h4>
+        </div>
+        
+        <div id="commercial-card" class="instrument-card bg-gray-700 rounded-lg p-4 cursor-pointer" onclick="selectInstrument('commercial')">
+          <div class="flex justify-center mb-2">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-800/60">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+          </div>
+          <h4 class="font-medium text-center text-sm text-white">Commercial</h4>
+        </div>
+        
+        <div id="cd-card" class="instrument-card bg-gray-700 rounded-lg p-4 cursor-pointer" onclick="selectInstrument('cd')">
+          <div class="flex justify-center mb-2">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-800/60">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+              </svg>
+            </div>
+          </div>
+          <h4 class="font-medium text-center text-sm text-white">CDs</h4>
+        </div>
+        <div id="repo-card" class="instrument-card bg-gray-700 rounded-lg p-4 cursor-pointer" onclick="selectInstrument('repo')">
+            <div class="flex justify-center mb-2">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-800/60">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </div>
+            </div>
+            <h4 class="font-medium text-center text-sm text-white">Repos</h4>
+          </div>
+          
+          <div id="bankers-card" class="instrument-card bg-gray-700 rounded-lg p-4 cursor-pointer" onclick="selectInstrument('bankers')">
+            <div class="flex justify-center mb-2">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-800/60">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 8h6m-5 0a3 3 0 110 6H9l3 3m-3-6h6m6 1a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <h4 class="font-medium text-center text-sm text-white">Banker's</h4>
+          </div>
+        </div>
+  
+        <!-- Treasury Bills Details -->
+        <div id="treasury-info" class="info-box bg-gray-700 rounded-lg p-6 active">
+          <div class="flex items-start space-x-3 mb-4">
+            <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold text-white">Treasury Bills (T-Bills)</h3>
+              <p class="text-gray-300 mt-1">Short-term debt securities issued by national governments, considered among the safest money market instruments.</p>
+            </div>
+          </div>
+  
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Issuers</p>
+                  <p class="text-white">National governments</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Typical Maturities</p>
+                  <p class="text-white">4 weeks to 52 weeks</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Risk Level
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">The relative risk of loss of principal compared to other money market instruments.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">Very low</p>
+                  
+                  <!-- Risk Level Visualization -->
+                  <div class="mt-2 bg-gray-800 rounded-full h-3">
+                    <div class="bg-green-500 h-3 rounded-full" style="width: 20%"></div>
+                  </div>
+                  <div class="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>Low Risk</span>
+                    <span>High Risk</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Liquidity</p>
+                  <p class="text-white">Extremely high</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                  <polyline points="16 7 22 7 22 13"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Tax Benefits
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">Potential tax advantages from holding this type of instrument.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">Taxable at federal level</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Yield Range (2023)
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">The typical range of annual returns for this type of instrument in 2023.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">4.8% - 5.4%</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div class="bg-gray-800/60 p-3 rounded-lg">
+              <p class="text-gray-400 text-sm">Notable Examples</p>
+              <p class="text-white">US Treasuries, German Bunds</p>
+            </div>
+            <div class="bg-gray-800/60 p-3 rounded-lg">
+              <p class="text-gray-400 text-sm">Best For</p>
+              <p class="text-white">Conservative investors seeking principal safety</p>
+            </div>
+            <div class="bg-gray-800/60 p-3 rounded-lg">
+              <p class="text-gray-400 text-sm">Market Size</p>
+              <p class="text-white">Largest segment of money markets</p>
+            </div>
+          </div>
+  
+          <div class="mb-4 mt-6 bg-gray-800 p-4 rounded-lg">
+            <p class="text-sm text-gray-300">
+              <span class="text-green-400 font-medium">Key Feature:</span> Benchmark for risk-free rate, no coupon (discount basis)
+            </p>
+          </div>
+          
+          <div class="mt-6 bg-gray-800 p-4 rounded-lg">
+            <p class="text-sm text-gray-300">
+              <span class="text-green-400 font-medium">Did you know?</span> Treasury bills are sold at a discount to their face value and do not pay interest before maturity. The return is the difference between the purchase price and face value.
+            </p>
+          </div>
+        </div>
+  
+        <!-- Commercial Paper Details -->
+        <div id="commercial-info" class="info-box bg-gray-700 rounded-lg p-6">
+          <div class="flex items-start space-x-3 mb-4">
+            <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold text-white">Commercial Paper</h3>
+              <p class="text-gray-300 mt-1">Unsecured promissory notes issued by large corporations to meet short-term financing needs.</p>
+            </div>
+          </div>
+  
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Issuers</p>
+                  <p class="text-white">Large corporations</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Typical Maturities</p>
+                  <p class="text-white">1 to 270 days</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Risk Level
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">The relative risk of loss of principal compared to other money market instruments.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">Low to moderate</p>
+                  
+                  <!-- Risk Level Visualization -->
+                  <div class="mt-2 bg-gray-800 rounded-full h-3">
+                    <div class="bg-gradient-to-r from-green-500 to-yellow-500 h-3 rounded-full" style="width: 45%"></div>
+                  </div>
+                  <div class="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>Low Risk</span>
+                    <span>High Risk</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Liquidity</p>
+                  <p class="text-white">High for major issuers</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                  <polyline points="16 7 22 7 22 13"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Tax Benefits
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">Potential tax advantages from holding this type of instrument.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">Fully taxable</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Yield Range (2023)
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">The typical range of annual returns for this type of instrument in 2023.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">5.2% - 5.8%</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div class="bg-gray-800/60 p-3 rounded-lg">
+              <p class="text-gray-400 text-sm">Notable Examples</p>
+              <p class="text-white">Apple Inc., Johnson & Johnson</p>
+            </div>
+            <div class="bg-gray-800/60 p-3 rounded-lg">
+              <p class="text-gray-400 text-sm">Best For</p>
+              <p class="text-white">Investors seeking higher yields than T-bills</p>
+            </div>
+            <div class="bg-gray-800/60 p-3 rounded-lg">
+              <p class="text-gray-400 text-sm">Market Size</p>
+              <p class="text-white">Major component of corporate funding</p>
+            </div>
+          </div>
+  
+          <div class="mb-4 mt-6 bg-gray-800 p-4 rounded-lg">
+            <p class="text-sm text-gray-300">
+              <span class="text-green-400 font-medium">Key Feature:</span> Unsecured, issued at discount
+            </p>
+          </div>
+          
+          <div class="mt-6 bg-gray-800 p-4 rounded-lg">
+            <p class="text-sm text-gray-300">
+              <span class="text-green-400 font-medium">Did you know?</span> Commercial paper helped finance the growth of major companies like General Motors and General Electric in the early 20th century, allowing them to manage short-term cash needs efficiently.
+            </p>
+          </div>
+        </div>
+  
+        <!-- CDs Details -->
+        <div id="cd-info" class="info-box bg-gray-700 rounded-lg p-6">
+          <div class="flex items-start space-x-3 mb-4">
+            <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold text-white">Certificates of Deposit (CDs)</h3>
+              <p class="text-gray-300 mt-1">Time-restricted deposits issued by banks that pay fixed interest rates until maturity.</p>
+            </div>
+          </div>
+  
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Issuers</p>
+                  <p class="text-white">Banks and financial institutions</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Typical Maturities</p>
+                  <p class="text-white">1 month to 1 year</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Risk Level
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">The relative risk of loss of principal compared to other money market instruments.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">Low</p>
+                  
+                  <!-- Risk Level Visualization -->
+                  <div class="mt-2 bg-gray-800 rounded-full h-3">
+                    <div class="bg-gradient-to-r from-green-500 to-yellow-500 h-3 rounded-full" style="width: 30%"></div>
+                  </div>
+                  <div class="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>Low Risk</span>
+                    <span>High Risk</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Liquidity</p>
+                  <p class="text-white">Moderate to high</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                  <polyline points="16 7 22 7 22 13"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Tax Benefits
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">Potential tax advantages from holding this type of instrument.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">FDIC insurance (limits apply)</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Yield Range (2023)
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">The typical range of annual returns for this type of instrument in 2023.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">4.9% - 5.6%</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div class="bg-gray-800/60 p-3 rounded-lg">
+              <p class="text-gray-400 text-sm">Notable Examples</p>
+              <p class="text-white">Bank of America CDs, Chase CDs</p>
+            </div>
+            <div class="bg-gray-800/60 p-3 rounded-lg">
+              <p class="text-gray-400 text-sm">Best For</p>
+              <p class="text-white">Safety-oriented investors seeking higher yields than savings</p>
+            </div>
+            <div class="bg-gray-800/60 p-3 rounded-lg">
+              <p class="text-gray-400 text-sm">Market Size</p>
+              <p class="text-white">Significant retail and institutional market</p>
+            </div>
+          </div>
+  
+          <div class="mb-4 mt-6 bg-gray-800 p-4 rounded-lg">
+            <p class="text-sm text-gray-300">
+              <span class="text-green-400 font-medium">Key Feature:</span> FDIC insurance (limits apply), fixed rates
+            </p>
+          </div>
+          
+          <div class="mt-6 bg-gray-800 p-4 rounded-lg">
+            <p class="text-sm text-gray-300">
+              <span class="text-green-400 font-medium">Did you know?</span> Unlike other money market instruments, CDs often charge penalties for early withdrawal, making them less liquid but potentially higher-yielding.
+            </p>
+          </div>
+        </div>
+  
+        <!-- Repo Details -->
+        <div id="repo-info" class="info-box bg-gray-700 rounded-lg p-6">
+          <div class="flex items-start space-x-3 mb-4">
+            <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold text-white">Repurchase Agreements (Repos)</h3>
+              <p class="text-gray-300 mt-1">Short-term borrowing arrangements where securities are sold with an agreement to repurchase them later.</p>
+            </div>
+          </div>
+  
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Issuers</p>
+                  <p class="text-white">Banks, dealers, institutions</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Typical Maturities</p>
+                  <p class="text-white">Overnight to 14 days</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Risk Level
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">The relative risk of loss of principal compared to other money market instruments.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">Low</p>
+                  
+                  <!-- Risk Level Visualization -->
+                  <div class="mt-2 bg-gray-800 rounded-full h-3">
+                    <div class="bg-green-500 h-3 rounded-full" style="width: 25%"></div>
+                  </div>
+                  <div class="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>Low Risk</span>
+                    <span>High Risk</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Liquidity</p>
+                  <p class="text-white">Very high</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                  <polyline points="16 7 22 7 22 13"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Tax Benefits
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">Potential tax advantages from holding this type of instrument.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">Fully taxable</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Yield Range (2023)
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">The typical range of annual returns for this type of instrument in 2023.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">4.7% - 5.3%</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div class="bg-gray-800/60 p-3 rounded-lg">
+              <p class="text-gray-400 text-sm">Notable Examples</p>
+              <p class="text-white">Federal Reserve repo operations</p>
+            </div>
+            <div class="bg-gray-800/60 p-3 rounded-lg">
+              <p class="text-gray-400 text-sm">Best For</p>
+              <p class="text-white">Institutional investors managing short-term liquidity</p>
+            </div>
+            <div class="bg-gray-800/60 p-3 rounded-lg">
+              <p class="text-gray-400 text-sm">Market Size</p>
+              <p class="text-white">Critical component in monetary operations</p>
+            </div>
+          </div>
+  
+          <div class="mb-4 mt-6 bg-gray-800 p-4 rounded-lg">
+            <p class="text-sm text-gray-300">
+              <span class="text-green-400 font-medium">Key Feature:</span> Collateralized, commonly used by central banks
+            </p>
+          </div>
+          
+          <div class="mt-6 bg-gray-800 p-4 rounded-lg">
+            <p class="text-sm text-gray-300">
+              <span class="text-green-400 font-medium">Did you know?</span> The repo market is a critical funding mechanism for the global financial system, with the Federal Reserve using repos to implement monetary policy and inject liquidity into markets.
+            </p>
+          </div>
+        </div>
+  
+        <!-- Banker's Acceptances Details -->
+        <div id="bankers-info" class="info-box bg-gray-700 rounded-lg p-6">
+          <div class="flex items-start space-x-3 mb-4">
+            <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 8h6m-5 0a3 3 0 110 6H9l3 3m-3-6h6m6 1a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold text-white">Banker's Acceptances</h3>
+              <p class="text-gray-300 mt-1">Time drafts guaranteed by banks, commonly used in international trade finance.</p>
+            </div>
+          </div>
+  
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Issuers</p>
+                  <p class="text-white">Banks backing trade transactions</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Typical Maturities</p>
+                  <p class="text-white">30 to 180 days</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Risk Level
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">The relative risk of loss of principal compared to other money market instruments.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">Low to moderate</p>
+                  
+                  <!-- Risk Level Visualization -->
+                  <div class="mt-2 bg-gray-800 rounded-full h-3">
+                    <div class="bg-gradient-to-r from-green-500 to-yellow-500 h-3 rounded-full" style="width: 40%"></div>
+                  </div>
+                  <div class="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>Low Risk</span>
+                    <span>High Risk</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Liquidity</p>
+                  <p class="text-white">Moderate</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                  <polyline points="16 7 22 7 22 13"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Tax Benefits
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">Potential tax advantages from holding this type of instrument.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">Fully taxable</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">
+                    Yield Range (2023)
+                    <span class="tooltip ml-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#079A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <span class="tooltiptext">The typical range of annual returns for this type of instrument in 2023.</span>
+                    </span>
+                  </p>
+                  <p class="text-white">5.0% - 5.7%</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div class="bg-gray-800/60 p-3 rounded-lg">
+              <p class="text-gray-400 text-sm">Notable Examples</p>
+              <p class="text-white">Letters of credit for international trade</p>
+            </div>
+            <div class="bg-gray-800/60 p-3 rounded-lg">
+              <p class="text-gray-400 text-sm">Best For</p>
+              <p class="text-white">Investors involved in international commerce</p>
+            </div>
+            <div class="bg-gray-800/60 p-3 rounded-lg">
+              <p class="text-gray-400 text-sm">Market Size</p>
+              <p class="text-white">Smaller but important for trade finance</p>
+            </div>
+          </div>
+  
+          <div class="mb-4 mt-6 bg-gray-800 p-4 rounded-lg">
+            <p class="text-sm text-gray-300">
+              <span class="text-green-400 font-medium">Key Feature:</span> Trade-related backing, international usage
+            </p>
+          </div>
+          
+          <div class="mt-6 bg-gray-800 p-4 rounded-lg">
+            <p class="text-sm text-gray-300">
+              <span class="text-green-400 font-medium">Did you know?</span> Banker's acceptances have been used in international trade for centuries, providing a secure way for exporters to receive payment while giving importers time to sell goods before paying.
+            </p>
+          </div>
+        </div>
+  
+        <!-- Money Markets Facts Section -->
+        <div class="mt-6 bg-gray-700 p-4 rounded-lg">
+          <h4 class="text-lg font-semibold text-white mb-2">How Money Markets Work</h4>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div class="bg-gray-800 p-3 rounded-lg hover:bg-gray-800/80 transition-all">
+              <div class="flex items-center mb-2">
+                <div class="w-8 h-8 bg-brand-primary rounded-full flex items-center justify-center mr-2">
+                  <span class="text-white font-bold">1</span>
+                </div>
+                <span class="text-white font-medium">Short-Term Lending</span>
+              </div>
+              <p class="text-gray-300">Issuers sell money market instruments to raise short-term capital, typically for periods under one year.</p>
+            </div>
+            
+            <div class="bg-gray-800 p-3 rounded-lg hover:bg-gray-800/80 transition-all">
+              <div class="flex items-center mb-2">
+                <div class="w-8 h-8 bg-brand-primary rounded-full flex items-center justify-center mr-2">
+                  <span class="text-white font-bold">2</span>
+                </div>
+                <span class="text-white font-medium">Capital Preservation</span>
+              </div>
+              <p class="text-gray-300">These instruments emphasize safety and liquidity over high returns, making them valuable for cash management.</p>
+            </div>
+            
+            <div class="bg-gray-800 p-3 rounded-lg hover:bg-gray-800/80 transition-all">
+              <div class="flex items-center mb-2">
+                <div class="w-8 h-8 bg-brand-primary rounded-full flex items-center justify-center mr-2">
+                  <span class="text-white font-bold">3</span>
+                </div>
+                <span class="text-white font-medium">Maturity</span>
+              </div>
+              <p class="text-gray-300">At maturity, investors receive their principal plus any interest or discount earned during the holding period.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mt-4 text-sm text-gray-400">
+          <p>Click on an instrument type above to explore its characteristics</p>
+        </div>
+      </div>
+    </div>
+  
+    <script>
+      // Function to handle instrument selection
+      function selectInstrument(instrumentId) {
+        // Reset all cards
+        document.querySelectorAll('.instrument-card').forEach(card => {
+          card.classList.remove('selected-instrument');
+          card.classList.add('bg-gray-700');
+          
+          // Reset icon colors
+          const iconSvg = card.querySelector('svg');
+          if (iconSvg) {
+            iconSvg.setAttribute('stroke', '#079A4F');
+          }
+          
+          // Reset circle backgrounds
+          const circle = card.querySelector('.w-12.h-12');
+          if (circle) {
+            circle.classList.remove('bg-white/20');
+            circle.classList.add('bg-gray-800/60');
+          }
+        });
+  
+        // Highlight selected card
+        const selectedCard = document.getElementById(`${instrumentId}-card`);
+        if (selectedCard) {
+          selectedCard.classList.add('selected-instrument');
+          selectedCard.classList.remove('bg-gray-700');
+          
+          // Change icon color to white
+          const iconSvg = selectedCard.querySelector('svg');
+          if (iconSvg) {
+            iconSvg.setAttribute('stroke', 'white');
+          }
+          
+          // Change circle background
+          const circle = selectedCard.querySelector('.w-12.h-12');
+          if (circle) {
+            circle.classList.remove('bg-gray-800/60');
+            circle.classList.add('bg-white/20');
+          }
+        }
+  
+        // Hide all info boxes
+        document.querySelectorAll('.info-box').forEach(box => {
+          box.classList.remove('active');
+        });
+  
+        // Show selected info box
+        const infoBox = document.getElementById(`${instrumentId}-info`);
+        if (infoBox) {
+          infoBox.classList.add('active');
+        }
+      }
+  
+      // Set default selection
+      document.addEventListener('DOMContentLoaded', function() {
+        selectInstrument('treasury');
+      });
+    </script>
+  </body>
+  </html>
