@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cryptocurrency Markets</title>
+
+  <!-- Import Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Import Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    // Configure Tailwind with dark mode
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              primary: '#079A4F',
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    body {
+      background-color: #111827;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .exchange-card {
+      transition: all 0.3s ease;
+    }
+
+    .exchange-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .selected-exchange {
+      background-color: #079A4F !important;
+    }
+
+    .info-box {
+      display: none;
+    }
+
+    .info-box.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    /* Tooltip styles */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: help;
+    }
+
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 200px;
+      background-color: #111827;
+      color: #fff;
+      text-align: left;
+      border-radius: 6px;
+      padding: 8px;
+      position: absolute;
+      z-index: 1;
+      top: 125%;
+      left: 50%;
+      margin-left: -100px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 0.75rem;
+      line-height: 1.2;
+    }
+
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    /* Animation for fade in effect */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body class="dark">
+  <div class="container mx-auto py-8 px-4">
+    <div class="w-full max-w-4xl mx-auto bg-gray-800 rounded-lg p-6">
+      <header class="mb-6">
+        <h2 class="text-2xl font-bold text-white">Cryptocurrency Markets</h2>
+        <p class="text-gray-400 mt-2">These innovative digital marketplaces facilitate the trading of blockchain-based currencies and tokens secured by cryptography.</p>
+        <div class="mt-4 p-3 bg-gray-800/60 rounded-lg border-l-4 border-brand-primary">
+          <p class="text-sm text-gray-300">
+            When you trade in cryptocurrency markets, you're participating in a 24/7 global ecosystem where assets can be exchanged directly between participants without traditional financial intermediaries.
+          </p>
+        </div>
+      </header>
+
+      <!-- Exchange Type Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div id="centralized-card" class="exchange-card selected-exchange rounded-lg p-4 cursor-pointer">
+          <div class="flex justify-center mb-2">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-white/20">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+          </div>
+          <h4 class="font-medium text-center text-sm">Centralized Exchanges</h4>
+          <p class="text-xs text-center mt-1 text-gray-300">Company-operated platforms</p>
+        </div>
+        <div id="decentralized-card" class="exchange-card bg-gray-700 rounded-lg p-4 cursor-pointer">
+            <div class="flex justify-center mb-2">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-800/60">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <rect x="2" y="7" width="6" height="10" rx="1" />
+                  <rect x="9" y="3" width="6" height="18" rx="1" />
+                  <rect x="16" y="7" width="6" height="10" rx="1" />
+                  <line x1="5" y1="12" x2="5" y2="12.01" />
+                  <line x1="12" y1="12" x2="12" y2="12.01" />
+                  <line x1="19" y1="12" x2="19" y2="12.01" />
+                </svg>
+              </div>
+            </div>
+            <h4 class="font-medium text-center text-sm">Decentralized Exchanges</h4>
+            <p class="text-xs text-center mt-1 text-gray-300">Smart contract protocols</p>
+          </div>
+          
+          <div id="hybrid-card" class="exchange-card bg-gray-700 rounded-lg p-4 cursor-pointer">
+            <div class="flex justify-center mb-2">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-800/60">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </div>
+            </div>
+            <h4 class="font-medium text-center text-sm">Hybrid Exchanges</h4>
+            <p class="text-xs text-center mt-1 text-gray-300">Combined features</p>
+          </div>
+  
+          <div id="p2p-card" class="exchange-card bg-gray-700 rounded-lg p-4 cursor-pointer">
+            <div class="flex justify-center mb-2">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-800/60">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+            </div>
+            <h4 class="font-medium text-center text-sm">P2P Platforms</h4>
+            <p class="text-xs text-center mt-1 text-gray-300">Direct user matching</p>
+          </div>
+        </div>
+  
+        <!-- Centralized Exchanges Details -->
+        <div id="centralized-info" class="info-box bg-gray-700 rounded-lg p-6 active">
+          <div class="flex items-start space-x-3 mb-4">
+            <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold text-white">Centralized Exchanges (CEX)</h3>
+              <p class="text-gray-300 mt-1">Company-operated platforms that facilitate cryptocurrency trading while maintaining custody of user funds.</p>
+            </div>
+          </div>
+  
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Structure</p>
+                  <p class="text-white">Company-operated platforms</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                  <line x1="9" y1="21" x2="9" y2="9"></line>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Custody Model</p>
+                  <p class="text-white">Exchange holds user funds</p>
+                </div>
+              </div>
+              <div class="mb-4 flex items-start space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                  <polyline points="16 7 22 7 22 13"></polyline>
+                </svg>
+                <div>
+                  <p class="text-gray-400 text-sm">Trading Speed</p>
+                  <p class="text-white">High (milliseconds)</p>
+                </div>
+              </div>
+            </div>
+            <div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Liquidity</p>
+                    <p class="text-white">Generally high</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Security Model</p>
+                    <p class="text-white">Company security protocols</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Example Platforms</p>
+                    <p class="text-white">Binance, Coinbase, Kraken</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mt-4 bg-gray-800 p-4 rounded-lg">
+              <p class="text-sm text-gray-300">
+                <span class="text-green-400 font-medium">Did you know?</span> Centralized exchanges handle the majority of global cryptocurrency trading volume, with the top exchanges processing billions of dollars in transactions daily.
+              </p>
+            </div>
+          </div>
+    
+          <!-- Decentralized Exchanges Details -->
+          <div id="decentralized-info" class="info-box bg-gray-700 rounded-lg p-6">
+            <div class="flex items-start space-x-3 mb-4">
+              <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <rect x="2" y="7" width="6" height="10" rx="1" />
+                  <rect x="9" y="3" width="6" height="18" rx="1" />
+                  <rect x="16" y="7" width="6" height="10" rx="1" />
+                  <line x1="5" y1="12" x2="5" y2="12.01" />
+                  <line x1="12" y1="12" x2="12" y2="12.01" />
+                  <line x1="19" y1="12" x2="19" y2="12.01" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-semibold text-white">Decentralized Exchanges (DEX)</h3>
+                <p class="text-gray-300 mt-1">Smart contract-based protocols that enable peer-to-peer trading without custodial intermediaries.</p>
+              </div>
+            </div>
+    
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Structure</p>
+                    <p class="text-white">Smart contract-based protocols</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                    <line x1="9" y1="21" x2="9" y2="9"></line>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Custody Model</p>
+                    <p class="text-white">Self-custody (users control keys)</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                    <polyline points="16 7 22 7 22 13"></polyline>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Trading Speed</p>
+                    <p class="text-white">Moderate to slow (seconds/minutes)</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Liquidity</p>
+                    <p class="text-white">Varies by protocol</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Security Model</p>
+                    <p class="text-white">Blockchain consensus security</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Example Platforms</p>
+                    <p class="text-white">Uniswap, dYdX, SushiSwap</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mt-4 bg-gray-800 p-4 rounded-lg">
+              <p class="text-sm text-gray-300">
+                <span class="text-green-400 font-medium">Did you know?</span> Decentralized exchanges operate without a central authority, using smart contracts to facilitate trades directly between users' wallets without requiring them to give up control of their private keys.
+              </p>
+            </div>
+          </div>
+    
+          <!-- Hybrid Exchanges Details -->
+          <div id="hybrid-info" class="info-box bg-gray-700 rounded-lg p-6">
+            <div class="flex items-start space-x-3 mb-4">
+              <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-semibold text-white">Hybrid Exchanges</h3>
+                <p class="text-gray-300 mt-1">Platforms combining features of both centralized and decentralized exchanges to offer enhanced security with user-friendly experience.</p>
+              </div>
+            </div>
+    
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Structure</p>
+                    <p class="text-white">Combined centralized/decentralized features</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                    <line x1="9" y1="21" x2="9" y2="9"></line>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Custody Model</p>
+                    <p class="text-white">Varies by implementation</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                    <polyline points="16 7 22 7 22 13"></polyline>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Trading Speed</p>
+                    <p class="text-white">Moderate to high</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Liquidity</p>
+                    <p class="text-white">Moderate to high</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Security Model</p>
+                    <p class="text-white">Hybrid approach</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Example Platforms</p>
+                    <p class="text-white">Bisq, Nash</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mt-4 bg-gray-800 p-4 rounded-lg">
+              <p class="text-sm text-gray-300">
+                <span class="text-green-400 font-medium">Did you know?</span> Hybrid exchanges aim to combine the best of both worlds: the security and control of decentralized exchanges with the speed and user experience of centralized platforms.
+              </p>
+            </div>
+          </div>
+    
+          <!-- P2P Platforms Details -->
+          <div id="p2p-info" class="info-box bg-gray-700 rounded-lg p-6">
+            <div class="flex items-start space-x-3 mb-4">
+              <div class="p-2 bg-brand-primary rounded-full flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-semibold text-white">P2P Platforms</h3>
+                <p class="text-gray-300 mt-1">Direct user-to-user matching services that facilitate cryptocurrency trading between individuals without an order book.</p>
+              </div>
+            </div>
+    
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Structure</p>
+                    <p class="text-white">Direct user-to-user matching</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                    <line x1="9" y1="21" x2="9" y2="9"></line>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Custody Model</p>
+                    <p class="text-white">Self-custody during trading</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                    <polyline points="16 7 22 7 22 13"></polyline>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Trading Speed</p>
+                    <p class="text-white">Slow (manual approvals)</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Liquidity</p>
+                    <p class="text-white">Generally lower</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Security Model</p>
+                    <p class="text-white">Escrow and reputation systems</p>
+                  </div>
+                </div>
+                <div class="mb-4 flex items-start space-x-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="text-green-500 mt-1 flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                  <div>
+                    <p class="text-gray-400 text-sm">Example Platforms</p>
+                    <p class="text-white">LocalBitcoins, Paxful</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mt-4 bg-gray-800 p-4 rounded-lg">
+              <p class="text-sm text-gray-300">
+                <span class="text-green-400 font-medium">Did you know?</span> P2P platforms often serve as crucial on-ramps in regions with limited banking infrastructure or regulatory challenges, enabling cryptocurrency adoption in underserved markets.
+              </p>
+            </div>
+          </div>
+    
+          <!-- Cryptocurrency Markets Facts -->
+          <div class="mt-6 bg-gray-700 p-4 rounded-lg">
+            <h4 class="text-lg font-semibold text-white mb-2">Key Cryptocurrency Market Facts</h4>
+            <ul class="space-y-2 text-gray-300 text-sm">
+              <li><span class="text-green-400 font-medium">24/7 Trading:</span> Unlike traditional financial markets, cryptocurrency markets operate 24 hours a day, 7 days a week, 365 days a year.</li>
+              <li><span class="text-green-400 font-medium">Global Access:</span> Crypto markets provide financial access to billions of people worldwide regardless of geographic location or banking status.</li>
+              <li><span class="text-green-400 font-medium">Market Cap:</span> The total cryptocurrency market capitalization has grown from virtually zero in 2009 to over $1 trillion in recent years.</li>
+              <li><span class="text-green-400 font-medium">Regulation:</span> Cryptocurrency regulation varies widely across jurisdictions, with some countries embracing innovation and others imposing significant restrictions.</li>
+            </ul>
+          </div>
+    
+          <div class="mt-4 text-sm text-gray-400 text-center">
+            <p>Click on an exchange type above to view detailed information</p>
+          </div>
+        </div>
+      </div>
+    
+      <script>
+        // Function to handle exchange selection
+        function selectExchange(exchangeId) {
+          // Reset all cards
+          document.querySelectorAll('.exchange-card').forEach(card => {
+            card.classList.remove('selected-exchange');
+            card.classList.add('bg-gray-700');
+          });
+    
+          // Highlight selected card
+          const selectedCard = document.getElementById(`${exchangeId}-card`);
+          if (selectedCard) {
+            selectedCard.classList.add('selected-exchange');
+            selectedCard.classList.remove('bg-gray-700');
+          }
+    
+          // Hide all info boxes
+          document.querySelectorAll('.info-box').forEach(box => {
+            box.classList.remove('active');
+          });
+    
+          // Show selected info box
+          const infoBox = document.getElementById(`${exchangeId}-info`);
+          if (infoBox) {
+            infoBox.classList.add('active');
+          }
+        }
+    
+        // Add click event listeners to all exchange cards
+        document.getElementById('centralized-card').addEventListener('click', () => selectExchange('centralized'));
+        document.getElementById('decentralized-card').addEventListener('click', () => selectExchange('decentralized'));
+        document.getElementById('hybrid-card').addEventListener('click', () => selectExchange('hybrid'));
+        document.getElementById('p2p-card').addEventListener('click', () => selectExchange('p2p'));
+    
+        // Set default selection
+        document.addEventListener('DOMContentLoaded', function() {
+          selectExchange('centralized');
+        });
+      </script>
+    </body>
+    </html>
