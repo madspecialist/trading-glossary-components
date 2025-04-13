@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capital Formation Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const CapitalFormationVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('process');
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const brandColor = "#079A4F"; // Your brand green color
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+            
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 5 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 5);
+            };
+
+            // Chart for capital allocation
+            React.useEffect(() => {
+                if (chartRef.current && activeTab === 'types') {
+                    if (chart) {
+                        chart.destroy();
+                    }
+                    setChart(null);
+                }
+            }, [activeTab]);
+
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Capital Formation
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    The process of increasing a company's or country's assets by acquiring new resources for production or investment. In financial markets, it refers to the creation of capital through the mobilization of savings and their investment in productive assets.
+                                </p>
+                            </div>
+
+                            <div className="mb-4 flex">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'process' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('process')}
+                                >
+                                    Process
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'types' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('types')}
+                                >
+                                    Types
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'factors' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('factors')}
+                                >
+                                    Factors
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'impacts' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('impacts')}
+                                >
+                                    Impacts
+                                </button>
+                            </div>
+
+                            {/* Capital Formation Process */}
+                            {activeTab === 'process' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">The Capital Formation Process</h3>
+                                    
+                                    <div className="relative h-96 mb-4 bg-gray-700 rounded-lg overflow-hidden">
+                                        {/* Step 1: Savings */}
+                                        {currentStep === 1 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 1: Savings Generation</h3>
+                                                <div className="flex flex-col items-center h-72">
+                                                    <div className="grid grid-cols-2 gap-4 w-full">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Individual Savers</h4>
+                                                            <div className="space-y-2 mb-4">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Households</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Saving portion of income</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Retirement Accounts</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">401(k)s, IRAs, pension funds</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-blue-900 bg-opacity-40 rounded-lg p-2 text-center">
+                                                                <div className="text-sm font-semibold">Deferred Consumption</div>
+                                                                <div className="text-xs text-gray-300">Present sacrifice for future gain</div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Institutional Savers</h4>
+                                                            <div className="space-y-2 mb-4">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Corporations</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Retained earnings</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Governments</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Budget surpluses</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-amber-900 bg-opacity-40 rounded-lg p-2 text-center">
+                                                                <div className="text-sm font-semibold">Strategic Reserves</div>
+                                                                <div className="text-xs text-gray-300">Planned future investment</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="mt-4 text-center">
+                                                        <div className="text-sm font-semibold text-white">Combined Savings Pool</div>
+                                                        <div className="mt-2 h-4 w-64 bg-gray-600 rounded-full overflow-hidden">
+                                                            <div className="h-full w-2/3 bg-gradient-to-r from-blue-500 to-amber-500"></div>
+                                                        </div>
+                                                        <div className="mt-1 text-xs text-gray-300">Capital available for investment</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 2: Financial Intermediation */}
+                                        {currentStep === 2 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 2: Financial Intermediation</h3>
+                                                <div className="flex flex-col items-center h-72">
+                                                    <div className="mb-4 text-center w-3/4">
+                                                        <div className="p-2 bg-purple-900 bg-opacity-40 rounded-lg text-sm font-semibold">
+                                                            Savings Pool
+                                                        </div>
+                                                        <div className="h-10 w-1 bg-gray-600 mx-auto"></div>
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-3 gap-4 w-full">
+                                                        <div className="bg-gray-800 p-3 rounded-lg text-center">
+                                                            <h4 className="text-blue-400 font-semibold mb-2">Banking System</h4>
+                                                            <div className="space-y-2 text-xs">
+                                                                <div className="bg-gray-700 p-2 rounded">Commercial Banks</div>
+                                                                <div className="bg-gray-700 p-2 rounded">Credit Unions</div>
+                                                                <div className="bg-gray-700 p-2 rounded">Savings & Loans</div>
+                                                            </div>
+                                                            <div className="mt-2 text-xs text-gray-400">Lending & Credit</div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg text-center">
+                                                            <h4 className="text-green-400 font-semibold mb-2">Capital Markets</h4>
+                                                            <div className="space-y-2 text-xs">
+                                                                <div className="bg-gray-700 p-2 rounded">Stock Markets</div>
+                                                                <div className="bg-gray-700 p-2 rounded">Bond Markets</div>
+                                                                <div className="bg-gray-700 p-2 rounded">Venture Capital</div>
+                                                            </div>
+                                                            <div className="mt-2 text-xs text-gray-400">Direct Investment</div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg text-center">
+                                                            <h4 className="text-amber-400 font-semibold mb-2">Fund Managers</h4>
+                                                            <div className="space-y-2 text-xs">
+                                                                <div className="bg-gray-700 p-2 rounded">Mutual Funds</div>
+                                                                <div className="bg-gray-700 p-2 rounded">Pension Funds</div>
+                                                                <div className="bg-gray-700 p-2 rounded">Insurance Funds</div>
+                                                            </div>
+                                                            <div className="mt-2 text-xs text-gray-400">Pooled Investments</div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-3 gap-4 w-full mt-4">
+                                                        <div className="flex justify-center">
+                                                            <div className="h-8 w-1 bg-blue-500 bg-opacity-60"></div>
+                                                        </div>
+                                                        <div className="flex justify-center">
+                                                            <div className="h-8 w-1 bg-green-500 bg-opacity-60"></div>
+                                                        </div>
+                                                        <div className="flex justify-center">
+                                                            <div className="h-8 w-1 bg-amber-500 bg-opacity-60"></div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="mt-2 text-center">
+                                                        <div className="text-sm font-semibold text-white">Allocated Capital</div>
+                                                        <div className="text-xs text-gray-300">Ready for productive investment</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 3: Capital Allocation */}
+                                        {currentStep === 3 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-green-400">Step 3: Capital Allocation</h3>
+                                                <div className="flex flex-col items-center h-72 overflow-y-auto">
+                                                    <div className="mb-3 text-center w-3/4">
+                                                        <div className="p-2 bg-purple-900 bg-opacity-40 rounded-lg text-sm font-semibold">
+                                                            Investment Decisions
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-2 gap-5 w-full mb-3">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Corporate Investment</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Physical Capital</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Factories, machinery, equipment</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Technology</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Software, automation, IP</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Human Capital</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Training, skills development</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-green-400 font-semibold text-center mb-2">Public Investment</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Infrastructure</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Roads, bridges, utilities</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Education</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Schools, universities, research</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Healthcare</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Hospitals, medical research</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="text-center bg-gray-700 p-3 rounded-lg w-full">
+                                                        <div className="text-sm font-semibold text-white mb-1">Capital Transformation</div>
+                                                        <div className="text-xs text-gray-300">Financial capital → Productive assets</div>
+                                                        <div className="text-xs text-gray-300 mt-1">Resources are deployed to create future economic value</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 4: Capital Accumulation */}
+                                        {currentStep === 4 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-green-400">Step 4: Capital Accumulation</h3>
+                                                <div className="flex flex-col items-center h-72 overflow-y-auto">                                                    
+                                                    <div className="grid grid-cols-1 gap-4 w-full mb-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Growth of Productive Capacity</h4>
+                                                            
+                                                            <div className="flex items-center justify-center mb-3">
+                                                                <div className="h-6 w-48 bg-gray-700 rounded-full overflow-hidden">
+                                                                    <div className="h-full w-1/5 bg-blue-500"></div>
+                                                                </div>
+                                                                <div className="mx-2 text-xs">→</div>
+                                                                <div className="h-6 w-48 bg-gray-700 rounded-full overflow-hidden">
+                                                                    <div className="h-full w-2/5 bg-blue-500"></div>
+                                                                </div>
+                                                                <div className="mx-2 text-xs">→</div>
+                                                                <div className="h-6 w-48 bg-gray-700 rounded-full overflow-hidden">
+                                                                    <div className="h-full w-3/5 bg-blue-500"></div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="grid grid-cols-3 gap-4 text-center text-xs text-gray-300">
+                                                                <div>Initial Capital Stock</div>
+                                                                <div>Intermediate Growth</div>
+                                                                <div>Expanded Capital Stock</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-2 gap-5 w-full mb-3">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-green-400 font-semibold text-center mb-2">Micro Level (Firm)</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Increased Production Capacity</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">More goods and services</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Enhanced Productivity</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Greater output per worker</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Competitive Advantage</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Better market position</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Macro Level (Economy)</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Higher Production Potential</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Increased GDP capacity</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Improved Living Standards</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">More goods and services per capita</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Economic Development</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Long-term prosperity</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="text-center bg-gray-700 p-3 rounded-lg w-full">
+                                                        <div className="text-sm font-semibold text-white mb-1">Capital Stock Growth</div>
+                                                        <div className="text-xs text-gray-300">Over time, accumulated capital expands the economy's productive base</div>
+                                                        <div className="text-xs text-gray-300 mt-1">This enables future growth potential beyond current capabilities</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 5: Feedback Loop */}
+                                        {currentStep === 5 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-green-400">Step 5: Feedback Loop & Continued Growth</h3>
+                                                <div className="flex flex-col items-center h-72 overflow-y-auto">
+                                                    <div className="w-full p-3 bg-gray-800 rounded-lg mb-4">
+                                                        <div className="text-center font-semibold mb-2">The Virtuous Cycle of Capital Formation</div>
+                                                        
+                                                        {/* Circular flow diagram */}
+                                                        <div className="relative h-52 w-full mb-2">
+                                                            {/* Center circle */}
+                                                            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center">
+                                                                <div className="text-center text-xs">
+                                                                    <div className="font-semibold text-green-400">Economic</div>
+                                                                    <div className="font-semibold text-green-400">Growth</div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            {/* Outer elements */}
+                                                            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-0 bg-blue-900 bg-opacity-40 p-2 rounded-lg">
+                                                                <div className="text-center text-xs font-semibold">Savings</div>
+                                                            </div>
+                                                            
+                                                            <div className="absolute top-1/4 right-8 transform translate-y-0 bg-purple-900 bg-opacity-40 p-2 rounded-lg">
+                                                                <div className="text-center text-xs font-semibold">Investment</div>
+                                                            </div>
+                                                            
+                                                            <div className="absolute bottom-1/4 right-8 transform translate-y-0 bg-amber-900 bg-opacity-40 p-2 rounded-lg">
+                                                                <div className="text-center text-xs font-semibold">Production</div>
+                                                            </div>
+                                                            
+                                                            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-0 bg-green-900 bg-opacity-40 p-2 rounded-lg">
+                                                                <div className="text-center text-xs font-semibold">Income</div>
+                                                            </div>
+                                                            
+                                                            <div className="absolute bottom-1/4 left-8 transform translate-y-0 bg-red-900 bg-opacity-40 p-2 rounded-lg">
+                                                                <div className="text-center text-xs font-semibold">Consumption</div>
+                                                            </div>
+                                                            
+                                                            <div className="absolute top-1/4 left-8 transform translate-y-0 bg-pink-900 bg-opacity-40 p-2 rounded-lg">
+                                                                <div className="text-center text-xs font-semibold">Output Growth</div>
+                                                            </div>
+                                                            
+                                                            {/* Connecting arrows (would be better with SVG but using simple CSS) */}
+                                                            <div className="absolute top-5 left-1/2 w-1 h-12 bg-gray-600 transform -translate-x-1/2 rotate-45 origin-top"></div>
+                                                            <div className="absolute top-5 left-1/2 w-1 h-12 bg-gray-600 transform -translate-x-1/2 -rotate-45 origin-top"></div>
+                                                            
+                                                            <div className="absolute bottom-5 left-1/2 w-1 h-12 bg-gray-600 transform -translate-x-1/2 rotate-45 origin-bottom"></div>
+                                                            <div className="absolute bottom-5 left-1/2 w-1 h-12 bg-gray-600 transform -translate-x-1/2 -rotate-45 origin-bottom"></div>
+                                                            
+                                                            <div className="absolute left-20 top-1/4 h-1 w-10 bg-gray-600"></div>
+                                                            <div className="absolute right-20 top-1/4 h-1 w-10 bg-gray-600"></div>
+                                                            
+                                                            <div className="absolute left-20 bottom-1/4 h-1 w-10 bg-gray-600"></div>
+                                                            <div className="absolute right-20 bottom-1/4 h-1 w-10 bg-gray-600"></div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-2 gap-4 w-full mb-3">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-green-400 font-semibold text-center mb-2">Sustained Growth</h4>
+                                                            <div className="text-sm text-gray-300">
+                                                                Higher productivity and income generate more savings, 
+                                                                leading to additional investment and further capital 
+                                                                formation in a continuous cycle of economic expansion.
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Capital Deepening</h4>
+                                                            <div className="text-sm text-gray-300">
+                                                                Increasing the amount of capital per worker over time, 
+                                                                enhancing labor productivity and enabling higher standards 
+                                                                of living across the economy.
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="text-center bg-gray-700 p-3 rounded-lg w-full">
+                                                        <div className="text-sm font-semibold text-white mb-1">Compounding Effect</div>
+                                                        <div className="text-xs text-gray-300">Each cycle of capital formation builds upon previous investments</div>
+                                                        <div className="text-xs text-gray-300 mt-1">This creates accelerating returns and expanding productive potential</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3, 4, 5].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-green-500' : 'bg-gray-500'}`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Types of Capital Formation */}
+                            {activeTab === 'types' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Types of Capital Formation</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Macro Capital Formation</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">National/Economy Level</span>: Aggregate investment across an entire economy
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Measured In</span>: Gross Fixed Capital Formation (GFCF), a component of GDP
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Focus</span>: Infrastructure, public works, and national development
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Examples</span>: Transportation networks, power grids, public education
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Micro Capital Formation</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Firm/Company Level</span>: Individual business investments
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Measured In</span>: Capital expenditures (CapEx) and fixed asset investments
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Focus</span>: Productivity, competitive advantage, and business growth
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Examples</span>: Production facilities, technology systems, R&D labs
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Tangible Capital Formation</h4>
+                                            <div className="space-y-2">
+                                                <div className="bg-gray-800 p-2 rounded-lg text-sm">
+                                                    <span className="font-semibold">Physical Infrastructure</span>
+                                                    <div className="text-xs text-gray-300 mt-1">Roads, bridges, buildings, utilities</div>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded-lg text-sm">
+                                                    <span className="font-semibold">Machinery & Equipment</span>
+                                                    <div className="text-xs text-gray-300 mt-1">Production equipment, vehicles, tools</div>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded-lg text-sm">
+                                                    <span className="font-semibold">Real Estate</span>
+                                                    <div className="text-xs text-gray-300 mt-1">Commercial properties, land development</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-purple-400 mb-2">Intangible Capital Formation</h4>
+                                            <div className="space-y-2">
+                                                <div className="bg-gray-800 p-2 rounded-lg text-sm">
+                                                    <span className="font-semibold">Human Capital</span>
+                                                    <div className="text-xs text-gray-300 mt-1">Education, training, skill development</div>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded-lg text-sm">
+                                                    <span className="font-semibold">Intellectual Property</span>
+                                                    <div className="text-xs text-gray-300 mt-1">Patents, copyrights, software, R&D</div>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded-lg text-sm">
+                                                    <span className="font-semibold">Organizational Capital</span>
+                                                    <div className="text-xs text-gray-300 mt-1">Business processes, management systems</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Factors Affecting Capital Formation */}
+                            {activeTab === 'factors' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Factors Affecting Capital Formation</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Economic Factors</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Savings Rate</span>
+                                                        <p className="text-gray-300 text-xs">Higher savings rates provide more funds for investment and capital formation</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Interest Rates</span>
+                                                        <p className="text-gray-300 text-xs">Lower rates reduce the cost of borrowing, encouraging capital investment</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Economic Stability</span>
+                                                        <p className="text-gray-300 text-xs">Predictable economic conditions foster long-term capital commitments</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Market Size & Growth</span>
+                                                        <p className="text-gray-300 text-xs">Larger or faster-growing markets attract more capital investment</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Institutional Factors</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Financial System Development</span>
+                                                        <p className="text-gray-300 text-xs">Efficient banking and capital markets facilitate investment flow</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Legal Framework</span>
+                                                        <p className="text-gray-300 text-xs">Property rights, contract enforcement, and investor protection</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Tax Policy</span>
+                                                        <p className="text-gray-300 text-xs">Investment incentives, depreciation rules, and corporate taxation</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Regulatory Environment</span>
+                                                        <p className="text-gray-300 text-xs">Permitting processes, compliance costs, and business climate</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Social & Political Factors</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Political Stability</span>
+                                                        <p className="text-gray-300 text-xs">Predictable governance encourages long-term investment</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Education & Skills</span>
+                                                        <p className="text-gray-300 text-xs">Qualified workforce attracts capital and enables technology adoption</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Social Infrastructure</span>
+                                                        <p className="text-gray-300 text-xs">Healthcare, education, and living conditions support human capital</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Entrepreneurial Culture</span>
+                                                        <p className="text-gray-300 text-xs">Innovation mindset and risk tolerance drives capital investment</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-purple-400 mb-2">Technological Factors</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Innovation Environment</span>
+                                                        <p className="text-gray-300 text-xs">Research infrastructure and intellectual property protection</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Technology Access</span>
+                                                        <p className="text-gray-300 text-xs">Availability of modern production methods and digital infrastructure</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Digital Transformation</span>
+                                                        <p className="text-gray-300 text-xs">Integration of digital technologies in business processes</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Knowledge Transfer</span>
+                                                        <p className="text-gray-300 text-xs">Mechanisms for sharing technological know-how</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Economic Impacts */}
+                            {activeTab === 'impacts' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Economic Impacts of Capital Formation</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Short-Term Impacts</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Job Creation</span>
+                                                        <p className="text-gray-300 text-xs">Construction, manufacturing, and operational roles for new capital projects</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Demand Boost</span>
+                                                        <p className="text-gray-300 text-xs">Increased spending on capital goods stimulates related industries</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Business Opportunities</span>
+                                                        <p className="text-gray-300 text-xs">Supplier and service provider growth to support capital projects</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Long-Term Impacts</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Productivity Growth</span>
+                                                        <p className="text-gray-300 text-xs">More output per worker through better tools, equipment, and processes</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Economic Capacity</span>
+                                                        <p className="text-gray-300 text-xs">Higher potential GDP as production possibilities expand</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Living Standards</span>
+                                                        <p className="text-gray-300 text-xs">Rising real wages and incomes as productivity increases</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Microeconomic Benefits</h4>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold mb-1 text-sm">For Businesses</div>
+                                                    <ul className="list-disc pl-4 text-xs text-gray-300 space-y-1">
+                                                        <li>Increased productive capacity</li>
+                                                        <li>Lower production costs</li>
+                                                        <li>Enhanced competitiveness</li>
+                                                        <li>New product capabilities</li>
+                                                        <li>Improved market positioning</li>
+                                                    </ul>
+                                                </div>
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold mb-1 text-sm">For Workers</div>
+                                                    <ul className="list-disc pl-4 text-xs text-gray-300 space-y-1">
+                                                        <li>Higher wages from productivity gains</li>
+                                                        <li>Improved working conditions</li>
+                                                        <li>New skill development</li>
+                                                        <li>Greater job security</li>
+                                                        <li>Career advancement opportunities</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-purple-400 mb-2">Macroeconomic Effects</h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold">Economic Growth</span>
+                                                    <p className="text-gray-300 text-xs">Higher GDP growth rates through expanded productive capacity</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold">International Competitiveness</span>
+                                                    <p className="text-gray-300 text-xs">Export potential through efficient production capabilities</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold">Innovation Ecosystem</span>
+                                                    <p className="text-gray-300 text-xs">Supportive environment for continued technological progress</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold">Inflation Control</span>
+                                                    <p className="text-gray-300 text-xs">Production capacity keeps pace with growing demand</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-green-400">Key Relationships</div>
+                                <div className="space-y-3">
+                                    <div className="flex items-start">
+                                        <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                        <p className="text-gray-200 text-sm">
+                                            <span className="font-semibold">Savings-Investment Link:</span> Capital formation depends on converting savings into productive investment.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-start">
+                                        <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                        <p className="text-gray-200 text-sm">
+                                            <span className="font-semibold">Capital-Output Ratio:</span> The amount of capital required to produce one unit of output, reflecting investment efficiency.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-start">
+                                        <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                        <p className="text-gray-200 text-sm">
+                                            <span className="font-semibold">Investment Multiplier:</span> How initial capital investment generates additional economic activity through ripple effects.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CapitalFormationVisual />);
+    </script>
+</body>
+</html>
