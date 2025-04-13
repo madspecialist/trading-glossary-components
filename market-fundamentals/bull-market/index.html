@@ -32,9 +32,11 @@
 
     <script type="text/babel">
         const BullMarketVisual = () => {
-            const [isDarkMode, setIsDarkMode] = React.useState(true); // Default to dark mode
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
             const chartRef = React.useRef(null);
             const [chart, setChart] = React.useState(null);
+            const [activeTab, setActiveTab] = React.useState('characteristics');
+            const [showingExample, setShowingExample] = React.useState(false);
 
             React.useEffect(() => {
                 const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -46,6 +48,20 @@
                 return () => darkModeQuery.removeEventListener('change', handler);
             }, []);
 
+            const bullMarketData = [80, 95, 115, 140, 165, 190, 215, 245];
+            const exampleData = {
+                '2009-2020 Bull Market': [
+                    {date: 'Mar 2009', value: 683, label: 'Bottom'},
+                    {date: 'Jan 2011', value: 1286, label: ''},
+                    {date: 'Jan 2013', value: 1498, label: ''},
+                    {date: 'Jan 2015', value: 2028, label: ''},
+                    {date: 'Jan 2017', value: 2275, label: ''},
+                    {date: 'Jan 2019', value: 2607, label: ''},
+                    {date: 'Jan 2020', value: 3278, label: 'Pre-COVID Peak'},
+                    {date: 'Feb 2020', value: 3386, label: 'All-Time High'}
+                ]
+            };
+
             React.useEffect(() => {
                 if (chartRef.current) {
                     if (chart) {
@@ -53,101 +69,371 @@
                     }
 
                     const ctx = chartRef.current.getContext('2d');
-                    const newChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
-                            datasets: [{
-                                label: 'Price',
-                                data: [100, 115, 125, 140, 155, 180, 195, 220],
-                                borderColor: '#079A4F',
-                                backgroundColor: '#079A4F20',
-                                tension: 0.4,
-                                fill: true
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            interaction: {
-                                intersect: false,
-                                mode: 'index'
+                    
+                    if (showingExample) {
+                        const data = exampleData['2009-2020 Bull Market'];
+                        const newChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: data.map(d => d.date),
+                                datasets: [{
+                                    label: 'S&P 500',
+                                    data: data.map(d => d.value),
+                                    borderColor: '#079A4F',
+                                    backgroundColor: 'rgba(7, 154, 79, 0.1)',
+                                    tension: 0.3,
+                                    fill: true,
+                                    pointRadius: 4,
+                                    pointBackgroundColor: (context) => {
+                                        const index = context.dataIndex;
+                                        const label = data[index].label;
+                                        return label ? '#079A4F' : 'rgba(7, 154, 79, 0.5)';
+                                    },
+                                    pointBorderColor: (context) => {
+                                        const index = context.dataIndex;
+                                        const label = data[index].label;
+                                        return label ? 'white' : 'rgba(7, 154, 79, 0.5)';
+                                    },
+                                    pointBorderWidth: 2,
+                                }]
                             },
-                            plugins: {
-                                legend: {
-                                    display: false
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: {
+                                    intersect: false,
+                                    mode: 'index'
                                 },
-                                tooltip: {
-                                    enabled: true,
-                                    backgroundColor: isDarkMode ? '#374151' : 'white',
-                                    titleColor: isDarkMode ? '#fff' : '#000',
-                                    bodyColor: isDarkMode ? '#fff' : '#000',
-                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
-                                    borderWidth: 1,
-                                    padding: 10,
-                                    displayColors: false,
-                                    callbacks: {
-                                        label: function(context) {
-                                            return `Price: ${context.parsed.y}`;
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        displayColors: false,
+                                        callbacks: {
+                                            label: function(context) {
+                                                const index = context.dataIndex;
+                                                const label = data[index].label;
+                                                const baseText = `S&P 500: ${context.parsed.y}`;
+                                                return label ? [baseText, `Event: ${label}`] : baseText;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    },
+                                    x: {
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    }
+                                },
+                                annotations: {
+                                    annotations: [
+                                        {
+                                            type: 'line',
+                                            mode: 'horizontal',
+                                            scaleID: 'y',
+                                            value: 820, // 20% up from bottom
+                                            borderColor: 'rgba(255, 255, 255, 0.5)',
+                                            borderWidth: 1,
+                                            borderDash: [5, 5],
+                                            label: {
+                                                content: '20% Rise (Bull Market Territory)',
+                                                enabled: true,
+                                                position: 'right',
+                                                backgroundColor: 'rgba(7, 154, 79, 0.8)',
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        });
+                        setChart(newChart);
+                    } else {
+                        const newChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+                                datasets: [{
+                                    label: 'Price',
+                                    data: bullMarketData,
+                                    borderColor: '#079A4F',
+                                    backgroundColor: 'rgba(7, 154, 79, 0.1)',
+                                    tension: 0.4,
+                                    fill: true
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: {
+                                    intersect: false,
+                                    mode: 'index'
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        displayColors: false,
+                                        callbacks: {
+                                            label: function(context) {
+                                                return `Price: ${context.parsed.y}`;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    },
+                                    x: {
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
                                         }
                                     }
                                 }
-                            },
-                            scales: {
-                                y: {
-                                    grid: {
-                                        color: isDarkMode ? '#374151' : '#e5e7eb'
-                                    },
-                                    ticks: {
-                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
-                                    }
-                                },
-                                x: {
-                                    grid: {
-                                        color: isDarkMode ? '#374151' : '#e5e7eb'
-                                    },
-                                    ticks: {
-                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
-                                    }
-                                }
                             }
-                        }
-                    });
-
-                    setChart(newChart);
+                        });
+                        setChart(newChart);
+                    }
                 }
-            }, [isDarkMode]);
+            }, [showingExample, isDarkMode]);
 
             return (
-                <div className="min-h-screen bg-gray-900 py-8">
-                    <div className={`w-full max-w-2xl mx-auto p-4`}>
-                        <div className={`rounded-lg shadow-lg p-6 bg-gray-800`}>
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
                             <h2 className="text-2xl font-bold mb-4 text-white">
-                                Bull Market Characteristics
+                                Bull Market
                             </h2>
                             
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    A financial market condition characterized by rising prices, typically defined as an increase of 20% or more from recent lows. Bull markets are generally accompanied by investor optimism, economic growth, and positive business sentiment.
+                                </p>
+                            </div>
+
+                            <div className="flex mb-4">
+                                <button
+                                    className={`px-4 py-2 rounded-tl-lg rounded-bl-lg ${!showingExample ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                    onClick={() => setShowingExample(false)}
+                                >
+                                    Concept
+                                </button>
+                                <button
+                                    className={`px-4 py-2 rounded-tr-lg rounded-br-lg ${showingExample ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                    onClick={() => setShowingExample(true)}
+                                >
+                                    2009-2020 Example
+                                </button>
+                            </div>
+
                             <div className="h-64 mb-6">
                                 <canvas ref={chartRef}></canvas>
                             </div>
 
-                            <div className="space-y-4">
-                                <div className="flex items-center">
-                                    <div className="w-3 h-3 rounded-full bg-[#079A4F] mr-2"></div>
-                                    <p className="text-gray-200">
-                                        Sustained upward price trend (20%+ increase)
-                                    </p>
+                            <div className="mb-4 flex">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'characteristics' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('characteristics')}
+                                >
+                                    Characteristics
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'strategies' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('strategies')}
+                                >
+                                    Strategies
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'history' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('history')}
+                                >
+                                    Historical Context
+                                </button>
+                            </div>
+
+                            <div className="bg-gray-700 p-4 rounded-lg">
+                                {activeTab === 'characteristics' && (
+                                    <div className="space-y-3">
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <p className="text-gray-200">
+                                                <span className="font-semibold">Sustained Advance:</span> Prolonged upward price trend of 20% or more from recent lows.
+                                            </p>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <p className="text-gray-200">
+                                                <span className="font-semibold">Positive Sentiment:</span> Widespread optimism, confidence, and enthusiastic investor participation.
+                                            </p>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <p className="text-gray-200">
+                                                <span className="font-semibold">Higher Volume:</span> Trading activity generally increases as more investors seek to participate.
+                                            </p>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <p className="text-gray-200">
+                                                <span className="font-semibold">Volatility Patterns:</span> Typically less volatile than bear markets, with shallower corrections.
+                                            </p>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <p className="text-gray-200">
+                                                <span className="font-semibold">Economic Correlation:</span> Often coincides with economic expansion, low unemployment, and strong corporate earnings.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {activeTab === 'strategies' && (
+                                    <div className="space-y-3">
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <p className="text-gray-200">
+                                                <span className="font-semibold">Growth-Oriented Positioning:</span> Emphasizing sectors that benefit from economic expansion (technology, consumer discretionary, financials).
+                                            </p>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <p className="text-gray-200">
+                                                <span className="font-semibold">Momentum Strategies:</span> Investing in assets showing strong price performance, as trends often continue in bull markets.
+                                            </p>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <p className="text-gray-200">
+                                                <span className="font-semibold">Fully Invested Approach:</span> Minimizing cash positions to maximize participation in market gains.
+                                            </p>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <p className="text-gray-200">
+                                                <span className="font-semibold">Buying Dips:</span> Using temporary market pullbacks as opportunities to add to positions at more favorable prices.
+                                            </p>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <p className="text-gray-200">
+                                                <span className="font-semibold">Risk Management Vigilance:</span> Despite optimism, maintaining discipline about valuations and avoiding excessive leverage as the bull market matures.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {activeTab === 'history' && (
+                                    <div className="space-y-3">
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <p className="text-gray-200">
+                                                <span className="font-semibold">1949-1956:</span> Post-WWII economic boom drove the S&P 500 up approximately 267% over seven years.
+                                            </p>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <p className="text-gray-200">
+                                                <span className="font-semibold">1982-1987:</span> Following high inflation of the 1970s, the market surged about 228% before the Black Monday crash.
+                                            </p>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <p className="text-gray-200">
+                                                <span className="font-semibold">1990-2000:</span> The dot-com boom created the longest bull market in history (until that point), with gains of around 417%.
+                                            </p>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <p className="text-gray-200">
+                                                <span className="font-semibold">2009-2020:</span> The post-financial crisis bull market lasted 11 years with the S&P 500 gaining approximately 400%.
+                                            </p>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <p className="text-gray-200">
+                                                <span className="font-semibold">2020-Present:</span> Following the brief COVID-19 bear market, a new bull market began that saw major indices reach multiple all-time highs.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-gray-300">Bull vs. Bear Markets</div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-green-900 bg-opacity-30 p-3 rounded-lg">
+                                        <div className="text-green-400 font-semibold mb-1">Bull Market</div>
+                                        <div className="text-sm text-gray-300">Prices rising 20%+ from recent lows</div>
+                                        <div className="text-sm text-gray-300">Optimism prevails</div>
+                                        <div className="text-sm text-gray-300">Risk appetite high</div>
+                                    </div>
+                                    <div className="bg-red-900 bg-opacity-30 p-3 rounded-lg">
+                                        <div className="text-red-400 font-semibold mb-1">Bear Market</div>
+                                        <div className="text-sm text-gray-300">Prices falling 20%+ from recent highs</div>
+                                        <div className="text-sm text-gray-300">Pessimism dominates</div>
+                                        <div className="text-sm text-gray-300">Risk aversion high</div>
+                                    </div>
                                 </div>
-                                <div className="flex items-center">
-                                    <div className="w-3 h-3 rounded-full bg-[#079A4F] mr-2"></div>
-                                    <p className="text-gray-200">
-                                        High trading volume and market confidence
-                                    </p>
-                                </div>
-                                <div className="flex items-center">
-                                    <div className="w-3 h-3 rounded-full bg-[#079A4F] mr-2"></div>
-                                    <p className="text-gray-200">
-                                        Positive investor sentiment
-                                    </p>
+                            </div>
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-gray-300">Bull Market Phases</div>
+                                <div className="space-y-3">
+                                    <div className="flex items-start">
+                                        <div className="w-3 h-3 rounded-full bg-green-800 mt-1.5 mr-2 flex-shrink-0"></div>
+                                        <p className="text-gray-200">
+                                            <span className="font-semibold">Accumulation Phase:</span> Smart money begins buying while sentiment remains negative; market bottoms and begins recovery.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-start">
+                                        <div className="w-3 h-3 rounded-full bg-green-600 mt-1.5 mr-2 flex-shrink-0"></div>
+                                        <p className="text-gray-200">
+                                            <span className="font-semibold">Public Participation Phase:</span> Positive economic data emerges; more investors enter as momentum builds.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-start">
+                                        <div className="w-3 h-3 rounded-full bg-green-400 mt-1.5 mr-2 flex-shrink-0"></div>
+                                        <p className="text-gray-200">
+                                            <span className="font-semibold">Euphoria Phase:</span> Widespread enthusiasm; valuations stretch; new investors fear missing out; often signals the mature stage.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
