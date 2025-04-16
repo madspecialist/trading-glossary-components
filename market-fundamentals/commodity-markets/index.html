@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commodity Markets Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const CommodityMarketsVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('types');
+            const [commodityType, setCommodityType] = React.useState('energy');
+            const [marketType, setMarketType] = React.useState('spot');
+            const [currentStep, setCurrentStep] = React.useState(1);
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+
+            const commodityTypes = {
+                'energy': {
+                    name: "Energy Commodities",
+                    examples: "Crude Oil, Natural Gas, Gasoline, Heating Oil",
+                    keyExchanges: "NYMEX, ICE, MCX",
+                    description: "Fossil fuels and their derivatives that power global transportation, electricity generation, and industrial processes.",
+                    color: "#F59E0B", // Amber
+                    icon: "⛽"
+                },
+                'metals': {
+                    name: "Metals",
+                    examples: "Gold, Silver, Copper, Aluminum, Platinum",
+                    keyExchanges: "COMEX, LME, TOCOM",
+                    description: "Precious metals valued as investments and industrial metals used in manufacturing, construction, and electronics.",
+                    color: "#FCD34D", // Yellow
+                    icon: "🪙"
+                },
+                'agriculture': {
+                    name: "Agricultural Products",
+                    examples: "Wheat, Corn, Soybeans, Coffee, Sugar, Cotton",
+                    keyExchanges: "CBOT, ICE, MGEX",
+                    description: "Food crops and raw materials used in food production, textiles, and biofuels.",
+                    color: "#34D399", // Green
+                    icon: "🌾"
+                },
+                'livestock': {
+                    name: "Livestock",
+                    examples: "Live Cattle, Feeder Cattle, Lean Hogs",
+                    keyExchanges: "CME, BM&F",
+                    description: "Live animals raised for meat production and processed meat products.",
+                    color: "#F87171", // Red
+                    icon: "🐄"
+                },
+                'softs': {
+                    name: "Soft Commodities",
+                    examples: "Coffee, Cocoa, Sugar, Cotton, Orange Juice",
+                    keyExchanges: "ICE, NYBOT",
+                    description: "Commodities that are grown rather than mined or extracted, typically tropical products and fibers.",
+                    color: "#60A5FA", // Blue
+                    icon: "☕"
+                }
+            };
+
+            const marketTypes = {
+                'spot': {
+                    name: "Spot Markets",
+                    description: "Markets for immediate delivery of physical commodities, with settlement typically within 2 days.",
+                    advantages: "Direct access to physical commodities, real-time price discovery, no roll costs",
+                    disadvantages: "Need for storage, quality verification, higher transaction costs",
+                    participants: "Producers, consumers, merchants, processors",
+                    color: "#3B82F6" // Blue
+                },
+                'futures': {
+                    name: "Futures Markets",
+                    description: "Standardized contracts for future delivery of commodities at a predetermined price and date.",
+                    advantages: "Price hedging, leverage, standardization, liquidity, no need for immediate storage",
+                    disadvantages: "Basis risk, margin calls, roll costs, contango/backwardation effects",
+                    participants: "Hedgers, speculators, arbitrageurs, funds",
+                    color: "#10B981" // Emerald
+                },
+                'options': {
+                    name: "Options Markets",
+                    description: "Contracts giving the right (but not obligation) to buy or sell a commodity at a set price before expiration.",
+                    advantages: "Asymmetric risk/reward, flexibility, limited downside risk for buyers",
+                    disadvantages: "Premium costs, complexity, time decay for buyers",
+                    participants: "Hedgers, speculators, market makers",
+                    color: "#8B5CF6" // Purple
+                },
+                'etfs': {
+                    name: "Commodity ETFs/ETNs",
+                    description: "Exchange-traded products tracking commodity prices or indices, providing commodity exposure without physical ownership.",
+                    advantages: "Accessibility, diversification, no storage costs, no futures knowledge required",
+                    disadvantages: "Tracking error, expense ratios, roll yield drag in futures-based ETFs",
+                    participants: "Retail investors, asset managers, funds",
+                    color: "#EC4899" // Pink
+                }
+            };
+
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 6 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 6);
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Commodity Markets
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    Marketplaces where raw or primary products are bought and sold, either for immediate physical delivery (spot markets) or through futures contracts. These markets facilitate price discovery and risk management for agricultural products, energy resources, metals, and other natural resources.
+                                </p>
+                            </div>
+
+                            {/* Types of Commodities */}
+                            {activeTab === 'types' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-yellow-400">Commodity Categories</h3>
+                                    
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
+                                        {Object.keys(commodityTypes).map(type => (
+                                            <button
+                                                key={type}
+                                                className={`p-2 rounded-lg border-2 transition-colors ${commodityType === type ? 'border-white bg-gray-700' : 'border-gray-600 bg-gray-800'}`}
+                                                style={{ borderLeftColor: commodityTypes[type].color }}
+                                                onClick={() => setCommodityType(type)}
+                                            >
+                                                <div className="font-semibold flex items-center" style={{ color: commodityTypes[type].color }}>
+                                                    <span className="mr-2 text-xl">{commodityTypes[type].icon}</span>
+                                                    <span className="text-sm md:text-base">{commodityTypes[type].name}</span>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <div className="flex items-center">
+                                            <span className="text-3xl mr-3" style={{ color: commodityTypes[commodityType].color }}>
+                                                {commodityTypes[commodityType].icon}
+                                            </span>
+                                            <h4 className="font-semibold text-lg" style={{ color: commodityTypes[commodityType].color }}>
+                                                {commodityTypes[commodityType].name}
+                                            </h4>
+                                        </div>
+                                        
+                                        <div className="space-y-3 mt-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: commodityTypes[commodityType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Common Examples:</span>
+                                                    <p className="text-gray-200 text-sm">{commodityTypes[commodityType].examples}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: commodityTypes[commodityType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Key Exchanges:</span>
+                                                    <p className="text-gray-200 text-sm">{commodityTypes[commodityType].keyExchanges}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: commodityTypes[commodityType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Description:</span>
+                                                    <p className="text-gray-200 text-sm">{commodityTypes[commodityType].description}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mt-4 p-3 bg-gray-800 rounded-lg">
+                                            <h5 className="font-semibold mb-2">Key Price Drivers</h5>
+                                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                                {commodityType === 'energy' && (
+                                                    <>
+                                                        <div className="p-2 bg-amber-900 bg-opacity-40 rounded">
+                                                            <div className="font-semibold text-amber-400">Supply Factors</div>
+                                                            <ul className="text-gray-300 mt-1 list-disc list-inside">
+                                                                <li>OPEC+ production decisions</li>
+                                                                <li>Geopolitical disruptions</li>
+                                                                <li>Refinery capacity</li>
+                                                                <li>Weather events</li>
+                                                            </ul>
+                                                        </div>
+                                                        <div className="p-2 bg-amber-900 bg-opacity-40 rounded">
+                                                            <div className="font-semibold text-amber-400">Demand Factors</div>
+                                                            <ul className="text-gray-300 mt-1 list-disc list-inside">
+                                                                <li>Economic growth</li>
+                                                                <li>Seasonal patterns</li>
+                                                                <li>Transportation trends</li>
+                                                                <li>Alternative energy adoption</li>
+                                                            </ul>
+                                                        </div>
+                                                    </>
+                                                )}
+                                                
+                                                {commodityType === 'metals' && (
+                                                    <>
+                                                        <div className="p-2 bg-yellow-900 bg-opacity-40 rounded">
+                                                            <div className="font-semibold text-yellow-400">Supply Factors</div>
+                                                            <ul className="text-gray-300 mt-1 list-disc list-inside">
+                                                                <li>Mining production</li>
+                                                                <li>Recycling volumes</li>
+                                                                <li>Environmental regulations</li>
+                                                                <li>Mining technology advances</li>
+                                                            </ul>
+                                                        </div>
+                                                        <div className="p-2 bg-yellow-900 bg-opacity-40 rounded">
+                                                            <div className="font-semibold text-yellow-400">Demand Factors</div>
+                                                            <ul className="text-gray-300 mt-1 list-disc list-inside">
+                                                                <li>Industrial activity</li>
+                                                                <li>Infrastructure spending</li>
+                                                                <li>Investment demand (precious)</li>
+                                                                <li>Tech manufacturing trends</li>
+                                                            </ul>
+                                                        </div>
+                                                    </>
+                                                )}
+                                                
+                                                {commodityType === 'agriculture' && (
+                                                    <>
+                                                        <div className="p-2 bg-green-900 bg-opacity-40 rounded">
+                                                            <div className="font-semibold text-green-400">Supply Factors</div>
+                                                            <ul className="text-gray-300 mt-1 list-disc list-inside">
+                                                                <li>Weather conditions</li>
+                                                                <li>Planting decisions</li>
+                                                                <li>Crop diseases</li>
+                                                                <li>Government policies</li>
+                                                            </ul>
+                                                        </div>
+                                                        <div className="p-2 bg-green-900 bg-opacity-40 rounded">
+                                                            <div className="font-semibold text-green-400">Demand Factors</div>
+                                                            <ul className="text-gray-300 mt-1 list-disc list-inside">
+                                                                <li>Population growth</li>
+                                                                <li>Dietary changes</li>
+                                                                <li>Biofuel mandates</li>
+                                                                <li>Export/import regulations</li>
+                                                            </ul>
+                                                        </div>
+                                                    </>
+                                                )}
+                                                
+                                                {commodityType === 'livestock' && (
+                                                    <>
+                                                        <div className="p-2 bg-red-900 bg-opacity-40 rounded">
+                                                            <div className="font-semibold text-red-400">Supply Factors</div>
+                                                            <ul className="text-gray-300 mt-1 list-disc list-inside">
+                                                                <li>Breeding cycles</li>
+                                                                <li>Feed costs</li>
+                                                                <li>Disease outbreaks</li>
+                                                                <li>Weather impacts</li>
+                                                            </ul>
+                                                        </div>
+                                                        <div className="p-2 bg-red-900 bg-opacity-40 rounded">
+                                                            <div className="font-semibold text-red-400">Demand Factors</div>
+                                                            <ul className="text-gray-300 mt-1 list-disc list-inside">
+                                                                <li>Protein consumption trends</li>
+                                                                <li>Export markets</li>
+                                                                <li>Seasonal demand</li>
+                                                                <li>Alternative protein adoption</li>
+                                                            </ul>
+                                                        </div>
+                                                    </>
+                                                )}
+                                                
+                                                {commodityType === 'softs' && (
+                                                    <>
+                                                        <div className="p-2 bg-blue-900 bg-opacity-40 rounded">
+                                                            <div className="font-semibold text-blue-400">Supply Factors</div>
+                                                            <ul className="text-gray-300 mt-1 list-disc list-inside">
+                                                                <li>Weather in growing regions</li>
+                                                                <li>Crop diseases</li>
+                                                                <li>Political stability</li>
+                                                                <li>Labor availability</li>
+                                                            </ul>
+                                                        </div>
+                                                        <div className="p-2 bg-blue-900 bg-opacity-40 rounded">
+                                                            <div className="font-semibold text-blue-400">Demand Factors</div>
+                                                            <ul className="text-gray-300 mt-1 list-disc list-inside">
+                                                                <li>Consumer preferences</li>
+                                                                <li>Retail marketing</li>
+                                                                <li>Global economic growth</li>
+                                                                <li>Currency fluctuations</li>
+                                                            </ul>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Market Types */}
+                            {activeTab === 'markets' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Types of Commodity Markets</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-2 mb-4">
+                                        {Object.keys(marketTypes).map(type => (
+                                            <button
+                                                key={type}
+                                                className={`p-2 rounded-lg border-2 transition-colors ${marketType === type ? 'border-white bg-gray-700' : 'border-gray-600 bg-gray-800'}`}
+                                                style={{ borderLeftColor: marketTypes[type].color }}
+                                                onClick={() => setMarketType(type)}
+                                            >
+                                                <div className="font-semibold" style={{ color: marketTypes[type].color }}>
+                                                    {marketTypes[type].name}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-lg mb-2" style={{ color: marketTypes[marketType].color }}>
+                                            {marketTypes[marketType].name}
+                                        </h4>
+                                        <div className="space-y-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: marketTypes[marketType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Description:</span>
+                                                    <p className="text-gray-200 text-sm">{marketTypes[marketType].description}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: marketTypes[marketType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Advantages:</span>
+                                                    <p className="text-gray-200 text-sm">{marketTypes[marketType].advantages}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: marketTypes[marketType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Disadvantages:</span>
+                                                    <p className="text-gray-200 text-sm">{marketTypes[marketType].disadvantages}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: marketTypes[marketType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Primary Participants:</span>
+                                                    <p className="text-gray-200 text-sm">{marketTypes[marketType].participants}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {marketType === 'futures' && (
+                                            <div className="mt-4 p-3 bg-gray-800 rounded-lg">
+                                                <h5 className="font-semibold mb-2">Key Futures Market Terms</h5>
+                                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                                    <div className="p-2 bg-gray-700 rounded">
+                                                        <div className="font-semibold text-emerald-400">Contango</div>
+                                                        <div className="text-gray-300 mt-1">When futures prices are higher than spot prices, indicating expected future price increases or storage costs</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-700 rounded">
+                                                        <div className="font-semibold text-emerald-400">Backwardation</div>
+                                                        <div className="text-gray-300 mt-1">When futures prices are lower than spot prices, indicating expected future price decreases or supply shortages</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-700 rounded">
+                                                        <div className="font-semibold text-emerald-400">Basis</div>
+                                                        <div className="text-gray-300 mt-1">The difference between the local cash price and the futures price of a commodity</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-700 rounded">
+                                                        <div className="font-semibold text-emerald-400">Contract Rollover</div>
+                                                        <div className="text-gray-300 mt-1">The process of closing a position in an expiring contract and opening a new position in a future delivery month</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {marketType === 'options' && (
+                                            <div className="mt-4 p-3 bg-gray-800 rounded-lg">
+                                                <h5 className="font-semibold mb-2">Common Options Strategies</h5>
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="p-2 bg-gray-700 rounded">
+                                                        <div className="font-semibold text-purple-400">Protective Put</div>
+                                                        <div className="text-gray-300 mt-1">Buying a put option to protect against downside price risk in a commodity position</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-700 rounded">
+                                                        <div className="font-semibold text-purple-400">Covered Call</div>
+                                                        <div className="text-gray-300 mt-1">Selling a call option against an existing commodity position to generate income</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-700 rounded">
+                                                        <div className="font-semibold text-purple-400">Straddle</div>
+                                                        <div className="text-gray-300 mt-1">Buying both a call and put at the same strike price to profit from significant price movement in either direction</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {marketType === 'etfs' && (
+                                            <div className="mt-4 p-3 bg-gray-800 rounded-lg">
+                                                <h5 className="font-semibold mb-2">Types of Commodity ETFs</h5>
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="p-2 bg-gray-700 rounded">
+                                                        <div className="font-semibold text-pink-400">Physically-Backed</div>
+                                                        <div className="text-gray-300 mt-1">ETFs that hold actual physical commodities (common with precious metals)</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-700 rounded">
+                                                        <div className="font-semibold text-pink-400">Futures-Based</div>
+                                                        <div className="text-gray-300 mt-1">ETFs that hold commodity futures contracts instead of physical commodities</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-700 rounded">
+                                                        <div className="font-semibold text-pink-400">Equity-Based</div>
+                                                        <div className="text-gray-300 mt-1">ETFs that hold stocks of companies involved in commodity production</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Commodity Price Discovery */}
+                            {activeTab === 'price' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Price Discovery Process</h3>
+                                    
+                                    <div className="relative h-72 mb-4 bg-gray-700 rounded-lg overflow-auto">
+                                        {/* Step 1: Physical Supply and Demand */}
+                                        {currentStep === 1 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-green-400">Step 1: Physical Supply and Demand</h3>
+                                                <div className="flex justify-around items-center h-48">
+                                                    <div className="bg-gray-600 p-3 rounded-lg w-2/5 text-center">
+                                                        <div className="text-blue-400 font-bold mb-2">Supply Factors</div>
+                                                        <div className="grid grid-cols-1 gap-1 text-xs">
+                                                            <div className="bg-gray-700 p-1 rounded text-left pl-2">Production capacity</div>
+                                                            <div className="bg-gray-700 p-1 rounded text-left pl-2">Harvest yields</div>
+                                                            <div className="bg-gray-700 p-1 rounded text-left pl-2">Extraction rates</div>
+                                                            <div className="bg-gray-700 p-1 rounded text-left pl-2">Inventory levels</div>
+                                                            <div className="bg-gray-700 p-1 rounded text-left pl-2">Weather events</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-col items-center">
+                                                        <div className="text-xl mb-2">→</div>
+                                                        <div className="bg-green-900 text-green-400 text-xs my-1 p-1 rounded">
+                                                            Physical Market
+                                                        </div>
+                                                        <div className="text-xl my-2">→</div>
+                                                    </div>
+                                                    <div className="bg-gray-600 p-3 rounded-lg w-2/5 text-center">
+                                                        <div className="text-yellow-400 font-bold mb-2">Demand Factors</div>
+                                                        <div className="grid grid-cols-1 gap-1 text-xs">
+                                                            <div className="bg-gray-700 p-1 rounded text-left pl-2">Industrial consumption</div>
+                                                            <div className="bg-gray-700 p-1 rounded text-left pl-2">Consumer usage</div>
+                                                            <div className="bg-gray-700 p-1 rounded text-left pl-2">Seasonal patterns</div>
+                                                            <div className="bg-gray-700 p-1 rounded text-left pl-2">Economic growth</div>
+                                                            <div className="bg-gray-700 p-1 rounded text-left pl-2">Substitution effects</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 2: Spot Market Price Discovery */}
+                                        {currentStep === 2 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-green-400">Step 2: Spot Market Price Discovery</h3>
+                                                <div className="flex flex-col h-48">
+                                                    <div className="text-center text-sm mb-2">Physical spot markets determine immediate delivery prices</div>
+                                                    <div className="flex justify-around items-center flex-1">
+                                                        <div className="bg-gray-600 p-3 rounded-lg w-1/4 text-center">
+                                                            <div className="text-blue-400 font-bold mb-2">Sellers</div>
+                                                            <div className="text-xs">Producers</div>
+                                                            <div className="text-xs">Merchants</div>
+                                                            <div className="text-xs">Traders</div>
+                                                        </div>
+                                                        <div className="w-2/5 flex flex-col items-center">
+                                                            <div className="bg-green-900 p-3 rounded-lg w-full text-center">
+                                                                <div className="text-green-400 font-bold mb-1">Spot Price Formation</div>
+                                                                <div className="flex justify-around">
+                                                                    <div className="text-xs">Bids</div>
+                                                                    <div className="text-xs font-bold">$X.XX</div>
+                                                                    <div className="text-xs">Offers</div>
+                                                                </div>
+                                                                <div className="grid grid-cols-1 gap-1 text-xs mt-2">
+                                                                    <div className="bg-gray-700 p-1 rounded text-left pl-2">Physical location</div>
+                                                                    <div className="bg-gray-700 p-1 rounded text-left pl-2">Quality specifications</div>
+                                                                    <div className="bg-gray-700 p-1 rounded text-left pl-2">Delivery timing</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="bg-gray-600 p-3 rounded-lg w-1/4 text-center">
+                                                            <div className="text-yellow-400 font-bold mb-2">Buyers</div>
+                                                            <div className="text-xs">Processors</div>
+                                                            <div className="text-xs">Manufacturers</div>
+                                                            <div className="text-xs">Distributors</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 3: Futures Market Influence */}
+                                        {currentStep === 3 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-green-400">Step 3: Futures Market Influence</h3>
+                                                <div className="flex flex-col h-48">
+                                                    <div className="text-center text-sm mb-2">Futures markets provide forward price discovery and influence spot prices</div>
+                                                    <div className="flex justify-around items-center flex-1">
+                                                        <div className="bg-gray-600 p-3 rounded-lg w-1/4 text-center">
+                                                            <div className="text-blue-400 font-bold mb-2">Market Participants</div>
+                                                            <div className="grid grid-cols-1 gap-1 text-xs">
+                                                                <div className="bg-blue-900 bg-opacity-50 p-1 rounded">Hedgers</div>
+                                                                <div className="bg-blue-900 bg-opacity-50 p-1 rounded">Speculators</div>
+                                                                <div className="bg-blue-900 bg-opacity-50 p-1 rounded">Market Makers</div>
+                                                                <div className="bg-blue-900 bg-opacity-50 p-1 rounded">Funds/ETFs</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="w-2/5 flex flex-col items-center">
+                                                            <div className="bg-blue-900 p-3 rounded-lg w-full text-center">
+                                                                <div className="text-blue-400 font-bold mb-1">Futures Prices</div>
+                                                                <div className="flex justify-around text-xs mb-2">
+                                                                    <div>Near-month</div>
+                                                                    <div>Mid-term</div>
+                                                                    <div>Long-term</div>
+                                                                </div>
+                                                                <div className="flex justify-between items-center">
+                                                                    <div className="text-sm">↓</div>
+                                                                    <div className="text-xs bg-gray-700 p-1 rounded w-3/4">Price Discovery Function</div>
+                                                                    <div className="text-sm">↓</div>
+                                                                </div>
+                                                                <div className="grid grid-cols-1 gap-1 text-xs mt-2">
+                                                                    <div className="bg-gray-700 p-1 rounded text-left pl-2">Forward curve formation</div>
+                                                                    <div className="bg-gray-700 p-1 rounded text-left pl-2">Contango/backwardation</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="bg-gray-600 p-3 rounded-lg w-1/4 text-center">
+                                                            <div className="text-yellow-400 font-bold mb-2">Market Impact</div>
+                                                            <div className="grid grid-cols-1 gap-1 text-xs">
+                                                                <div className="bg-yellow-900 bg-opacity-50 p-1 rounded">Spot price influence</div>
+                                                                <div className="bg-yellow-900 bg-opacity-50 p-1 rounded">Risk management</div>
+                                                                <div className="bg-yellow-900 bg-opacity-50 p-1 rounded">Inventory decisions</div>
+                                                                <div className="bg-yellow-900 bg-opacity-50 p-1 rounded">Production planning</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 4: Price Reporting */}
+                                        {currentStep === 4 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-green-400">Step 4: Price Reporting & Benchmarks</h3>
+                                                <div className="flex flex-col h-48">
+                                                    <div className="text-center text-sm mb-2">Price reporting agencies and exchanges establish reference prices</div>
+                                                    <div className="flex justify-around items-center flex-1">
+                                                        <div className="bg-gray-600 p-3 rounded-lg w-1/3 text-center">
+                                                            <div className="text-purple-400 font-bold mb-2">Price Reporting</div>
+                                                            <div className="grid grid-cols-1 gap-1 text-xs">
+                                                                <div className="bg-gray-700 p-1 rounded text-left pl-2">Trade data collection</div>
+                                                                <div className="bg-gray-700 p-1 rounded text-left pl-2">Market surveys</div>
+                                                                <div className="bg-gray-700 p-1 rounded text-left pl-2">Expert assessments</div>
+                                                                <div className="bg-gray-700 p-1 rounded text-left pl-2">Methodology application</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col items-center">
+                                                            <div className="text-xl mb-2">→</div>
+                                                            <div className="bg-purple-900 text-purple-400 text-xs my-1 p-1 rounded">
+                                                                Benchmark Prices
+                                                            </div>
+                                                            <div className="text-xl my-2">→</div>
+                                                        </div>
+                                                        <div className="bg-gray-600 p-3 rounded-lg w-1/3 text-center">
+                                                            <div className="text-green-400 font-bold mb-2">Market Applications</div>
+                                                            <div className="grid grid-cols-1 gap-1 text-xs">
+                                                                <div className="bg-gray-700 p-1 rounded text-left pl-2">Contract pricing references</div>
+                                                                <div className="bg-gray-700 p-1 rounded text-left pl-2">Settlement indices</div>
+                                                                <div className="bg-gray-700 p-1 rounded text-left pl-2">Risk management models</div>
+                                                                <div className="bg-gray-700 p-1 rounded text-left pl-2">Financial product valuation</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 5: External Market Influences */}
+                                        {currentStep === 5 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="sticky top-0 z-10 text-lg font-semibold mb-6 text-center text-green-400 bg-gray-700 pt-1 pb-1">Step 5: External Market Influences</h3>
+                                                <div className="mt-4 flex justify-around items-center h-44">
+                                                    <div className="bg-gray-600 p-3 rounded-lg w-full text-center">
+                                                        <div className="text-orange-400 font-bold mb-2">Key External Factors</div>
+                                                        <div className="grid grid-cols-3 gap-2 text-xs">
+                                                            <div className="bg-gray-700 p-2 rounded flex flex-col items-center">
+                                                                <div className="font-semibold mb-1">Macroeconomic</div>
+                                                                <div className="text-gray-300">GDP growth</div>
+                                                                <div className="text-gray-300">Inflation</div>
+                                                                <div className="text-gray-300">Interest rates</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded flex flex-col items-center">
+                                                                <div className="font-semibold mb-1">Geopolitical</div>
+                                                                <div className="text-gray-300">Trade policies</div>
+                                                                <div className="text-gray-300">Sanctions</div>
+                                                                <div className="text-gray-300">Conflicts</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded flex flex-col items-center">
+                                                                <div className="font-semibold mb-1">Currency</div>
+                                                                <div className="text-gray-300">Exchange rates</div>
+                                                                <div className="text-gray-300">Dollar strength</div>
+                                                                <div className="text-gray-300">Capital flows</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded flex flex-col items-center">
+                                                                <div className="font-semibold mb-1">Environmental</div>
+                                                                <div className="text-gray-300">Climate change</div>
+                                                                <div className="text-gray-300">Weather events</div>
+                                                                <div className="text-gray-300">Regulations</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded flex flex-col items-center">
+                                                                <div className="font-semibold mb-1">Technological</div>
+                                                                <div className="text-gray-300">Innovation</div>
+                                                                <div className="text-gray-300">Efficiency gains</div>
+                                                                <div className="text-gray-300">Substitutes</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded flex flex-col items-center">
+                                                                <div className="font-semibold mb-1">Financial</div>
+                                                                <div className="text-gray-300">Investment flows</div>
+                                                                <div className="text-gray-300">Speculation</div>
+                                                                <div className="text-gray-300">Algorithmic trading</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 6: Market Feedback Loop */}
+                                        {currentStep === 6 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-green-400">Step 6: Market Feedback Loop</h3>
+                                                <div className="flex flex-col h-48">
+                                                    <div className="text-center text-sm mb-2">Price signals influence production, consumption, and investment decisions</div>
+                                                    <div className="mx-auto w-4/5">
+                                                        <div className="flex justify-around items-center">
+                                                            <div className="bg-gray-600 p-2 rounded-lg text-center w-1/3">
+                                                                <div className="text-blue-400 font-bold mb-1">Producers</div>
+                                                                <div className="text-xs">Adjust production</div>
+                                                                <div className="text-xs">Plan investments</div>
+                                                                <div className="text-xs">Hedge risk exposure</div>
+                                                            </div>
+                                                            <div className="w-8 h-8 flex items-center justify-center mx-2">
+                                                                <div className="text-xl">→</div>
+                                                            </div>
+                                                            <div className="bg-gray-600 p-2 rounded-lg text-center w-1/3">
+                                                                <div className="text-yellow-400 font-bold mb-1">Consumers</div>
+                                                                <div className="text-xs">Modify consumption</div>
+                                                                <div className="text-xs">Seek substitutes</div>
+                                                                <div className="text-xs">Secure supply chains</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex justify-between my-2">
+                                                            <div className="flex flex-col items-center justify-center ml-14">
+                                                                <div className="text-sm">↑</div>
+                                                                <div className="border-l-2 border-gray-500 h-6"></div>
+                                                            </div>
+                                                            <div className="flex flex-col items-center justify-center mr-14">
+                                                                <div className="border-l-2 border-gray-500 h-6"></div>
+                                                                <div className="text-sm">↓</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex justify-around items-center">
+                                                            <div className="bg-gray-600 p-2 rounded-lg text-center w-1/3">
+                                                                <div className="text-green-400 font-bold mb-1">Traders</div>
+                                                                <div className="text-xs">Arbitrage opportunities</div>
+                                                                <div className="text-xs">Position adjustments</div>
+                                                                <div className="text-xs">Risk analysis</div>
+                                                            </div>
+                                                            <div className="w-8 h-8 flex items-center justify-center mx-2">
+                                                                <div className="text-xl">←</div>
+                                                            </div>
+                                                            <div className="bg-gray-600 p-2 rounded-lg text-center w-1/3">
+                                                                <div className="text-purple-400 font-bold mb-1">Investors</div>
+                                                                <div className="text-xs">Capital allocation</div>
+                                                                <div className="text-xs">Portfolio adjustments</div>
+                                                                <div className="text-xs">Risk/return analysis</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3, 4, 5, 6].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-green-500' : 'bg-gray-500'}`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Trading Strategies */}
+                            {activeTab === 'trading' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-amber-400">Commodity Trading Strategies</h3>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg space-y-4">
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Directional Trading</p>
+                                                <p className="text-gray-200 text-sm mb-2">
+                                                    Taking positions based on expected price movements in commodities.
+                                                </p>
+                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-amber-400">Long Positions</div>
+                                                        <div className="text-gray-300 mt-1">Buying futures or physical commodity in anticipation of price increases</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-amber-400">Short Positions</div>
+                                                        <div className="text-gray-300 mt-1">Selling futures (or borrowing and selling physical) to profit from price declines</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Hedging Strategies</p>
+                                                <p className="text-gray-200 text-sm mb-2">
+                                                    Using commodity derivatives to reduce price risk exposure.
+                                                </p>
+                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-amber-400">Producer Hedging</div>
+                                                        <div className="text-gray-300 mt-1">Selling futures to lock in prices for future production; protects against price declines</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-amber-400">Consumer Hedging</div>
+                                                        <div className="text-gray-300 mt-1">Buying futures to secure prices for future consumption; protects against price increases</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Spread Trading</p>
+                                                <p className="text-gray-200 text-sm mb-2">
+                                                    Trading the price difference between related commodity contracts.
+                                                </p>
+                                                <div className="grid grid-cols-1 gap-2 text-xs">
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-amber-400">Calendar Spreads</div>
+                                                        <div className="text-gray-300 mt-1">Trading the price difference between two delivery months of the same commodity</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-amber-400">Inter-Commodity Spreads</div>
+                                                        <div className="text-gray-300 mt-1">Trading price relationships between different but related commodities (e.g., crude oil vs. gasoline)</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-amber-400">Geographic Spreads</div>
+                                                        <div className="text-gray-300 mt-1">Trading price differences of the same commodity at different locations (e.g., WTI vs. Brent crude)</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Arbitrage Strategies</p>
+                                                <p className="text-gray-200 text-sm mb-2">
+                                                    Exploiting price inefficiencies between related markets.
+                                                </p>
+                                                <div className="grid grid-cols-1 gap-2 text-xs">
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-amber-400">Cash and Carry</div>
+                                                        <div className="text-gray-300 mt-1">Buying physical commodity and simultaneously selling futures when futures price exceeds spot price plus carrying costs</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-amber-400">Reverse Cash and Carry</div>
+                                                        <div className="text-gray-300 mt-1">Selling (or shorting) physical commodity and buying futures when spot price exceeds futures price minus carrying costs</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Long-Term Investment Strategies</p>
+                                                <p className="text-gray-200 text-sm mb-2">
+                                                    Incorporating commodities into investment portfolios.
+                                                </p>
+                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-amber-400">Strategic Allocation</div>
+                                                        <div className="text-gray-300 mt-1">Including commodities as a permanent portfolio component for diversification and inflation protection</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-amber-400">Tactical Allocation</div>
+                                                        <div className="text-gray-300 mt-1">Adjusting commodity exposure based on economic cycles, supply/demand fundamentals, or technical signals</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mb-4 flex flex-wrap">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'types' ? 'bg-yellow-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('types')}
+                                >
+                                    Categories
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'markets' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('markets')}
+                                >
+                                    Markets
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'price' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('price')}
+                                >
+                                    Price Discovery
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'trading' ? 'bg-amber-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('trading')}
+                                >
+                                    Trading
+                                </button>
+                            </div>
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <h4 className="font-semibold text-amber-400 mb-2">Key Commodity Market Concepts</h4>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <span className="font-semibold">Contango:</span> 
+                                        <p className="text-gray-300">When futures prices are higher than spot prices</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Backwardation:</span> 
+                                        <p className="text-gray-300">When futures prices are lower than spot prices</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Basis:</span> 
+                                        <p className="text-gray-300">The difference between local cash price and futures price</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Carrying Costs:</span> 
+                                        <p className="text-gray-300">Storage, insurance, and financing costs for physical commodities</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Seasonality:</span> 
+                                        <p className="text-gray-300">Recurring price patterns tied to annual production/consumption cycles</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Contract Rollover:</span> 
+                                        <p className="text-gray-300">Moving positions from expiring to later futures contracts</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CommodityMarketsVisual />);
+    </script>
+</body>
+</html>
