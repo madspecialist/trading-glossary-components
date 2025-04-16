@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commercial Paper Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const CommercialPaperVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('structure');
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const [companySize, setCompanySize] = React.useState('large');
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+
+            const companySizes = {
+                'large': {
+                    name: "Large Corporations",
+                    examples: "Apple, Microsoft, Alphabet",
+                    rating: "A-1/P-1 (Highest)",
+                    discount: "Lowest rates (3.5-4.5%)",
+                    advantages: "Well-established reputation, highest demand",
+                    color: "#3B82F6" // Blue
+                },
+                'midsize': {
+                    name: "Mid-sized Corporations",
+                    examples: "Regional businesses with strong financials",
+                    rating: "A-2/P-2",
+                    discount: "Moderate rates (4.5-5.5%)",
+                    advantages: "Balance of stability and higher yields",
+                    color: "#10B981" // Emerald
+                },
+                'financial': {
+                    name: "Financial Institutions",
+                    examples: "Banks, insurance companies, finance companies",
+                    rating: "Varies (often A-1/P-1)",
+                    discount: "Varies by institution (3.5-5.0%)",
+                    advantages: "Liquid market, financial sector expertise",
+                    color: "#8B5CF6" // Purple
+                },
+                'assetbacked': {
+                    name: "Asset-Backed Commercial Paper",
+                    examples: "Receivables, auto loans, credit card debt",
+                    rating: "Depends on underlying assets",
+                    discount: "Varies by collateral quality (4.0-6.0%)",
+                    advantages: "Secured by assets, potentially higher yield",
+                    color: "#F59E0B" // Amber
+                }
+            };
+
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 4 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 4);
+            };
+
+            // Chart for rates
+            React.useEffect(() => {
+                if (chartRef.current) {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    // Sample data for discount rates vs maturities
+                    const days = [30, 60, 90, 180, 270];
+                    const ratesTier1 = [3.5, 3.6, 3.8, 4.1, 4.5]; // A-1/P-1 rated (top tier)
+                    const ratesTier2 = [4.5, 4.7, 4.9, 5.2, 5.5]; // A-2/P-2 rated (mid tier)
+                    const ratesTreasury = [3.2, 3.3, 3.4, 3.6, 3.9]; // Treasury rates for comparison
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: days.map(day => `${day} Days`),
+                            datasets: [
+                                {
+                                    label: 'A-1/P-1 Commercial Paper',
+                                    data: ratesTier1,
+                                    borderColor: '#3B82F6', // Blue
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    tension: 0.3,
+                                    fill: false,
+                                    borderWidth: 3
+                                },
+                                {
+                                    label: 'A-2/P-2 Commercial Paper',
+                                    data: ratesTier2,
+                                    borderColor: '#10B981', // Emerald
+                                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                    tension: 0.3,
+                                    fill: false,
+                                    borderWidth: 3
+                                },
+                                {
+                                    label: 'Treasury Bills',
+                                    data: ratesTreasury,
+                                    borderColor: '#9CA3AF', // Gray
+                                    backgroundColor: 'rgba(156, 163, 175, 0.1)',
+                                    tension: 0.3,
+                                    fill: false,
+                                    borderWidth: 2,
+                                    borderDash: [5, 5]
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                    labels: {
+                                        color: isDarkMode ? '#E5E7EB' : '#4B5563',
+                                        font: {
+                                            size: 11
+                                        }
+                                    }
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    displayColors: true,
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `${context.dataset.label}: ${context.parsed.y}%`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Discount Rate (%)',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Maturity',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    setChart(newChart);
+                }
+            }, [isDarkMode]);
+
+            // Calculate discount and maturity value
+            const calculateDiscountValue = (faceValue, rate, days) => {
+                const discount = faceValue * (rate/100) * (days/360);
+                const purchasePrice = faceValue - discount;
+                return {
+                    discount: discount.toFixed(2),
+                    purchasePrice: purchasePrice.toFixed(2)
+                };
+            };
+
+            // Example calculation for $1,000,000 face value at 4% for 90 days
+            const exampleCalculation = calculateDiscountValue(1000000, 4, 90);
+
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Commercial Paper
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    Unsecured, short-term debt instruments issued by corporations to finance short-term liabilities. Typically issued at a discount and with maturities between 1 and 270 days, commercial paper is traded in money markets.
+                                </p>
+                            </div>
+
+                            {/* Commercial Paper Structure and Lifecycle */}
+                            {activeTab === 'structure' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-purple-400">How Commercial Paper Works</h3>
+                                    
+                                    <div className="relative h-72 mb-4 bg-gray-700 rounded-lg overflow-hidden">
+                                        {/* Step 1: Issuance */}
+                                        {currentStep === 1 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-purple-400">Step 1: Issuance</h3>
+                                                <div className="flex justify-between items-center h-48">
+                                                    <div className="bg-gray-600 p-3 rounded-lg w-1/3 text-center">
+                                                        <div className="text-blue-400 font-bold mb-2">Corporation</div>
+                                                        <div className="text-sm mb-2">Needs short-term capital</div>
+                                                        <div className="text-xs">For:</div>
+                                                        <div className="text-xs text-gray-300">• Inventory</div>
+                                                        <div className="text-xs text-gray-300">• Accounts payable</div>
+                                                        <div className="text-xs text-gray-300">• Working capital</div>
+                                                    </div>
+                                                    <div className="w-1/4 flex flex-col items-center">
+                                                        <div className="text-center text-xs mb-1">Issues</div>
+                                                        <div className="border-t-2 border-purple-400 w-full"></div>
+                                                        <div className="bg-purple-900 text-purple-400 text-xs my-1 p-1 rounded">Commercial Paper</div>
+                                                        <div className="border-t-2 border-purple-400 w-full"></div>
+                                                        <div className="flex flex-col text-xs text-gray-300 items-center my-1">
+                                                            <div>Face Value: $1,000,000</div>
+                                                            <div>Maturity: 90 days</div>
+                                                            <div>Rating: A-1/P-1</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-gray-600 p-3 rounded-lg w-1/3 text-center">
+                                                        <div className="text-green-400 font-bold mb-2">Investors</div>
+                                                        <div className="text-sm mb-2">Buy at a discount</div>
+                                                        <div className="text-xs">Types of buyers:</div>
+                                                        <div className="text-xs text-gray-300">• Money market funds</div>
+                                                        <div className="text-xs text-gray-300">• Other corporations</div>
+                                                        <div className="text-xs text-gray-300">• Financial institutions</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 2: Pricing and Purchase */}
+                                        {currentStep === 2 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-purple-400">Step 2: Pricing and Purchase</h3>
+                                                <div className="flex justify-between items-center h-48">
+                                                    <div className="bg-gray-600 p-3 rounded-lg w-1/3 text-center">
+                                                        <div className="text-blue-400 font-bold mb-2">Corporation</div>
+                                                        <div className="text-sm mb-1">Offers paper at discount</div>
+                                                        <div className="bg-blue-900 bg-opacity-50 mx-auto p-2 rounded mt-2">
+                                                            <div className="text-xs">Promises to pay:</div>
+                                                            <div className="text-sm font-bold">$1,000,000</div>
+                                                            <div className="text-xs">in 90 days</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="w-1/4 flex flex-col items-center">
+                                                        <div className="bg-gray-700 p-2 rounded w-full text-center text-xs mb-2">
+                                                            <div className="font-semibold mb-1">Discount Calculation</div>
+                                                            <div>$1,000,000 × 4% × (90/360)</div>
+                                                            <div>= $10,000 discount</div>
+                                                        </div>
+                                                        <div className="border-t-2 border-green-400 w-full"></div>
+                                                        <div className="bg-green-900 text-green-400 text-xs my-1 p-1 rounded">$990,000 Payment</div>
+                                                        <div className="border-t-2 border-green-400 w-full"></div>
+                                                    </div>
+                                                    <div className="bg-gray-600 p-3 rounded-lg w-1/3 text-center">
+                                                        <div className="text-green-400 font-bold mb-2">Investors</div>
+                                                        <div className="text-sm mb-1">Purchase at discount</div>
+                                                        <div className="bg-green-900 bg-opacity-50 mx-auto p-2 rounded mt-2">
+                                                            <div className="text-xs">Pays:</div>
+                                                            <div className="text-sm font-bold">$990,000</div>
+                                                            <div className="text-xs">($10,000 discount)</div>
+                                                            <div className="text-xs">For effective yield: 4% annualized</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 3: Secondary Market Trading (Optional) */}
+                                        {currentStep === 3 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-purple-400">Step 3: Secondary Market Trading (Optional)</h3>
+                                                <div className="flex flex-col h-48">
+                                                    <div className="text-center text-sm mb-2">Commercial paper can be traded before maturity</div>
+                                                    <div className="flex justify-between items-center h-40">
+                                                        <div className="bg-gray-600 p-3 rounded-lg w-1/4 text-center">
+                                                            <div className="text-green-400 font-bold mb-2">Original Investor</div>
+                                                            <div className="text-xs">Decides to sell</div>
+                                                            <div className="text-xs text-gray-300 mt-1">(Day 30)</div>
+                                                            <div className="flex items-center justify-center my-2">
+                                                                <div className="bg-purple-900 text-purple-400 text-xs p-1 rounded">Paper</div>
+                                                                <div className="ml-1 mr-1">→</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="w-2/4 flex flex-col items-center">
+                                                            <div className="bg-gray-600 p-3 rounded-lg w-full text-center">
+                                                                <div className="text-purple-400 font-bold mb-1">Money Market</div>
+                                                                <div className="text-xs mb-2">Price depends on:</div>
+                                                                <div className="grid grid-cols-2 gap-1 text-xs">
+                                                                    <div className="bg-gray-700 p-1 rounded">Remaining Time</div>
+                                                                    <div className="bg-gray-700 p-1 rounded">Interest Rates</div>
+                                                                    <div className="bg-gray-700 p-1 rounded">Issuer Credit</div>
+                                                                    <div className="bg-gray-700 p-1 rounded">Market Demand</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex w-full justify-between mt-2">
+                                                                <div className="border-t-2 border-green-400 w-1/3"></div>
+                                                                <div className="text-xs text-gray-300 mx-1">$993,333</div>
+                                                                <div className="border-t-2 border-green-400 w-1/3"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="bg-gray-600 p-3 rounded-lg w-1/4 text-center">
+                                                            <div className="text-yellow-400 font-bold mb-2">New Investor</div>
+                                                            <div className="text-xs">Buys with 60 days remaining</div>
+                                                            <div className="flex items-center justify-center my-2">
+                                                                <div className="mr-1 ml-1">→</div>
+                                                                <div className="bg-purple-900 text-purple-400 text-xs p-1 rounded">Paper</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 4: Maturity and Redemption */}
+                                        {currentStep === 4 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-purple-400">Step 4: Maturity and Redemption</h3>
+                                                <div className="flex justify-between items-center h-48">
+                                                    <div className="bg-gray-600 p-3 rounded-lg w-1/3 text-center">
+                                                        <div className="text-blue-400 font-bold mb-2">Corporation</div>
+                                                        <div className="text-sm mb-2">At maturity (90 days)</div>
+                                                        <div className="text-xs mb-1">Repays full face value</div>
+                                                        <div className="bg-blue-900 bg-opacity-50 mx-auto w-20 h-20 rounded-full flex items-center justify-center">
+                                                            <div className="text-center">
+                                                                <div className="text-xs">Pays</div>
+                                                                <div className="text-sm">$1,000,000</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="w-1/4 flex flex-col items-center">
+                                                        <div className="text-sm mb-1">Face Value Payment</div>
+                                                        <div className="border-t-2 border-purple-400 w-full"></div>
+                                                        <div className="bg-purple-900 text-purple-400 text-xs my-1 p-1 rounded">Redemption</div>
+                                                        <div className="border-t-2 border-purple-400 w-full"></div>
+                                                        <div className="bg-green-900 text-green-400 text-xs my-1 p-1 rounded">$1,000,000</div>
+                                                        <div className="border-t-2 border-green-400 w-full"></div>
+                                                    </div>
+                                                    <div className="bg-gray-600 p-3 rounded-lg w-1/3 text-center">
+                                                        <div className="text-green-400 font-bold mb-2">Current Holder</div>
+                                                        <div className="text-sm mb-2">Receives face value</div>
+                                                        <div className="bg-green-900 bg-opacity-50 mx-auto p-2 rounded">
+                                                            <div className="text-xs">Original cost: $990,000</div>
+                                                            <div className="text-xs">+ Profit: $10,000</div>
+                                                            <div className="text-xs font-bold mt-1">= $1,000,000</div>
+                                                            <div className="text-xs text-gray-300 mt-1">(4% annualized return)</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3, 4].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-purple-500' : 'bg-gray-500'}`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Issuers and Ratings */}
+                            {activeTab === 'issuers' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-purple-400">Issuers and Ratings</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-2 mb-4">
+                                        {Object.keys(companySizes).map(size => (
+                                            <button
+                                                key={size}
+                                                className={`p-2 rounded-lg border-2 transition-colors ${companySize === size ? 'border-white bg-gray-700' : 'border-gray-600 bg-gray-800'}`}
+                                                style={{ borderLeftColor: companySizes[size].color }}
+                                                onClick={() => setCompanySize(size)}
+                                            >
+                                                <div className="font-semibold" style={{ color: companySizes[size].color }}>
+                                                    {companySizes[size].name}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-lg mb-2" style={{ color: companySizes[companySize].color }}>
+                                            {companySizes[companySize].name}
+                                        </h4>
+                                        <div className="space-y-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: companySizes[companySize].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Examples:</span>
+                                                    <p className="text-gray-200 text-sm">{companySizes[companySize].examples}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: companySizes[companySize].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Credit Rating:</span>
+                                                    <p className="text-gray-200 text-sm">{companySizes[companySize].rating}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: companySizes[companySize].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Typical Discount Rate:</span>
+                                                    <p className="text-gray-200 text-sm">{companySizes[companySize].discount}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: companySizes[companySize].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Market Advantages:</span>
+                                                    <p className="text-gray-200 text-sm">{companySizes[companySize].advantages}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mt-4 p-3 bg-gray-800 rounded-lg">
+                                            <h5 className="font-semibold mb-2">Rating Significance</h5>
+                                            <p className="text-sm text-gray-300 mb-2">
+                                                Commercial paper is rated based on the issuer's creditworthiness:
+                                            </p>
+                                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                                <div className="p-2 bg-blue-900 bg-opacity-40 rounded">
+                                                    <div className="font-bold">S&P: A-1+, A-1, A-2, A-3</div>
+                                                    <div className="text-gray-300 mt-1">A-1+ is highest quality</div>
+                                                </div>
+                                                <div className="p-2 bg-green-900 bg-opacity-40 rounded">
+                                                    <div className="font-bold">Moody's: P-1, P-2, P-3</div>
+                                                    <div className="text-gray-300 mt-1">P-1 is highest quality</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Interest Rates and Pricing */}
+                            {activeTab === 'rates' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-purple-400">Interest Rates and Pricing</h3>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg mb-4">
+                                        <h4 className="font-semibold text-md mb-2 text-purple-400">
+                                            Yield Comparison by Credit Quality
+                                        </h4>
+                                        
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm mb-3">
+                                                <thead>
+                                                    <tr className="bg-gray-800">
+                                                        <th className="p-2 text-left">Maturity</th>
+                                                        <th className="p-2 text-left text-blue-400">A-1/P-1 CP</th>
+                                                        <th className="p-2 text-left text-green-400">A-2/P-2 CP</th>
+                                                        <th className="p-2 text-left text-gray-400">Treasury Bills</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr className="border-t border-gray-600">
+                                                        <td className="p-2">30 Days</td>
+                                                        <td className="p-2">3.50%</td>
+                                                        <td className="p-2">4.50%</td>
+                                                        <td className="p-2">3.20%</td>
+                                                    </tr>
+                                                    <tr className="border-t border-gray-600">
+                                                        <td className="p-2">60 Days</td>
+                                                        <td className="p-2">3.60%</td>
+                                                        <td className="p-2">4.70%</td>
+                                                        <td className="p-2">3.30%</td>
+                                                    </tr>
+                                                    <tr className="border-t border-gray-600">
+                                                        <td className="p-2">90 Days</td>
+                                                        <td className="p-2">3.80%</td>
+                                                        <td className="p-2">4.90%</td>
+                                                        <td className="p-2">3.40%</td>
+                                                    </tr>
+                                                    <tr className="border-t border-gray-600">
+                                                        <td className="p-2">180 Days</td>
+                                                        <td className="p-2">4.10%</td>
+                                                        <td className="p-2">5.20%</td>
+                                                        <td className="p-2">3.60%</td>
+                                                    </tr>
+                                                    <tr className="border-t border-gray-600">
+                                                        <td className="p-2">270 Days</td>
+                                                        <td className="p-2">4.50%</td>
+                                                        <td className="p-2">5.50%</td>
+                                                        <td className="p-2">3.90%</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                        <p className="text-gray-200 text-sm">
+                                            The table above shows how yields increase with longer maturities and how lower-rated commercial paper (A-2/P-2) requires higher yields to compensate investors for additional risk. Treasury bills typically offer lower yields due to their risk-free status.
+                                        </p>
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-md mb-2 text-purple-400">
+                                            Discount Pricing Calculation
+                                        </h4>
+                                        
+                                        <div className="bg-gray-800 p-3 rounded-lg mb-3">
+                                            <div className="font-semibold mb-1">Formula:</div>
+                                            <div className="text-gray-200 bg-gray-700 p-2 rounded">
+                                                <code>Discount = Face Value × Rate × (Days to Maturity ÷ 360)</code>
+                                            </div>
+                                            <div className="mt-2 font-semibold">Purchase Price = Face Value - Discount</div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-800 p-3 rounded-lg mb-3">
+                                            <div className="font-semibold mb-1">Example:</div>
+                                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                                <div>Face Value:</div>
+                                                <div>$1,000,000</div>
+                                                <div>Discount Rate:</div>
+                                                <div>4% (annualized)</div>
+                                                <div>Term:</div>
+                                                <div>90 days</div>
+                                                <div>Discount Amount:</div>
+                                                <div>${exampleCalculation.discount}</div>
+                                                <div className="font-semibold">Purchase Price:</div>
+                                                <div className="font-semibold">${exampleCalculation.purchasePrice}</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="space-y-3 mt-4">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <p className="text-gray-200 text-sm">
+                                                    <span className="font-semibold">Risk Premium:</span> Higher-rated issuers (A-1/P-1) can obtain funding at lower rates compared to lower-rated issuers (A-2/P-2), reflecting the credit risk difference.
+                                                </p>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <p className="text-gray-200 text-sm">
+                                                    <span className="font-semibold">Maturity Premium:</span> Longer maturities typically command higher yields due to increased time risk and reduced liquidity.
+                                                </p>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <p className="text-gray-200 text-sm">
+                                                    <span className="font-semibold">Treasury Spread:</span> Commercial paper rates typically trade at a spread above comparable Treasury securities, reflecting the higher risk of corporate debt.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Market Dynamics */}
+                            {activeTab === 'market' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-purple-400">Market Dynamics and Considerations</h3>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg space-y-4">
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Market Size</p>
+                                                <p className="text-gray-200 text-sm">
+                                                    The commercial paper market is a crucial component of the money market, with outstanding volume typically exceeding $1 trillion in the U.S. It provides essential short-term funding for businesses and investment opportunities for cash managers.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Advantages for Issuers</p>
+                                                <div className="grid grid-cols-2 gap-2 text-sm mt-1">
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-blue-400">Lower Cost</div>
+                                                        <div className="text-gray-300 mt-1">Usually cheaper than bank loans for high-quality issuers</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-blue-400">Flexibility</div>
+                                                        <div className="text-gray-300 mt-1">Tailored maturities to match cash flow needs</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-blue-400">Speed</div>
+                                                        <div className="text-gray-300 mt-1">Quick access to funds without extensive documentation</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-blue-400">Diversification</div>
+                                                        <div className="text-gray-300 mt-1">Alternative funding source to bank loans</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Advantages for Investors</p>
+                                                <div className="grid grid-cols-2 gap-2 text-sm mt-1">
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-green-400">Higher Yield</div>
+                                                        <div className="text-gray-300 mt-1">Better returns than Treasury securities of similar maturity</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-green-400">Liquidity</div>
+                                                        <div className="text-gray-300 mt-1">Active secondary market for high-quality issuers</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-green-400">Safety</div>
+                                                        <div className="text-gray-300 mt-1">Typically high-quality credits with low default risk</div>
+                                                    </div>
+                                                    <div className="p-2 bg-gray-800 rounded">
+                                                        <div className="font-bold text-green-400">Diversification</div>
+                                                        <div className="text-gray-300 mt-1">Corporate exposure with short maturity</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Market Risks</p>
+                                                <p className="text-gray-200 text-sm">
+                                                    Market disruptions can significantly impact commercial paper. During the 2008 financial crisis and 2020 COVID-19 pandemic, the commercial paper market experienced severe stress, requiring central bank intervention to restore normal functioning.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Regulatory Considerations</p>
+                                                <p className="text-gray-200 text-sm">
+                                                    Money Market Fund reforms after 2008 affected the commercial paper market. Rule 2a-7 revisions established more stringent quality, maturity, and liquidity requirements for money market funds, a major buyer of commercial paper.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mb-4 flex flex-wrap">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'structure' ? 'bg-purple-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('structure')}
+                                >
+                                    Structure
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'issuers' ? 'bg-purple-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('issuers')}
+                                >
+                                    Issuers
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'rates' ? 'bg-purple-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('rates')}
+                                >
+                                    Pricing
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'market' ? 'bg-purple-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('market')}
+                                >
+                                    Market
+                                </button>
+                            </div>
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <h4 className="font-semibold text-purple-400 mb-2">Key Commercial Paper Terms</h4>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <span className="font-semibold">Face Value:</span> 
+                                        <p className="text-gray-300">The amount paid to the investor at maturity</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Discount Rate:</span> 
+                                        <p className="text-gray-300">Annualized yield based on the discount amount</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">A-1/P-1 Rating:</span> 
+                                        <p className="text-gray-300">Highest short-term credit ratings (S&P/Moody's)</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Tier 1/Tier 2:</span> 
+                                        <p className="text-gray-300">Classification based on credit quality</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Dealer Paper:</span> 
+                                        <p className="text-gray-300">CP sold through a securities dealer</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Direct Paper:</span> 
+                                        <p className="text-gray-300">CP sold directly by issuer to investors</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CommercialPaperVisual />);
+    </script>
+</body>
+</html>
