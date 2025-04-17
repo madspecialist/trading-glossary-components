@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cryptocurrency Markets Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const CryptoMarketsVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('structure');
+            const [marketType, setMarketType] = React.useState('centralized');
+            const [showingVolatility, setShowingVolatility] = React.useState(false);
+            const [selectedBlockchain, setSelectedBlockchain] = React.useState('bitcoin');
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const brandColor = "#079A4F"; // Brand green color
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+            
+            const marketTypes = {
+                centralized: {
+                    name: "Centralized Exchanges (CEX)",
+                    description: "Trading platforms operated by companies that facilitate cryptocurrency transactions using a central order book and custodial services.",
+                    advantages: "User-friendly interfaces, higher liquidity, fiat on/off ramps, customer support",
+                    disadvantages: "Require KYC/AML, custody risks, potential for hacks, centralized control",
+                    examples: "Coinbase, Binance, Kraken, FTX",
+                    color: "#3B82F6" // Blue
+                },
+                decentralized: {
+                    name: "Decentralized Exchanges (DEX)",
+                    description: "Non-custodial trading protocols that operate on blockchain networks allowing peer-to-peer trading without intermediaries.",
+                    advantages: "Self-custody of funds, privacy, resistance to censorship, permissionless",
+                    disadvantages: "More complex user experience, typically lower liquidity, smart contract risks",
+                    examples: "Uniswap, SushiSwap, dYdX, Curve Finance",
+                    color: "#8B5CF6" // Purple
+                },
+                otc: {
+                    name: "Over-the-Counter (OTC)",
+                    description: "Direct trading between two parties facilitated by dealers or specialized OTC desks, typically for large-volume trades.",
+                    advantages: "Minimal price slippage for large orders, privacy, personalized service",
+                    disadvantages: "Less transparent pricing, requires trusted counterparties, higher minimums",
+                    examples: "Cumberland, Genesis Trading, Circle, B2C2",
+                    color: "#F59E0B" // Amber
+                },
+                derivatives: {
+                    name: "Derivatives Markets",
+                    description: "Trading platforms for financial contracts that derive value from underlying crypto assets, including futures, options, and perpetual swaps.",
+                    advantages: "Leverage, hedging capabilities, ability to take short positions",
+                    disadvantages: "Increased complexity and risk, potential for significant losses",
+                    examples: "BitMEX, Deribit, CME Bitcoin Futures, Binance Futures",
+                    color: "#EF4444" // Red
+                }
+            };
+            
+            const blockchains = {
+                bitcoin: {
+                    name: "Bitcoin",
+                    ticker: "BTC",
+                    description: "The first and largest cryptocurrency by market capitalization. A peer-to-peer electronic cash system that operates on a proof-of-work consensus mechanism.",
+                    marketCap: "$1.2 Trillion",
+                    yearFounded: "2009",
+                    consensusMechanism: "Proof of Work (PoW)",
+                    mainUseCase: "Store of value, Digital gold, Payments",
+                    color: "#F7931A" // Bitcoin orange
+                },
+                ethereum: {
+                    name: "Ethereum",
+                    ticker: "ETH",
+                    description: "A decentralized platform that enables smart contracts and decentralized applications (dApps) to be built and run without downtime, fraud, or interference.",
+                    marketCap: "$380 Billion",
+                    yearFounded: "2015",
+                    consensusMechanism: "Proof of Stake (PoS)",
+                    mainUseCase: "Smart contracts, DeFi, NFTs, dApps",
+                    color: "#627EEA" // Ethereum blue
+                },
+                solana: {
+                    name: "Solana",
+                    ticker: "SOL",
+                    description: "A high-performance blockchain supporting smart contracts and decentralized applications with high throughput and low transaction costs.",
+                    marketCap: "$60 Billion",
+                    yearFounded: "2020",
+                    consensusMechanism: "Proof of Stake (PoS) + Proof of History (PoH)",
+                    mainUseCase: "High-performance dApps, DeFi, NFTs",
+                    color: "#14F195" // Solana green
+                },
+                cardano: {
+                    name: "Cardano",
+                    ticker: "ADA",
+                    description: "A proof-of-stake blockchain platform built with a research-driven approach and focus on sustainability, scalability, and transparency.",
+                    marketCap: "$21 Billion",
+                    yearFounded: "2017",
+                    consensusMechanism: "Proof of Stake (PoS) - Ouroboros",
+                    mainUseCase: "Smart contracts, DeFi, Digital identity",
+                    color: "#6BAAE8" // Changed from dark blue to a lighter blue for better readability
+                }
+            };
+
+            // Initialize chart when tab changes
+            React.useEffect(() => {
+                // Clean up any existing chart when tab changes
+                if (chart) {
+                    chart.destroy();
+                    setChart(null);
+                }
+                
+                // Initialize trading chart if we're on the trading tab
+                if (activeTab === 'trading' && chartRef.current) {
+                    initializeChart();
+                }
+            }, [activeTab]);
+
+            // Update chart when volatility toggle changes
+            React.useEffect(() => {
+                if (activeTab === 'trading' && chartRef.current) {
+                    if (chart) {
+                        chart.destroy();
+                    }
+                    initializeChart();
+                }
+            }, [showingVolatility]);
+
+            // Function to initialize the chart based on current state
+            const initializeChart = () => {
+                if (!chartRef.current) return;
+                
+                const ctx = chartRef.current.getContext('2d');
+                
+                if (showingVolatility) {
+                    // Volatility comparison chart
+                    const assets = ["Bitcoin", "Ethereum", "S&P 500", "Gold", "US Dollar"];
+                    const volatilityData = [72, 95, 16, 14, 6]; // Annual volatility percentages
+                    const backgroundColors = ['#F7931A', '#627EEA', '#0A6640', '#F7D058', '#5B8DB9'];
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: assets,
+                            datasets: [{
+                                label: 'Annual Volatility (%)',
+                                data: volatilityData,
+                                backgroundColor: backgroundColors,
+                                borderColor: 'rgba(255, 255, 255, 0.3)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    displayColors: true
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Price Volatility (%)',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    beginAtZero: true
+                                },
+                                x: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    setChart(newChart);
+                } else {
+                    // Trading volume chart
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: months,
+                            datasets: [
+                                {
+                                    label: 'Spot Trading Volume',
+                                    data: [28, 34, 30, 45, 55, 68, 62, 45, 60, 75, 85, 105],
+                                    borderColor: '#3B82F6',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    tension: 0.4,
+                                    fill: true
+                                },
+                                {
+                                    label: 'Derivatives Volume',
+                                    data: [65, 80, 75, 90, 115, 150, 135, 105, 140, 175, 225, 280],
+                                    borderColor: '#8B5CF6',
+                                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                    tension: 0.4,
+                                    fill: true
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                mode: 'index',
+                                intersect: false,
+                            },
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `${context.dataset.label}: $${context.parsed.y}B`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    type: 'linear',
+                                    display: true,
+                                    position: 'left',
+                                    title: {
+                                        display: true,
+                                        text: 'Trading Volume (Billions USD)',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563',
+                                        callback: function(value) {
+                                            return '$' + value + 'B';
+                                        }
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    setChart(newChart);
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Cryptocurrency Markets
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    Digital marketplaces where blockchain-based currencies and tokens are traded. Operating globally and continuously (24/7), these markets include centralized exchanges, decentralized protocols, and over-the-counter trading venues for assets secured by cryptography.
+                                </p>
+                            </div>
+
+                            {/* Fixed button menu - all buttons on one line with smaller padding */}
+                            <div className="mb-4 flex overflow-x-auto whitespace-nowrap">
+                                <button
+                                    className={`px-2 py-2 text-sm ${activeTab === 'structure' ? 'bg-purple-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('structure')}
+                                >
+                                    Market Structure
+                                </button>
+                                <button
+                                    className={`px-2 py-2 text-sm ${activeTab === 'trading' ? 'bg-purple-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('trading')}
+                                >
+                                    Trading Activity
+                                </button>
+                                <button
+                                    className={`px-2 py-2 text-sm ${activeTab === 'blockchains' ? 'bg-purple-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('blockchains')}
+                                >
+                                    Major Blockchains
+                                </button>
+                                <button
+                                    className={`px-2 py-2 text-sm ${activeTab === 'unique' ? 'bg-purple-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('unique')}
+                                >
+                                    Unique Features
+                                </button>
+                                <button
+                                    className={`px-2 py-2 text-sm ${activeTab === 'risks' ? 'bg-purple-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('risks')}
+                                >
+                                    Risks
+                                </button>
+                            </div>
+
+                            {/* Market Structure Tab */}
+                            {activeTab === 'structure' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-purple-400">Cryptocurrency Market Structure</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-2 mb-4">
+                                        {Object.keys(marketTypes).map(type => (
+                                            <button
+                                                key={type}
+                                                className={`p-2 rounded-lg border-2 transition-colors ${marketType === type ? 'border-white bg-gray-700' : 'border-gray-600 bg-gray-800'}`}
+                                                style={{ borderLeftColor: marketTypes[type].color }}
+                                                onClick={() => setMarketType(type)}
+                                            >
+                                                <div className="font-semibold" style={{ color: marketTypes[type].color }}>
+                                                    {marketTypes[type].name}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-lg mb-2" style={{ color: marketTypes[marketType].color }}>
+                                            {marketTypes[marketType].name}
+                                        </h4>
+                                        <div className="space-y-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: marketTypes[marketType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Description:</span>
+                                                    <p className="text-gray-200 text-sm">{marketTypes[marketType].description}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: marketTypes[marketType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Advantages:</span>
+                                                    <p className="text-gray-200 text-sm">{marketTypes[marketType].advantages}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: marketTypes[marketType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Disadvantages:</span>
+                                                    <p className="text-gray-200 text-sm">{marketTypes[marketType].disadvantages}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: marketTypes[marketType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Examples:</span>
+                                                    <p className="text-gray-200 text-sm">{marketTypes[marketType].examples}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Trading Activity Tab */}
+                            {activeTab === 'trading' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-purple-400">Trading Activity & Metrics</h3>
+                                    
+                                    <div className="flex mb-4">
+                                        <button
+                                            className={`px-4 py-2 rounded-tl-lg rounded-bl-lg ${!showingVolatility ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingVolatility(false)}
+                                        >
+                                            Trading Volumes
+                                        </button>
+                                        <button
+                                            className={`px-4 py-2 rounded-tr-lg rounded-br-lg ${showingVolatility ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingVolatility(true)}
+                                        >
+                                            Price Volatility
+                                        </button>
+                                    </div>
+
+                                    <div className="h-64 mb-4">
+                                        <canvas ref={chartRef}></canvas>
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-md mb-2 text-purple-400">
+                                            {showingVolatility ? "Crypto Market Volatility" : "Global Crypto Trading Volume"}
+                                        </h4>
+                                        
+                                        {showingVolatility ? (
+                                            <div className="space-y-2">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">High Volatility:</span> Cryptocurrency markets experience significantly greater price fluctuations compared to traditional financial assets.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Risk-Return Profile:</span> The high volatility creates both significant investment risks and opportunities for traders.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Volatility Drivers:</span> Market sentiment, regulatory news, technological developments, and macroeconomic factors all contribute to crypto's price volatility.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Growing Volumes:</span> Cryptocurrency trading volume has shown significant growth, with daily totals regularly exceeding $100 billion across all markets.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Derivatives Dominance:</span> Derivatives volume often surpasses spot trading, indicating market maturation and increased institutional participation.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Market Cycles:</span> Trading volumes tend to surge during bull markets and decrease during bear markets, though the overall trend shows increasing adoption.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Major Blockchains Tab */}
+                            {activeTab === 'blockchains' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-purple-400">Major Blockchain Networks</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-2 mb-4">
+                                        {Object.keys(blockchains).map(chain => (
+                                            <button
+                                                key={chain}
+                                                className={`p-2 rounded-lg border-2 transition-colors ${selectedBlockchain === chain ? 'border-white bg-gray-700' : 'border-gray-600 bg-gray-800'}`}
+                                                style={{ borderLeftColor: blockchains[chain].color }}
+                                                onClick={() => setSelectedBlockchain(chain)}
+                                            >
+                                                <div className="font-semibold flex items-center" style={{ color: blockchains[chain].color }}>
+                                                    {blockchains[chain].name}
+                                                    <span className="ml-1 text-xs text-gray-400">({blockchains[chain].ticker})</span>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <div className="flex items-center mb-3">
+                                            <div className="w-8 h-8 rounded-full mr-3" style={{ backgroundColor: blockchains[selectedBlockchain].color }}></div>
+                                            <h4 className="font-semibold text-lg" style={{ color: blockchains[selectedBlockchain].color }}>
+                                                {blockchains[selectedBlockchain].name} ({blockchains[selectedBlockchain].ticker})
+                                            </h4>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: blockchains[selectedBlockchain].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Overview:</span>
+                                                    <p className="text-gray-200 text-sm">{blockchains[selectedBlockchain].description}</p>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-x-4 gap-y-3 mt-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: blockchains[selectedBlockchain].color }}></div>
+                                                    <div>
+                                                        <span className="font-semibold">Market Cap:</span>
+                                                        <p className="text-gray-200 text-sm">{blockchains[selectedBlockchain].marketCap}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: blockchains[selectedBlockchain].color }}></div>
+                                                    <div>
+                                                        <span className="font-semibold">Launched:</span>
+                                                        <p className="text-gray-200 text-sm">{blockchains[selectedBlockchain].yearFounded}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: blockchains[selectedBlockchain].color }}></div>
+                                                    <div>
+                                                        <span className="font-semibold">Consensus:</span>
+                                                        <p className="text-gray-200 text-sm">{blockchains[selectedBlockchain].consensusMechanism}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: blockchains[selectedBlockchain].color }}></div>
+                                                    <div>
+                                                        <span className="font-semibold">Primary Use:</span>
+                                                        <p className="text-gray-200 text-sm">{blockchains[selectedBlockchain].mainUseCase}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg mt-4">
+                                        <h4 className="font-semibold text-md mb-2 text-purple-400">
+                                            Blockchain Technology Comparison
+                                        </h4>
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full text-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th className="text-left text-gray-400 pb-2">Blockchain</th>
+                                                        <th className="text-left text-gray-400 pb-2">Transactions/Sec</th>
+                                                        <th className="text-left text-gray-400 pb-2">Block Time</th>
+                                                        <th className="text-left text-gray-400 pb-2">Smart Contracts</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="text-gray-300">
+                                                    <tr>
+                                                        <td className="py-1" style={{ color: blockchains.bitcoin.color }}>Bitcoin</td>
+                                                        <td>~7</td>
+                                                        <td>~10 min</td>
+                                                        <td>Limited</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td className="py-1" style={{ color: blockchains.ethereum.color }}>Ethereum</td>
+                                                        <td>~15-30</td>
+                                                        <td>~12 sec</td>
+                                                        <td>Yes (Robust)</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td className="py-1" style={{ color: blockchains.solana.color }}>Solana</td>
+                                                        <td>~65,000</td>
+                                                        <td>~400ms</td>
+                                                        <td>Yes</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td className="py-1" style={{ color: blockchains.cardano.color }}>Cardano</td>
+                                                        <td>~250-1,000</td>
+                                                        <td>~20 sec</td>
+                                                        <td>Yes</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Unique Features Tab */}
+                            {activeTab === 'unique' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-purple-400">Unique Features of Crypto Markets</h3>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg space-y-4">
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">24/7 Global Trading</p>
+                                                <p className="text-gray-200 text-sm">Unlike traditional markets with fixed trading hours, cryptocurrency markets operate continuously without closing, allowing for constant price discovery and global participation.</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Fractional Ownership</p>
+                                                <p className="text-gray-200 text-sm">Cryptocurrencies can be divided into tiny fractions (e.g., 0.00000001 BTC), enabling small-value transactions and investment with minimal capital requirements.</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Accessibility & Permissionless Entry</p>
+                                                <p className="text-gray-200 text-sm">Anyone with internet access can participate in crypto markets regardless of location, traditional banking access, or financial status, creating truly global markets.</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Transparent On-Chain Activity</p>
+                                                <p className="text-gray-200 text-sm">Blockchain technology allows for unprecedented transparency where all transactions are publicly verifiable, enabling new forms of market analysis and verification.</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Self-Custody Options</p>
+                                                <p className="text-gray-200 text-sm">Traders can maintain direct custody of their assets through non-custodial wallets, reducing counterparty risk and enabling true ownership of digital assets.</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Programmable Markets</p>
+                                                <p className="text-gray-200 text-sm">Smart contracts enable automated market operations like algorithmic stablecoins, automated market makers, and decentralized lending platforms with predefined rules.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Risks Tab */}
+                            {activeTab === 'risks' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-purple-400">Crypto Market Risks</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-red-400 mb-2">Market Risks</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Extreme Volatility</span>
+                                                        <p className="text-gray-300 text-xs">Price swings of 10-20% in a single day are common</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Liquidity Issues</span>
+                                                        <p className="text-gray-300 text-xs">Low trading volume for many altcoins can lead to slippage</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Market Manipulation</span>
+                                                        <p className="text-gray-300 text-xs">Pump-and-dump schemes, spoofing, wash trading</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Technical Risks</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Exchange Hacks</span>
+                                                        <p className="text-gray-300 text-xs">Security breaches leading to theft of user funds</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Smart Contract Bugs</span>
+                                                        <p className="text-gray-300 text-xs">Code vulnerabilities in DeFi protocols or tokens</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Wallet Security</span>
+                                                        <p className="text-gray-300 text-xs">Private key management risks and phishing attacks</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Regulatory Risks</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Uncertain Regulation</span>
+                                                        <p className="text-gray-300 text-xs">Evolving global regulatory landscape</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Trading Restrictions</span>
+                                                        <p className="text-gray-300 text-xs">Geographic limitations or service bans</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Tax Compliance</span>
+                                                        <p className="text-gray-300 text-xs">Complex reporting requirements for traders</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Operational Risks</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Exchange Downtime</span>
+                                                        <p className="text-gray-300 text-xs">Service outages during peak trading periods</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Withdrawal Suspensions</span>
+                                                        <p className="text-gray-300 text-xs">Temporary freezing of asset withdrawals</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Counterparty Risk</span>
+                                                        <p className="text-gray-300 text-xs">Exchange insolvency or mismanagement</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-purple-400">Market Comparison</div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                        <div className="text-purple-400 font-semibold mb-1">Crypto Markets</div>
+                                        <div className="text-sm text-gray-300">24/7 trading</div>
+                                        <div className="text-sm text-gray-300">Global access</div>
+                                        <div className="text-sm text-gray-300">High volatility</div>
+                                        <div className="text-sm text-gray-300">Self-custody options</div>
+                                    </div>
+                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                        <div className="text-blue-400 font-semibold mb-1">Stock Markets</div>
+                                        <div className="text-sm text-gray-300">Fixed trading hours</div>
+                                        <div className="text-sm text-gray-300">Geographic limitations</div>
+                                        <div className="text-sm text-gray-300">Moderate volatility</div>
+                                        <div className="text-sm text-gray-300">Broker custody</div>
+                                    </div>
+                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                        <div className="text-amber-400 font-semibold mb-1">Forex Markets</div>
+                                        <div className="text-sm text-gray-300">24-hour trading (weekdays)</div>
+                                        <div className="text-sm text-gray-300">Broker-dependent access</div>
+                                        <div className="text-sm text-gray-300">Low-medium volatility</div>
+                                        <div className="text-sm text-gray-300">Centralized settlement</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CryptoMarketsVisual />);
+    </script>
+</body>
+</html>
