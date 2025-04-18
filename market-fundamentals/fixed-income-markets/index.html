@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fixed Income Markets Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const FixedIncomeMarketsVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('structure');
+            const [bondType, setBondType] = React.useState('treasury');
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const [yieldView, setYieldView] = React.useState('curve');
+            const brandColor = "#079A4F"; // Brand green color
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+            
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 5 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 5);
+            };
+            
+            // Bond market segment data
+            const bondSegments = {
+                treasury: {
+                    name: "Government Bonds",
+                    description: "Debt securities issued by national governments to fund operations and manage monetary policy",
+                    issuers: "National governments (US Treasury, UK Gilts, German Bunds, etc.)",
+                    features: "Highest credit quality, benchmark for other rates, various maturities",
+                    marketSize: "$64 trillion globally (largest segment)",
+                    color: "#3B82F6" // Blue
+                },
+                corporate: {
+                    name: "Corporate Bonds",
+                    description: "Debt issued by corporations to raise capital for operations, expansion, and refinancing",
+                    issuers: "Public and private corporations across all sectors",
+                    features: "Wide range of credit ratings, higher yields than government bonds",
+                    marketSize: "$12 trillion globally",
+                    color: "#EF4444" // Red
+                },
+                municipal: {
+                    name: "Municipal Bonds",
+                    description: "Debt issued by state/local governments and agencies to fund public projects",
+                    issuers: "Cities, states, counties, and special-purpose districts",
+                    features: "Often tax-advantaged, support local infrastructure",
+                    marketSize: "$4 trillion (primarily in the US)",
+                    color: "#10B981" // Emerald
+                },
+                securitized: {
+                    name: "Securitized Debt",
+                    description: "Financial instruments backed by pools of underlying assets that generate cash flows",
+                    issuers: "Financial institutions, special purpose vehicles",
+                    features: "Backed by mortgages, auto loans, credit card receivables, etc.",
+                    marketSize: "$13 trillion globally",
+                    color: "#F59E0B" // Amber
+                },
+                emerging: {
+                    name: "Emerging Market Debt",
+                    description: "Bonds issued by governments and corporations in developing economies",
+                    issuers: "Emerging market countries and corporations",
+                    features: "Higher yields, currency and political risk considerations",
+                    marketSize: "$3.2 trillion globally",
+                    color: "#8B5CF6" // Purple
+                }
+            };
+
+            // Chart for yield curves
+            React.useEffect(() => {
+                if (chartRef.current && activeTab === 'yields') {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    if (yieldView === 'curve') {
+                        // Yield curve data
+                        const maturities = ['1M', '3M', '6M', '1Y', '2Y', '5Y', '10Y', '30Y'];
+                        const normalYields = [4.1, 4.2, 4.3, 4.4, 4.5, 4.7, 4.9, 5.0];
+                        const flatYields = [4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5];
+                        const invertedYields = [5.1, 5.0, 4.9, 4.8, 4.7, 4.6, 4.5, 4.4];
+                        
+                        const newChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: maturities,
+                                datasets: [
+                                    {
+                                        label: 'Normal Yield Curve',
+                                        data: normalYields,
+                                        borderColor: '#10B981',
+                                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                        tension: 0.4,
+                                        fill: false,
+                                        borderWidth: 2
+                                    },
+                                    {
+                                        label: 'Flat Yield Curve',
+                                        data: flatYields,
+                                        borderColor: '#F59E0B',
+                                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                        tension: 0.4,
+                                        fill: false,
+                                        borderWidth: 2,
+                                        borderDash: [5, 5]
+                                    },
+                                    {
+                                        label: 'Inverted Yield Curve',
+                                        data: invertedYields,
+                                        borderColor: '#EF4444',
+                                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                        tension: 0.4,
+                                        fill: false,
+                                        borderWidth: 2
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'top',
+                                        labels: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563',
+                                            font: {
+                                                size: 11
+                                            }
+                                        }
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        displayColors: true,
+                                        callbacks: {
+                                            label: function(context) {
+                                                return `${context.dataset.label}: ${context.raw}%`;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        title: {
+                                            display: true,
+                                            text: 'Yield (%)',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    },
+                                    x: {
+                                        title: {
+                                            display: true,
+                                            text: 'Maturity',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        setChart(newChart);
+                    } else {
+                        // Credit spread data
+                        const ratings = ['AAA', 'AA', 'A', 'BBB', 'BB', 'B', 'CCC'];
+                        const spreads = [50, 75, 125, 200, 350, 550, 850];
+                        
+                        const newChart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: ratings,
+                                datasets: [{
+                                    label: 'Credit Spread (basis points)',
+                                    data: spreads,
+                                    backgroundColor: [
+                                        '#10B981', // AAA - Green
+                                        '#34D399', // AA - Light Green
+                                        '#3B82F6', // A - Blue
+                                        '#60A5FA', // BBB - Light Blue
+                                        '#F59E0B', // BB - Amber
+                                        '#FBBF24', // B - Light Amber
+                                        '#EF4444'  // CCC - Red
+                                    ],
+                                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        displayColors: true,
+                                        callbacks: {
+                                            label: function(context) {
+                                                return `Spread: ${context.raw} basis points`;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        title: {
+                                            display: true,
+                                            text: 'Spread (basis points)',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    },
+                                    x: {
+                                        title: {
+                                            display: true,
+                                            text: 'Credit Rating',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        setChart(newChart);
+                    }
+                }
+            }, [activeTab, isDarkMode, yieldView]);
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Fixed Income Markets (Bond Markets)
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    Financial markets form the global marketplace where debt securities are bought and sold. These securities provide regular interest payments and return the principal at maturity. Through these markets, governments, corporations, and other entities can borrow funds while providing investors with steady income streams and capital preservation.
+                                </p>
+                            </div>
+
+                            <div className="mb-4 flex">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'structure' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('structure')}
+                                >
+                                    Structure
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'segments' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('segments')}
+                                >
+                                    Segments
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'yields' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('yields')}
+                                >
+                                    Yields
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'trading' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('trading')}
+                                >
+                                    Trading
+                                </button>
+                            </div>
+
+                            {/* Market Structure */}
+                            {activeTab === 'structure' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Fixed Income Market Structure</h3>
+                                    
+                                    <div className="relative h-96 mb-4 bg-gray-700 rounded-lg overflow-hidden">
+                                        {/* Step 1: Primary Markets */}
+                                        {currentStep === 1 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-blue-400">Primary Bond Markets</h3>
+                                                <div className="flex flex-col items-center h-72 overflow-y-auto">
+                                                    <div className="w-full bg-gray-800 p-4 rounded-lg mb-4">
+                                                        <p className="text-gray-300 text-center mb-4">Where new bond issues are sold directly from issuers to investors</p>
+                                                        
+                                                        <div className="grid grid-cols-3 gap-4 mb-4">
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-amber-400 font-semibold mb-2 text-center">Issuers</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-gray-800 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Governments</span>
+                                                                        <div className="text-gray-300 mt-1">Fund budget deficits</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-800 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Corporations</span>
+                                                                        <div className="text-gray-300 mt-1">Fund operations & growth</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-800 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Municipalities</span>
+                                                                        <div className="text-gray-300 mt-1">Fund local projects</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-blue-400 font-semibold mb-2 text-center">Underwriters</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-gray-800 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Investment Banks</span>
+                                                                        <div className="text-gray-300 mt-1">Structure & distribute issues</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-800 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Dealer Banks</span>
+                                                                        <div className="text-gray-300 mt-1">Place bonds with clients</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-800 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Primary Dealers</span>
+                                                                        <div className="text-gray-300 mt-1">For government securities</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-green-400 font-semibold mb-2 text-center">Investors</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-gray-800 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Institutions</span>
+                                                                        <div className="text-gray-300 mt-1">Pension funds, insurers</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-800 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Asset Managers</span>
+                                                                        <div className="text-gray-300 mt-1">Bond funds, ETFs</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-800 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Individual Investors</span>
+                                                                        <div className="text-gray-300 mt-1">Through brokers/platforms</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-700 p-3 rounded-lg">
+                                                            <div className="font-semibold text-white mb-2 text-center">Primary Issuance Methods</div>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div className="bg-blue-900 bg-opacity-30 p-2 rounded">
+                                                                    <div className="text-blue-400 font-semibold text-sm text-center mb-1">Auction Process</div>
+                                                                    <div className="text-xs text-gray-300">Used primarily for government securities</div>
+                                                                    <div className="text-xs text-gray-300">Competitive and non-competitive bidding</div>
+                                                                    <div className="text-xs text-gray-300">Price determined by market demand</div>
+                                                                </div>
+                                                                <div className="bg-green-900 bg-opacity-30 p-2 rounded">
+                                                                    <div className="text-green-400 font-semibold text-sm text-center mb-1">Underwritten Offering</div>
+                                                                    <div className="text-xs text-gray-300">Common for corporate & municipal bonds</div>
+                                                                    <div className="text-xs text-gray-300">Investment banks underwrite risk</div>
+                                                                    <div className="text-xs text-gray-300">Fixed price offering to investors</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 2: Secondary Markets */}
+                                        {currentStep === 2 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-blue-400">Secondary Bond Markets</h3>
+                                                <div className="flex flex-col items-center h-72 overflow-y-auto">
+                                                    <div className="w-full bg-gray-800 p-4 rounded-lg mb-4">
+                                                        <p className="text-gray-300 text-center mb-4">Where previously issued bonds are traded among investors</p>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-blue-400 font-semibold mb-2 text-center">Market Structure</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">OTC Markets</span>
+                                                                        <div className="text-gray-300 mt-1">Most bonds trade over-the-counter rather than on exchanges</div>
+                                                                    </div>
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Dealer-Based</span>
+                                                                        <div className="text-gray-300 mt-1">Bond dealers maintain inventories and facilitate trades</div>
+                                                                    </div>
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Electronic Platforms</span>
+                                                                        <div className="text-gray-300 mt-1">Growing use of electronic trading venues for price discovery and execution</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-green-400 font-semibold mb-2 text-center">Key Participants</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Broker-Dealers</span>
+                                                                        <div className="text-gray-300 mt-1">Major banks and securities firms that make markets in bonds</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Institutional Investors</span>
+                                                                        <div className="text-gray-300 mt-1">Pension funds, insurance companies, mutual funds</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Traders & Market Makers</span>
+                                                                        <div className="text-gray-300 mt-1">Provide liquidity and facilitate price discovery</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-amber-400 font-semibold mb-2 text-center">Trading Mechanisms</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-amber-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Request for Quote (RFQ)</span>
+                                                                        <div className="text-gray-300 mt-1">Investors request prices from multiple dealers</div>
+                                                                    </div>
+                                                                    <div className="bg-amber-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Order Book Systems</span>
+                                                                        <div className="text-gray-300 mt-1">Used in more liquid bond markets</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-purple-400 font-semibold mb-2 text-center">Market Challenges</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-purple-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Fragmentation</span>
+                                                                        <div className="text-gray-300 mt-1">Trading spread across multiple venues</div>
+                                                                    </div>
+                                                                    <div className="bg-purple-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Liquidity</span>
+                                                                        <div className="text-gray-300 mt-1">Can be limited for many bonds</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 3: Market Participants */}
+                                        {currentStep === 3 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-blue-400">Fixed Income Market Participants</h3>
+                                                <div className="flex flex-col items-center h-72 overflow-y-auto">
+                                                    <div className="w-full bg-gray-800 p-4 rounded-lg mb-4">
+                                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-blue-400 font-semibold mb-2 text-center">Sell-Side</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Investment Banks</span>
+                                                                        <div className="text-gray-300 mt-1">Underwrite new issues, structure debt products</div>
+                                                                        <div className="text-gray-300 mt-1">Examples: JP Morgan, Goldman Sachs, Morgan Stanley</div>
+                                                                    </div>
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Primary Dealers</span>
+                                                                        <div className="text-gray-300 mt-1">Trade directly with central banks</div>
+                                                                        <div className="text-gray-300 mt-1">Required to participate in government bond auctions</div>
+                                                                    </div>
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Market Makers</span>
+                                                                        <div className="text-gray-300 mt-1">Provide liquidity by quoting buy and sell prices</div>
+                                                                        <div className="text-gray-300 mt-1">Hold inventory of various bonds</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-green-400 font-semibold mb-2 text-center">Buy-Side</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Pension Funds</span>
+                                                                        <div className="text-gray-300 mt-1">Major investors in long-term bonds</div>
+                                                                        <div className="text-gray-300 mt-1">Seeking to match long-term liabilities</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Insurance Companies</span>
+                                                                        <div className="text-gray-300 mt-1">Invest premiums in fixed income</div>
+                                                                        <div className="text-gray-300 mt-1">Match assets with policy obligations</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Asset Managers</span>
+                                                                        <div className="text-gray-300 mt-1">Bond mutual funds, ETFs, SMA accounts</div>
+                                                                        <div className="text-gray-300 mt-1">Examples: BlackRock, PIMCO, Vanguard</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-amber-400 font-semibold mb-2 text-center">Market Influencers</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-amber-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Central Banks</span>
+                                                                        <div className="text-gray-300 mt-1">Set interest rates, conduct monetary policy</div>
+                                                                        <div className="text-gray-300 mt-1">Large buyers through QE programs</div>
+                                                                    </div>
+                                                                    <div className="bg-amber-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Rating Agencies</span>
+                                                                        <div className="text-gray-300 mt-1">Assess creditworthiness of issuers</div>
+                                                                        <div className="text-gray-300 mt-1">Examples: S&P, Moody's, Fitch</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-purple-400 font-semibold mb-2 text-center">Service Providers</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-purple-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Trading Platforms</span>
+                                                                        <div className="text-gray-300 mt-1">Electronic venues for bond trading</div>
+                                                                        <div className="text-gray-300 mt-1">Examples: Bloomberg, TradeWeb, MarketAxess</div>
+                                                                    </div>
+                                                                    <div className="bg-purple-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Data Providers</span>
+                                                                        <div className="text-gray-300 mt-1">Price data, analytics, research</div>
+                                                                        <div className="text-gray-300 mt-1">Examples: ICE, Refinitiv, MSCI</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {/* Step 4: Market Infrastructure */}
+                                        {currentStep === 4 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-blue-400">Market Infrastructure</h3>
+                                                <div className="flex flex-col items-center h-72 overflow-y-auto">
+                                                    <div className="w-full bg-gray-800 p-4 rounded-lg mb-4">
+                                                        <p className="text-gray-300 text-center mb-4">Systems and institutions that enable efficient bond market functioning</p>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-blue-400 font-semibold mb-2 text-center">Trading Infrastructure</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">RFQ Platforms</span>
+                                                                        <div className="text-gray-300 mt-1">Allow investors to request quotes from multiple dealers simultaneously</div>
+                                                                    </div>
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Order Book Systems</span>
+                                                                        <div className="text-gray-300 mt-1">Match buy and sell orders automatically</div>
+                                                                    </div>
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Dark Pools</span>
+                                                                        <div className="text-gray-300 mt-1">Private venues for trading large blocks</div>
+                                                                    </div>
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Interdealer Brokers</span>
+                                                                        <div className="text-gray-300 mt-1">Facilitate trades between dealers</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-green-400 font-semibold mb-2 text-center">Post-Trade Infrastructure</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Clearing Houses</span>
+                                                                        <div className="text-gray-300 mt-1">Manage counterparty risk through novation</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Central Securities Depositories</span>
+                                                                        <div className="text-gray-300 mt-1">Maintain ownership records of securities</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Settlement Systems</span>
+                                                                        <div className="text-gray-300 mt-1">Process transfers of securities and cash</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Trade Reporting Facilities</span>
+                                                                        <div className="text-gray-300 mt-1">Collect and disseminate trade information</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-700 p-3 rounded-lg">
+                                                            <div className="font-semibold text-white mb-2 text-center">Market Evolution</div>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div className="bg-purple-900 bg-opacity-30 p-2 rounded">
+                                                                    <div className="text-purple-400 font-semibold text-xs text-center mb-1">Trends</div>
+                                                                    <ul className="list-disc pl-4 text-xs text-gray-300">
+                                                                        <li>Increased electronification</li>
+                                                                        <li>Greater transparency</li>
+                                                                        <li>Algorithmic trading growth</li>
+                                                                        <li>Regulatory pressure</li>
+                                                                    </ul>
+                                                                </div>
+                                                                <div className="bg-amber-900 bg-opacity-30 p-2 rounded">
+                                                                    <div className="text-amber-400 font-semibold text-xs text-center mb-1">Challenges</div>
+                                                                    <ul className="list-disc pl-4 text-xs text-gray-300">
+                                                                        <li>Market fragmentation</li>
+                                                                        <li>Liquidity constraints</li>
+                                                                        <li>Regulatory compliance</li>
+                                                                        <li>Technology adoption</li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 5: The Future of Fixed Income Markets */}
+                                        {currentStep === 5 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-blue-400">The Future of Fixed Income Markets</h3>
+                                                <div className="flex flex-col items-center h-72 overflow-y-auto">
+                                                    <div className="w-full bg-gray-800 p-4 rounded-lg mb-4">
+                                                        <p className="text-gray-300 text-center mb-4">Key trends and developments reshaping bond markets</p>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-blue-400 font-semibold mb-2 text-center">Technological Innovation</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">All-to-All Trading</span>
+                                                                        <div className="text-gray-300 mt-1">Platforms allowing direct trading between buy-side firms</div>
+                                                                    </div>
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Automation & AI</span>
+                                                                        <div className="text-gray-300 mt-1">Algorithmic pricing, trade execution, and risk management</div>
+                                                                    </div>
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Blockchain Applications</span>
+                                                                        <div className="text-gray-300 mt-1">Potential for more efficient issuance and settlement</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-green-400 font-semibold mb-2 text-center">Market Structure Changes</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">ETF Growth</span>
+                                                                        <div className="text-gray-300 mt-1">Bond ETFs bringing increased transparency and liquidity</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Liquidity Solutions</span>
+                                                                        <div className="text-gray-300 mt-1">New models to address liquidity challenges in bond markets</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Market Data Evolution</span>
+                                                                        <div className="text-gray-300 mt-1">More comprehensive pre and post-trade transparency</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-amber-400 font-semibold mb-2 text-center">Product Innovation</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-amber-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">ESG Bonds</span>
+                                                                        <div className="text-gray-300 mt-1">Sustainable, green, and social impact bonds gaining prominence</div>
+                                                                    </div>
+                                                                    <div className="bg-amber-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Tokenized Bonds</span>
+                                                                        <div className="text-gray-300 mt-1">Digital representation of bonds on blockchain</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-purple-400 font-semibold mb-2 text-center">Regulatory Landscape</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-purple-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Transparency Rules</span>
+                                                                        <div className="text-gray-300 mt-1">Increasing requirements for trade and price reporting</div>
+                                                                    </div>
+                                                                    <div className="bg-purple-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Capital Requirements</span>
+                                                                        <div className="text-gray-300 mt-1">Evolving rules affecting dealer market-making capacity</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3, 4, 5].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-blue-500' : 'bg-gray-500'}`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Market Segments */}
+                            {activeTab === 'segments' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Fixed Income Market Segments</h3>
+                                    
+                                    <div className="grid grid-cols-3 gap-2 mb-4">
+                                        {Object.keys(bondSegments).map(type => (
+                                            <button
+                                                key={type}
+                                                className={`p-2 rounded-lg border-2 transition-colors ${bondType === type ? 'border-white bg-gray-700' : 'border-gray-600 bg-gray-800'}`}
+                                                style={{ borderLeftColor: bondSegments[type].color }}
+                                                onClick={() => setBondType(type)}
+                                            >
+                                                <div className="font-semibold text-sm" style={{ color: bondSegments[type].color }}>
+                                                    {bondSegments[type].name}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-lg mb-2" style={{ color: bondSegments[bondType].color }}>
+                                            {bondSegments[bondType].name}
+                                        </h4>
+                                        <div className="space-y-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: bondSegments[bondType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Description:</span>
+                                                    <p className="text-gray-200 text-sm">{bondSegments[bondType].description}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: bondSegments[bondType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Key Issuers:</span>
+                                                    <p className="text-gray-200 text-sm">{bondSegments[bondType].issuers}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: bondSegments[bondType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Key Features:</span>
+                                                    <p className="text-gray-200 text-sm">{bondSegments[bondType].features}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: bondSegments[bondType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Market Size:</span>
+                                                    <p className="text-gray-200 text-sm">{bondSegments[bondType].marketSize}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Yields */}
+                            {activeTab === 'yields' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Bond Yields & Pricing</h3>
+                                    
+                                    <div className="flex mb-4">
+                                        <button
+                                            className={`px-4 py-2 rounded-tl-lg rounded-bl-lg ${yieldView === 'curve' ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setYieldView('curve')}
+                                        >
+                                            Yield Curves
+                                        </button>
+                                        <button
+                                            className={`px-4 py-2 rounded-tr-lg rounded-br-lg ${yieldView === 'spreads' ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setYieldView('spreads')}
+                                        >
+                                            Credit Spreads
+                                        </button>
+                                    </div>
+
+                                    <div className="h-64 mb-4">
+                                        <canvas ref={chartRef}></canvas>
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-md mb-2 text-blue-400">
+                                            {yieldView === 'curve' ? 'Understanding Yield Curves' : 'Understanding Credit Spreads'}
+                                        </h4>
+                                        
+                                        {yieldView === 'curve' ? (
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Normal Yield Curve (Upward Sloping)</span>: Shows longer-term bonds having higher yields than shorter-term bonds. Typically indicates healthy economic growth expectations.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Flat Yield Curve</span>: Shows similar yields for short and long-term bonds. May indicate economic uncertainty or transition periods.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Inverted Yield Curve (Downward Sloping)</span>: Shows shorter-term bonds having higher yields than longer-term bonds. Often considered a recession indicator.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Key Factors</span>: Central bank policy, inflation expectations, economic outlook, and supply/demand dynamics all influence yield curve shape.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Credit Spread Definition</span>: The yield difference between a bond and a risk-free benchmark (usually government bonds) of the same maturity.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Investment Grade (AAA to BBB-)</span>: Lower spreads reflecting higher credit quality and lower default risk.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">High Yield (BB+ and below)</span>: Higher spreads compensating investors for greater default risk.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Spread Drivers</span>: Credit ratings, issuer-specific factors, industry trends, market sentiment, and overall economic conditions.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Trading */}
+                            {activeTab === 'trading' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Fixed Income Trading Strategies</h3>
+                                    
+                                    <div className="grid grid-cols-1 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Duration-Based Strategies</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="font-semibold text-sm">Duration Management</p>
+                                                        <p className="text-gray-300 text-xs">Adjusting portfolio interest rate sensitivity based on rate outlook</p>
+                                                        <div className="grid grid-cols-2 gap-2 mt-1">
+                                                            <div className="bg-gray-800 p-2 rounded text-xs">
+                                                                <span className="font-semibold">Short Duration:</span> Less sensitive to rate increases
+                                                            </div>
+                                                            <div className="bg-gray-800 p-2 rounded text-xs">
+                                                                <span className="font-semibold">Long Duration:</span> Benefits from rate decreases
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="font-semibold text-sm">Barbell Strategy</p>
+                                                        <p className="text-gray-300 text-xs">Investing in short and long maturities while avoiding intermediate terms</p>
+                                                        <p className="text-gray-300 text-xs mt-1">Benefits: Flexibility to reinvest short-term bonds while capturing higher yields on long-term bonds</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="font-semibold text-sm">Bullet Strategy</p>
+                                                        <p className="text-gray-300 text-xs">Concentrating investments at a specific maturity point</p>
+                                                        <p className="text-gray-300 text-xs mt-1">Benefits: Targets specific yield or timeline needs</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Yield-Based Strategies</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="font-semibold text-sm">Yield Curve Positioning</p>
+                                                        <p className="text-gray-300 text-xs">Exploiting changes in yield curve shape</p>
+                                                        <div className="grid grid-cols-1 gap-2 mt-1">
+                                                            <div className="bg-gray-800 p-2 rounded text-xs">
+                                                                <span className="font-semibold">Steepener:</span> Benefits from widening spread between short and long rates
+                                                            </div>
+                                                            <div className="bg-gray-800 p-2 rounded text-xs">
+                                                                <span className="font-semibold">Flattener:</span> Benefits from narrowing spread between short and long rates
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="font-semibold text-sm">Yield Pickup</p>
+                                                        <p className="text-gray-300 text-xs">Trading higher-yielding bonds for comparable credit quality</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Credit Strategies</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="font-semibold text-sm">Credit Spread Trading</p>
+                                                        <p className="text-gray-300 text-xs">Exploiting changes in spreads between different credit qualities</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="font-semibold text-sm">Sector Rotation</p>
+                                                        <p className="text-gray-300 text-xs">Moving between corporate sectors based on economic cycle and relative value</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="font-semibold text-sm">Fallen Angels</p>
+                                                        <p className="text-gray-300 text-xs">Investing in bonds recently downgraded from investment grade to high yield</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-purple-400 mb-2">Relative Value Strategies</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="font-semibold text-sm">Bond Swaps</p>
+                                                        <p className="text-gray-300 text-xs">Exchanging similar bonds to capture pricing inefficiencies</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="font-semibold text-sm">On-the-Run/Off-the-Run</p>
+                                                        <p className="text-gray-300 text-xs">Trading the spread between newly issued and older bonds</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="font-semibold text-sm">Cross-Market Arbitrage</p>
+                                                        <p className="text-gray-300 text-xs">Exploiting price differences across related fixed income markets</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-red-400 mb-2">Structured Strategies</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="font-semibold text-sm">Laddering</p>
+                                                        <p className="text-gray-300 text-xs">Creating a portfolio with bonds maturing at regular intervals</p>
+                                                        <p className="text-gray-300 text-xs mt-1">Benefits: Regular reinvestment opportunities and steady income stream</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="font-semibold text-sm">Immunization</p>
+                                                        <p className="text-gray-300 text-xs">Structuring a portfolio to fund specific future liabilities regardless of interest rate changes</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="font-semibold text-sm">Hedging</p>
+                                                        <p className="text-gray-300 text-xs">Using derivatives to protect against adverse market movements</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-blue-400">Key Fixed Income Metrics</div>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <span className="font-semibold">Yield to Maturity (YTM):</span> 
+                                        <p className="text-gray-300">Total return expected if held until maturity</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Duration:</span> 
+                                        <p className="text-gray-300">Measure of price sensitivity to interest rate changes</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Convexity:</span> 
+                                        <p className="text-gray-300">Rate of change of duration as yields change</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Credit Spread:</span> 
+                                        <p className="text-gray-300">Yield premium over risk-free rate for credit risk</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Option-Adjusted Spread (OAS):</span> 
+                                        <p className="text-gray-300">Spread adjusted for embedded options</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Total Return:</span> 
+                                        <p className="text-gray-300">Combined income and price change performance</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<FixedIncomeMarketsVisual />);
+    </script>
+</body>
+</html>
