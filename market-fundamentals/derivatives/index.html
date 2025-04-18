@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derivatives Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const DerivativesVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('types');
+            const [derivativeType, setDerivativeType] = React.useState('options');
+            const [showingUsage, setShowingUsage] = React.useState('hedging');
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const brandColor = "#079A4F"; // Brand green color
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+            
+            const derivativeTypes = {
+                options: {
+                    name: "Options",
+                    description: "Contracts that give the holder the right, but not the obligation, to buy (call) or sell (put) an underlying asset at a specified price (strike price) on or before a certain date (expiry).",
+                    advantages: "Limited downside risk for buyers, premium income for sellers, high flexibility",
+                    disadvantages: "Time decay, premium costs, complex pricing models",
+                    examples: "Stock options, Index options, Currency options",
+                    color: "#3B82F6" // Blue
+                },
+                futures: {
+                    name: "Futures",
+                    description: "Standardized contracts to buy or sell an asset at a predetermined price on a specified future date. Both parties are obligated to fulfill the contract terms.",
+                    advantages: "Highly liquid, regulated exchanges, standardized terms",
+                    disadvantages: "Requires margin, unlimited risk exposure, daily settlement",
+                    examples: "S&P 500 futures, Crude oil futures, Treasury bond futures",
+                    color: "#EF4444" // Red
+                },
+                forwards: {
+                    name: "Forwards",
+                    description: "Non-standardized contracts to buy or sell an asset at a specified future time at a price agreed upon today. Customized between counterparties.",
+                    advantages: "Customizable terms, no upfront cost, no mark-to-market requirements",
+                    disadvantages: "Counterparty risk, less liquid, typically held to maturity",
+                    examples: "Currency forwards, Interest rate forwards, Commodity forwards",
+                    color: "#F59E0B" // Amber
+                },
+                swaps: {
+                    name: "Swaps",
+                    description: "Agreements between two parties to exchange cash flows or liabilities from different financial instruments. Often used to manage risk or speculate on price changes.",
+                    advantages: "Long-term hedging, customized terms, cash flow management",
+                    disadvantages: "Counterparty risk, complex valuation, typically illiquid",
+                    examples: "Interest rate swaps, Currency swaps, Credit default swaps",
+                    color: "#8B5CF6" // Purple
+                }
+            };
+            
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 4 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 4);
+            };
+
+            // Clean up chart when tab changes
+            React.useEffect(() => {
+                // Clean up any existing chart when tab changes
+                if (chart) {
+                    chart.destroy();
+                    setChart(null);
+                }
+                
+                // Initialize usage chart if we're on the usage tab
+                if (activeTab === 'usage' && chartRef.current) {
+                    initializeChart();
+                }
+            }, [activeTab]);
+
+            // Update chart when usage toggle changes
+            React.useEffect(() => {
+                if (activeTab === 'usage' && chartRef.current) {
+                    if (chart) {
+                        chart.destroy();
+                    }
+                    initializeChart();
+                }
+            }, [showingUsage]);
+
+            // Function to initialize the chart based on current state
+            const initializeChart = () => {
+                if (!chartRef.current) return;
+                
+                const ctx = chartRef.current.getContext('2d');
+                
+                if (showingUsage === 'hedging') {
+                    // Hedging example chart
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: months,
+                            datasets: [
+                                {
+                                    label: 'Wheat Price ($/bushel)',
+                                    data: [7.50, 7.80, 8.20, 8.70, 9.30, 9.80],
+                                    borderColor: '#EF4444',
+                                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                    tension: 0.4,
+                                    fill: true,
+                                    yAxisID: 'y'
+                                },
+                                {
+                                    label: 'Futures Hedge Position',
+                                    data: [0, 0, 0, -0.50, -1.10, -1.60],
+                                    borderColor: '#3B82F6',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    tension: 0.4,
+                                    fill: true,
+                                    yAxisID: 'y'
+                                },
+                                {
+                                    label: 'Net Position',
+                                    data: [7.50, 7.80, 8.20, 8.20, 8.20, 8.20],
+                                    borderColor: '#079A4F',
+                                    borderWidth: 3,
+                                    tension: 0,
+                                    fill: false,
+                                    yAxisID: 'y'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                mode: 'index',
+                                intersect: false,
+                            },
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    type: 'linear',
+                                    display: true,
+                                    position: 'left',
+                                    title: {
+                                        display: true,
+                                        text: 'Price / Value ($)',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    setChart(newChart);
+                } else {
+                    // Speculation example chart
+                    const days = ['Day 1', 'Day 5', 'Day 10', 'Day 15', 'Day 20', 'Day 25', 'Day 30'];
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: days,
+                            datasets: [
+                                {
+                                    label: 'Underlying Asset Value ($1000)',
+                                    data: [50, 52, 51, 53, 55, 59, 58],
+                                    borderColor: '#8B5CF6',
+                                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                    tension: 0.4,
+                                    fill: true,
+                                    borderDash: [5, 5]
+                                },
+                                {
+                                    label: 'Options Contract Value ($100)',
+                                    data: [5, 6, 5.5, 6.5, 7.5, 10, 9],
+                                    borderColor: '#F59E0B',
+                                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                    tension: 0.4,
+                                    fill: true
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                mode: 'index',
+                                intersect: false,
+                            },
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    callbacks: {
+                                        afterTitle: function() {
+                                            return '% Change from Day 1:';
+                                        },
+                                        afterLabel: function(context) {
+                                            const datasetIndex = context.datasetIndex;
+                                            const dataIndex = context.dataIndex;
+                                            const value = context.dataset.data[dataIndex];
+                                            const initialValue = context.dataset.data[0];
+                                            const percentChange = ((value - initialValue) / initialValue * 100).toFixed(1);
+                                            return `${percentChange}%`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Price ($)',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    setChart(newChart);
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Derivatives
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    Financial contracts whose value is derived from and dependent on the value of an underlying asset, group of assets, or benchmark. Common derivatives include options, futures, forwards, and swaps used for hedging risk or speculative trading.
+                                </p>
+                            </div>
+
+                            {/* Tab navigation */}
+                            <div className="mb-4 flex overflow-x-auto whitespace-nowrap">
+                                <button
+                                    className={`px-2 py-2 text-sm ${activeTab === 'types' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('types')}
+                                >
+                                    Types of Derivatives
+                                </button>
+                                <button
+                                    className={`px-2 py-2 text-sm ${activeTab === 'structure' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('structure')}
+                                >
+                                    Market Structure
+                                </button>
+                                <button
+                                    className={`px-2 py-2 text-sm ${activeTab === 'usage' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('usage')}
+                                >
+                                    Common Usage
+                                </button>
+                                <button
+                                    className={`px-2 py-2 text-sm ${activeTab === 'mechanics' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('mechanics')}
+                                >
+                                    Key Mechanics
+                                </button>
+                                <button
+                                    className={`px-2 py-2 text-sm ${activeTab === 'risks' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('risks')}
+                                >
+                                    Risks
+                                </button>
+                            </div>
+
+                            {/* Types of Derivatives Tab */}
+                            {activeTab === 'types' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Types of Derivatives</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-2 mb-4">
+                                        {Object.keys(derivativeTypes).map(type => (
+                                            <button
+                                                key={type}
+                                                className={`p-2 rounded-lg border-2 transition-colors ${derivativeType === type ? 'border-white bg-gray-700' : 'border-gray-600 bg-gray-800'}`}
+                                                style={{ borderLeftColor: derivativeTypes[type].color }}
+                                                onClick={() => setDerivativeType(type)}
+                                            >
+                                                <div className="font-semibold" style={{ color: derivativeTypes[type].color }}>
+                                                    {derivativeTypes[type].name}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-lg mb-2" style={{ color: derivativeTypes[derivativeType].color }}>
+                                            {derivativeTypes[derivativeType].name}
+                                        </h4>
+                                        <div className="space-y-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: derivativeTypes[derivativeType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Description:</span>
+                                                    <p className="text-gray-200 text-sm">{derivativeTypes[derivativeType].description}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: derivativeTypes[derivativeType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Advantages:</span>
+                                                    <p className="text-gray-200 text-sm">{derivativeTypes[derivativeType].advantages}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: derivativeTypes[derivativeType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Disadvantages:</span>
+                                                    <p className="text-gray-200 text-sm">{derivativeTypes[derivativeType].disadvantages}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: derivativeTypes[derivativeType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Examples:</span>
+                                                    <p className="text-gray-200 text-sm">{derivativeTypes[derivativeType].examples}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Options definitions - REPLACED DIAGRAM */}
+                                    {derivativeType === 'options' && (
+                                        <div className="bg-gray-700 p-4 rounded-lg mt-4">
+                                            <h4 className="font-semibold text-md mb-3 text-blue-400">Option Types</h4>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="bg-gray-800 p-4 rounded-lg">
+                                                    <h5 className="text-center font-semibold mb-2 text-blue-400">Call Option</h5>
+                                                    <p className="text-sm text-gray-300 mb-2">
+                                                        A contract giving the holder the right, but not the obligation, to <span className="text-blue-300">buy</span> the underlying asset at a predetermined price (strike price) before the expiration date.
+                                                    </p>
+                                                    <ul className="text-xs text-gray-400 list-disc list-inside">
+                                                        <li>Buyer profits when price rises above strike price</li>
+                                                        <li>Unlimited profit potential</li>
+                                                        <li>Maximum loss limited to premium paid</li>
+                                                        <li>Used for bullish market views</li>
+                                                    </ul>
+                                                </div>
+                                                
+                                                <div className="bg-gray-800 p-4 rounded-lg">
+                                                    <h5 className="text-center font-semibold mb-2 text-red-400">Put Option</h5>
+                                                    <p className="text-sm text-gray-300 mb-2">
+                                                        A contract giving the holder the right, but not the obligation, to <span className="text-red-300">sell</span> the underlying asset at a predetermined price (strike price) before the expiration date.
+                                                    </p>
+                                                    <ul className="text-xs text-gray-400 list-disc list-inside">
+                                                        <li>Buyer profits when price falls below strike price</li>
+                                                        <li>Profit potential limited by zero price floor</li>
+                                                        <li>Maximum loss limited to premium paid</li>
+                                                        <li>Used for bearish market views or portfolio protection</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {/* Futures/Forwards definitions - REPLACED DIAGRAM */}
+                                    {(derivativeType === 'futures' || derivativeType === 'forwards') && (
+                                        <div className="bg-gray-700 p-4 rounded-lg mt-4">
+                                            <h4 className="font-semibold text-md mb-3" style={{ color: derivativeTypes[derivativeType].color }}>
+                                                {derivativeTypes[derivativeType].name} Contract Positions
+                                            </h4>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="bg-gray-800 p-4 rounded-lg">
+                                                    <h5 className="text-center font-semibold mb-2 text-green-400">Long Position</h5>
+                                                    <p className="text-sm text-gray-300 mb-2">
+                                                        The buyer of a {derivativeType === 'futures' ? 'futures' : 'forwards'} contract who is obligated to purchase the underlying asset at the contract price on the specified date.
+                                                    </p>
+                                                    <ul className="text-xs text-gray-400 list-disc list-inside">
+                                                        <li>Profits when prices rise above contract price</li>
+                                                        <li>Unlimited profit potential</li>
+                                                        <li>Unlimited loss potential</li>
+                                                        <li>Used for bullish market views</li>
+                                                    </ul>
+                                                </div>
+                                                
+                                                <div className="bg-gray-800 p-4 rounded-lg">
+                                                    <h5 className="text-center font-semibold mb-2 text-red-400">Short Position</h5>
+                                                    <p className="text-sm text-gray-300 mb-2">
+                                                        The seller of a {derivativeType === 'futures' ? 'futures' : 'forwards'} contract who is obligated to deliver the underlying asset at the contract price on the specified date.
+                                                    </p>
+                                                    <ul className="text-xs text-gray-400 list-disc list-inside">
+                                                        <li>Profits when prices fall below contract price</li>
+                                                        <li>Limited profit potential (to zero value floor)</li>
+                                                        <li>Unlimited loss potential</li>
+                                                        <li>Used for bearish market views</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="mt-4 bg-gray-800 p-4 rounded-lg">
+                                                <h5 className="font-semibold mb-2 text-gray-200">Key Differences: {derivativeType === 'futures' ? 'Futures vs Forwards' : 'Forwards vs Futures'}</h5>
+                                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                                    <div className="space-y-2">
+                                                        <p className="font-semibold" style={{ color: derivativeTypes[derivativeType].color }}>
+                                                            {derivativeTypes[derivativeType].name}
+                                                        </p>
+                                                        <ul className="text-xs text-gray-300 list-disc list-inside space-y-1">
+                                                            {derivativeType === 'futures' ? (
+                                                                <>
+                                                                    <li>Standardized contracts</li>
+                                                                    <li>Traded on exchanges</li>
+                                                                    <li>Subject to daily settlement</li>
+                                                                    <li>Low counterparty risk (clearinghouse)</li>
+                                                                    <li>Highly liquid</li>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <li>Customized contracts</li>
+                                                                    <li>Traded over-the-counter (OTC)</li>
+                                                                    <li>Settled at maturity</li>
+                                                                    <li>Higher counterparty risk</li>
+                                                                    <li>Less liquid</li>
+                                                                </>
+                                                            )}
+                                                        </ul>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <p className="font-semibold" style={{ color: derivativeType === 'futures' ? derivativeTypes['forwards'].color : derivativeTypes['futures'].color }}>
+                                                            {derivativeType === 'futures' ? 'Forwards' : 'Futures'}
+                                                        </p>
+                                                        <ul className="text-xs text-gray-300 list-disc list-inside space-y-1">
+                                                            {derivativeType === 'futures' ? (
+                                                                <>
+                                                                    <li>Customized contracts</li>
+                                                                    <li>Traded over-the-counter (OTC)</li>
+                                                                    <li>Settled at maturity</li>
+                                                                    <li>Higher counterparty risk</li>
+                                                                    <li>Less liquid</li>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <li>Standardized contracts</li>
+                                                                    <li>Traded on exchanges</li>
+                                                                    <li>Subject to daily settlement</li>
+                                                                    <li>Low counterparty risk (clearinghouse)</li>
+                                                                    <li>Highly liquid</li>
+                                                                </>
+                                                            )}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Swaps diagram - KEEPING AS IS */}
+                                    {derivativeType === 'swaps' && (
+                                        <div className="bg-gray-700 p-4 rounded-lg mt-4">
+                                            <h4 className="font-semibold text-md mb-3 text-purple-400">Interest Rate Swap Example</h4>
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <div className="bg-gray-700 p-3 rounded-lg w-1/3 text-center">
+                                                        <div className="text-blue-400 font-bold mb-2">Party A</div>
+                                                        <div className="text-sm text-gray-300">Has fixed-rate liability</div>
+                                                        <div className="text-sm text-gray-300">Wants floating rate</div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-700 p-3 rounded-lg w-1/3 text-center">
+                                                        <div className="text-purple-400 font-bold mb-2">Party B</div>
+                                                        <div className="text-sm text-gray-300">Has floating-rate liability</div>
+                                                        <div className="text-sm text-gray-300">Wants fixed rate</div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="relative h-24 my-4">
+                                                    {/* Arrow from A to B - Fixed Rate */}
+                                                    <div className="absolute top-4 left-0 right-0 flex items-center justify-center">
+                                                        <div className="h-0.5 w-1/3 bg-blue-500"></div>
+                                                        <div className="bg-blue-900 bg-opacity-50 px-2 py-1 rounded mx-2 text-xs text-blue-400 whitespace-nowrap">Fixed Rate (5%)</div>
+                                                        <div className="h-0.5 w-1/3 bg-blue-500"></div>
+                                                    </div>
+                                                    <div className="absolute left-0 top-4 h-6 w-0.5 bg-blue-500"></div>
+                                                    <div className="absolute right-0 top-4 h-6 w-0.5 bg-blue-500"></div>
+                                                    
+                                                    {/* Arrow from B to A - Floating Rate */}
+                                                    <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center">
+                                                        <div className="h-0.5 w-1/3 bg-purple-500"></div>
+                                                        <div className="bg-purple-900 bg-opacity-50 px-2 py-1 rounded mx-2 text-xs text-purple-400 whitespace-nowrap">Floating Rate (LIBOR)</div>
+                                                        <div className="h-0.5 w-1/3 bg-purple-500"></div>
+                                                    </div>
+                                                    <div className="absolute left-0 bottom-4 h-6 w-0.5 bg-purple-500"></div>
+                                                    <div className="absolute right-0 bottom-4 h-6 w-0.5 bg-purple-500"></div>
+                                                </div>
+                                                
+                                                <div className="text-center text-xs text-gray-400 mt-3">
+                                                    Notional Amount: $10 Million | Term: 5 Years
+                                                </div>
+                                                
+                                                <div className="mt-4">
+                                                    <div className="text-sm font-semibold mb-1">How it works:</div>
+                                                    <div className="text-xs text-gray-300">
+                                                        1. Party A pays Party B a fixed interest rate (5%) on the notional amount
+                                                    </div>
+                                                    <div className="text-xs text-gray-300">
+                                                        2. Party B pays Party A a floating interest rate (LIBOR) on the same notional amount
+                                                    </div>
+                                                    <div className="text-xs text-gray-300">
+                                                        3. No principal amounts are exchanged, only interest payments
+                                                    </div>
+                                                    <div className="text-xs text-gray-300">
+                                                        4. Payments are typically netted (only the difference is paid)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Market Structure Tab */}
+                            {activeTab === 'structure' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Derivatives Market Structure</h3>
+                                    
+                                    <div className="relative h-96 mb-4 bg-gray-700 rounded-lg">
+                                        {/* Step 1: Exchange-Traded vs OTC */}
+                                        {currentStep === 1 && (
+                                            <div className="absolute inset-0 p-4 overflow-y-auto max-h-96">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-blue-400">Exchange-Traded vs OTC Markets</h3>
+                                                
+                                                <div className="grid grid-cols-2 gap-6">
+                                                    <div className="bg-gray-800 p-4 rounded-lg flex flex-col">
+                                                        <h4 className="text-blue-400 font-semibold text-center mb-3">Exchange-Traded</h4>
+                                                        <div className="space-y-2 flex-grow">
+                                                            <div className="bg-gray-700 p-2 rounded-lg text-sm flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-blue-500 mt-0.5 mr-2 flex-shrink-0"></div>
+                                                                <div>
+                                                                    <span className="font-semibold">Standardized Contracts</span>
+                                                                    <p className="text-xs text-gray-300">Pre-defined terms and specifications</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg text-sm flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-blue-500 mt-0.5 mr-2 flex-shrink-0"></div>
+                                                                <div>
+                                                                    <span className="font-semibold">Central Clearinghouse</span>
+                                                                    <p className="text-xs text-gray-300">Counterparty to all transactions</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg text-sm flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-blue-500 mt-0.5 mr-2 flex-shrink-0"></div>
+                                                                <div>
+                                                                    <span className="font-semibold">High Transparency</span>
+                                                                    <p className="text-xs text-gray-300">Public price discovery and reporting</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg text-sm flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-blue-500 mt-0.5 mr-2 flex-shrink-0"></div>
+                                                                <div>
+                                                                    <span className="font-semibold">Regulated</span>
+                                                                    <p className="text-xs text-gray-300">Oversight by financial authorities</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-center mt-2 text-xs text-gray-400">
+                                                            Examples: CME, CBOE, ICE
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-4 rounded-lg flex flex-col">
+                                                        <h4 className="text-purple-400 font-semibold text-center mb-3">Over-The-Counter (OTC)</h4>
+                                                        <div className="space-y-2 flex-grow">
+                                                            <div className="bg-gray-700 p-2 rounded-lg text-sm flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-0.5 mr-2 flex-shrink-0"></div>
+                                                                <div>
+                                                                    <span className="font-semibold">Customized Contracts</span>
+                                                                    <p className="text-xs text-gray-300">Tailored to specific needs</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg text-sm flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-0.5 mr-2 flex-shrink-0"></div>
+                                                                <div>
+                                                                    <span className="font-semibold">Direct Counterparties</span>
+                                                                    <p className="text-xs text-gray-300">Bilateral agreements between parties</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg text-sm flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-0.5 mr-2 flex-shrink-0"></div>
+                                                                <div>
+                                                                    <span className="font-semibold">Lower Transparency</span>
+                                                                    <p className="text-xs text-gray-300">Limited price discovery and reporting</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg text-sm flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-0.5 mr-2 flex-shrink-0"></div>
+                                                                <div>
+                                                                    <span className="font-semibold">Less Regulated</span>
+                                                                    <p className="text-xs text-gray-300">Though regulations have increased post-2008</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-center mt-2 text-xs text-gray-400">
+                                                            Examples: Bank trading desks, Dealer networks
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {/* Step 2: Market Participants */}
+                                        {currentStep === 2 && (
+                                            <div className="absolute inset-0 p-4 overflow-y-auto max-h-96">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-blue-400">Market Participants</h3>
+                                                
+                                                <div className="flex flex-col">
+                                                    <div className="grid grid-cols-3 gap-4 mb-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg text-center">
+                                                            <h4 className="text-blue-400 font-semibold mb-2">Hedgers</h4>
+                                                            <div className="text-sm text-gray-300 mb-2">Use derivatives to reduce risk exposure</div>
+                                                            <div className="bg-gray-700 rounded-lg p-2 text-xs text-left">
+                                                                <div className="mb-1">• Producers</div>
+                                                                <div className="mb-1">• Manufacturers</div>
+                                                                <div className="mb-1">• Exporters/Importers</div>
+                                                                <div>• Portfolio managers</div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg text-center">
+                                                            <h4 className="text-amber-400 font-semibold mb-2">Speculators</h4>
+                                                            <div className="text-sm text-gray-300 mb-2">Seek profit from price movements</div>
+                                                            <div className="bg-gray-700 rounded-lg p-2 text-xs text-left">
+                                                                <div className="mb-1">• Proprietary traders</div>
+                                                                <div className="mb-1">• Hedge funds</div>
+                                                                <div className="mb-1">• Day traders</div>
+                                                                <div>• Individual investors</div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg text-center">
+                                                            <h4 className="text-green-400 font-semibold mb-2">Arbitrageurs</h4>
+                                                            <div className="text-sm text-gray-300 mb-2">Exploit price discrepancies</div>
+                                                            <div className="bg-gray-700 rounded-lg p-2 text-xs text-left">
+                                                                <div className="mb-1">• High-frequency traders</div>
+                                                                <div className="mb-1">• Market makers</div>
+                                                                <div className="mb-1">• Quantitative funds</div>
+                                                                <div>• Statistical arbitrageurs</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg text-center">
+                                                            <h4 className="text-purple-400 font-semibold mb-2">Intermediaries</h4>
+                                                            <div className="text-sm text-gray-300 mb-2">Facilitate market operations</div>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <div className="bg-gray-700 rounded-lg p-2 text-xs text-left">
+                                                                    <div className="font-semibold mb-1">Exchanges</div>
+                                                                    <div className="text-gray-400">Provide trading platforms</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 rounded-lg p-2 text-xs text-left">
+                                                                    <div className="font-semibold mb-1">Clearing Houses</div>
+                                                                    <div className="text-gray-400">Guarantee transactions</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 rounded-lg p-2 text-xs text-left">
+                                                                    <div className="font-semibold mb-1">Brokers</div>
+                                                                    <div className="text-gray-400">Execute client orders</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 rounded-lg p-2 text-xs text-left">
+                                                                    <div className="font-semibold mb-1">Dealers</div>
+                                                                    <div className="text-gray-400">Provide market liquidity</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg text-center">
+                                                            <h4 className="text-red-400 font-semibold mb-2">Regulators</h4>
+                                                            <div className="text-sm text-gray-300 mb-2">Oversight and rule enforcement</div>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <div className="bg-gray-700 rounded-lg p-2 text-xs text-left">
+                                                                    <div className="font-semibold mb-1">US: CFTC</div>
+                                                                    <div className="text-gray-400">Commodity derivatives</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 rounded-lg p-2 text-xs text-left">
+                                                                    <div className="font-semibold mb-1">US: SEC</div>
+                                                                    <div className="text-gray-400">Securities derivatives</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 rounded-lg p-2 text-xs text-left">
+                                                                    <div className="font-semibold mb-1">EU: ESMA</div>
+                                                                    <div className="text-gray-400">European oversight</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 rounded-lg p-2 text-xs text-left">
+                                                                    <div className="font-semibold mb-1">UK: FCA</div>
+                                                                    <div className="text-gray-400">Financial regulation</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 3: Clearing and Settlement */}
+                                        {currentStep === 3 && (
+                                            <div className="absolute inset-0 p-4 overflow-y-auto max-h-96">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-blue-400">Clearing and Settlement Process</h3>
+                                                
+                                                <div className="bg-gray-800 rounded-lg p-4">
+                                                    <div className="flex justify-between items-center mb-6">
+                                                        <div className="bg-blue-900 bg-opacity-30 p-2 rounded-lg text-center w-1/4">
+                                                            <div className="text-blue-400 font-semibold mb-1">Trader A</div>
+                                                            <div className="text-xs text-gray-300">Buyer</div>
+                                                        </div>
+                                                        
+                                                        <div className="text-center text-gray-400 text-sm">
+                                                            Trade Execution
+                                                        </div>
+                                                        
+                                                        <div className="bg-red-900 bg-opacity-30 p-2 rounded-lg text-center w-1/4">
+                                                            <div className="text-red-400 font-semibold mb-1">Trader B</div>
+                                                            <div className="text-xs text-gray-300">Seller</div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="flex justify-center mb-6">
+                                                        <div className="flex flex-col items-center">
+                                                            <div className="w-0.5 h-8 bg-gray-600"></div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg text-center w-72">
+                                                                <div className="text-gray-200 font-semibold">Trade Information Reported</div>
+                                                                <div className="text-xs text-gray-400">Contract details, price, quantity, parties</div>
+                                                            </div>
+                                                            <div className="w-0.5 h-8 bg-gray-600"></div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="relative mb-6">
+                                                        <div className="absolute left-1/2 transform -translate-x-1/2 -top-4 -mt-2">
+                                                            <div className="w-0.5 h-4 bg-gray-600 mx-auto"></div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-purple-900 bg-opacity-30 p-3 rounded-lg text-center mx-auto w-3/4">
+                                                            <div className="text-purple-400 font-semibold mb-1">Clearinghouse</div>
+                                                            <div className="text-sm text-gray-300 mb-1">Becomes central counterparty</div>
+                                                            <div className="grid grid-cols-2 gap-2 text-xs text-gray-400">
+                                                                <div className="bg-gray-800 rounded p-1">Trade validation</div>
+                                                                <div className="bg-gray-800 rounded p-1">Risk management</div>
+                                                                <div className="bg-gray-800 rounded p-1">Collateral collection</div>
+                                                                <div className="bg-gray-800 rounded p-1">Default protection</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-2 gap-6">
+                                                        <div className="bg-gray-700 p-2 rounded-lg text-center">
+                                                            <div className="text-green-400 font-semibold mb-1">Margining System</div>
+                                                            <div className="text-xs text-gray-300 grid grid-cols-1 gap-1">
+                                                                <div className="bg-gray-800 rounded p-1">Initial margin deposit</div>
+                                                                <div className="bg-gray-800 rounded p-1">Daily mark-to-market</div>
+                                                                <div className="bg-gray-800 rounded p-1">Variation margin calls</div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-700 p-2 rounded-lg text-center">
+                                                            <div className="text-amber-400 font-semibold mb-1">Settlement Process</div>
+                                                            <div className="text-xs text-gray-300 grid grid-cols-1 gap-1">
+                                                                <div className="bg-gray-800 rounded p-1">Cash settlement (most common)</div>
+                                                                <div className="bg-gray-800 rounded p-1">Physical delivery (some futures)</div>
+                                                                <div className="bg-gray-800 rounded p-1">Final position closeout</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 4: Market Interconnections */}
+                                        {currentStep === 4 && (
+                                            <div className="absolute inset-0 p-4 overflow-y-auto max-h-96">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-blue-400">Derivatives Market Interconnections</h3>
+                                                
+                                                <div className="h-72 bg-gray-800 rounded-lg p-4 relative">
+                                                    {/* Center node: Derivatives Markets */}
+                                                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-blue-900 bg-opacity-40 p-3 rounded-full h-24 w-24 flex items-center justify-center text-center">
+                                                        <div>
+                                                            <div className="font-semibold text-blue-400">Derivatives</div>
+                                                            <div className="text-xs text-gray-300">Markets</div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {/* Equity Markets */}
+                                                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-green-900 bg-opacity-40 p-2 rounded-lg w-40 text-center">
+                                                        <div className="font-semibold text-green-400">Equity Markets</div>
+                                                        <div className="text-xs text-gray-300">Stocks, Indices</div>
+                                                    </div>
+                                                    <div className="absolute top-16 left-1/2 transform -translate-x-1/2 w-0.5 h-10 bg-green-600"></div>
+                                                    
+                                                    {/* Commodity Markets */}
+                                                    <div className="absolute top-1/3 right-4 transform -translate-y-1/2 bg-amber-900 bg-opacity-40 p-2 rounded-lg w-40 text-center">
+                                                        <div className="font-semibold text-amber-400">Commodity Markets</div>
+                                                        <div className="text-xs text-gray-300">Energy, Metals, Agriculture</div>
+                                                    </div>
+                                                    <div className="absolute top-1/3 right-48 transform -translate-y-1/2 h-0.5 w-10 bg-amber-600"></div>
+                                                    
+                                                    {/* Currency Markets */}
+                                                    <div className="absolute bottom-1/3 right-4 transform translate-y-1/2 bg-red-900 bg-opacity-40 p-2 rounded-lg w-40 text-center">
+                                                        <div className="font-semibold text-red-400">Currency Markets</div>
+                                                        <div className="text-xs text-gray-300">Forex, Exchange Rates</div>
+                                                    </div>
+                                                    <div className="absolute bottom-1/3 right-48 transform translate-y-1/2 h-0.5 w-10 bg-red-600"></div>
+                                                    
+                                                    {/* Fixed Income Markets */}
+                                                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-purple-900 bg-opacity-40 p-2 rounded-lg w-40 text-center">
+                                                        <div className="font-semibold text-purple-400">Fixed Income</div>
+                                                        <div className="text-xs text-gray-300">Bonds, Interest Rates</div>
+                                                    </div>
+                                                    <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 w-0.5 h-10 bg-purple-600"></div>
+                                                    
+                                                    {/* Banking System */}
+                                                    <div className="absolute bottom-1/3 left-4 transform translate-y-1/2 bg-blue-900 bg-opacity-40 p-2 rounded-lg w-40 text-center">
+                                                        <div className="font-semibold text-blue-400">Banking System</div>
+                                                        <div className="text-xs text-gray-300">Lending, Credit</div>
+                                                    </div>
+                                                    <div className="absolute bottom-1/3 left-48 transform translate-y-1/2 h-0.5 w-10 bg-blue-600"></div>
+                                                    
+                                                    {/* Insurance Markets */}
+                                                    <div className="absolute top-1/3 left-4 transform -translate-y-1/2 bg-gray-600 bg-opacity-40 p-2 rounded-lg w-40 text-center">
+                                                        <div className="font-semibold text-gray-300">Insurance Markets</div>
+                                                        <div className="text-xs text-gray-400">Risk Transfer, Hedging</div>
+                                                    </div>
+                                                    <div className="absolute top-1/3 left-48 transform -translate-y-1/2 h-0.5 w-10 bg-gray-600"></div>
+                                                </div>
+                                                
+                                                <div className="text-center text-xs text-gray-400 mt-1">
+                                                    Derivatives markets are interconnected with virtually all other financial markets, creating both efficiency and systemic risk.
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3, 4].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-blue-500' : 'bg-gray-500'}`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Common Usage Tab */}
+                            {activeTab === 'usage' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Common Usage of Derivatives</h3>
+                                    
+                                    <div className="flex mb-4">
+                                        <button
+                                            className={`px-4 py-2 rounded-tl-lg rounded-bl-lg ${showingUsage === 'hedging' ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingUsage('hedging')}
+                                        >
+                                            Hedging
+                                        </button>
+                                        <button
+                                            className={`px-4 py-2 rounded-tr-lg rounded-br-lg ${showingUsage === 'speculation' ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingUsage('speculation')}
+                                        >
+                                            Speculation
+                                        </button>
+                                    </div>
+
+                                    <div className="h-64 mb-4">
+                                        <canvas ref={chartRef}></canvas>
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-md mb-2 text-blue-400">
+                                            {showingUsage === 'hedging' ? "Hedging: Risk Management" : "Speculation: Profit Generation"}
+                                        </h4>
+                                        
+                                        {showingUsage === 'hedging' ? (
+                                            <div className="space-y-2">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Risk Transfer:</span> Hedgers use derivatives to transfer risk to other market participants who are willing to bear it, effectively locking in prices or rates.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Protection Against Adverse Moves:</span> Derivatives create a position that will gain value if the underlying asset moves adversely, offsetting losses in the primary position.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Examples:</span> Farmers hedging crop prices, airlines hedging fuel costs, manufacturers hedging currency exchange rates, and investors hedging portfolio risk.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Leverage:</span> Derivatives allow speculators to control a large position with a relatively small amount of capital, amplifying both potential gains and losses.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Directional Betting:</span> Speculators take positions based on their market outlook, profiting from correctly predicting price movements in the underlying asset.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Market Liquidity:</span> While often criticized, speculators provide essential liquidity to derivative markets, making it possible for hedgers to find counterparties.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg mt-4">
+                                        <h4 className="font-semibold text-md mb-2 text-blue-400">Other Common Uses</h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="text-purple-400 font-semibold mb-2">Arbitrage</h5>
+                                                <p className="text-sm text-gray-300 mb-2">Exploiting price discrepancies between related securities or markets.</p>
+                                                <div className="text-xs text-gray-400">
+                                                    <div className="mb-1">• Index arbitrage (cash vs. futures)</div>
+                                                    <div className="mb-1">• Cross-exchange opportunities</div>
+                                                    <div>• Option-stock arbitrage strategies</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="text-green-400 font-semibold mb-2">Asset Management</h5>
+                                                <p className="text-sm text-gray-300 mb-2">Portfolio optimization and enhancement strategies.</p>
+                                                <div className="text-xs text-gray-400">
+                                                    <div className="mb-1">• Income generation (writing options)</div>
+                                                    <div className="mb-1">• Portfolio insurance (protective puts)</div>
+                                                    <div>• Yield enhancement strategies</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Key Mechanics Tab */}
+                            {activeTab === 'mechanics' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Key Mechanics of Derivatives Trading</h3>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg space-y-4 mb-4">
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Leverage</p>
+                                                <p className="text-gray-200 text-sm">Controlling a large position with a small amount of capital. Futures and options contracts typically represent much larger values of the underlying asset than the required margin or premium.</p>
+                                                <div className="text-xs text-gray-400 mt-1">Example: A futures contract worth $100,000 might require only $5,000 in margin (20:1 leverage).</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Marking to Market</p>
+                                                <p className="text-gray-200 text-sm">The daily process of calculating profits or losses by comparing the current market value of positions to their previous value, resulting in the posting or collection of variation margin.</p>
+                                                <div className="text-xs text-gray-400 mt-1">Critical for maintaining clearinghouse solvency and managing counterparty risk.</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Time Decay (Theta)</p>
+                                                <p className="text-gray-200 text-sm">The reduction in value of options contracts as time passes. Options are wasting assets that lose value as they approach expiration if all other factors remain constant.</p>
+                                                <div className="text-xs text-gray-400 mt-1">Time decay accelerates as expiration approaches, particularly for at-the-money options.</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Implied Volatility</p>
+                                                <p className="text-gray-200 text-sm">The market's forecast of likely movement in the underlying asset, derived from options prices. Higher implied volatility increases options premiums as larger price swings become more probable.</p>
+                                                <div className="text-xs text-gray-400 mt-1">Often rises before major news events and falls afterward.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg space-y-3">
+                                            <h4 className="font-semibold text-md mb-1 text-blue-400">Settlement Methods</h4>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-blue-500 mt-0.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold text-sm">Cash Settlement</span>
+                                                    <p className="text-xs text-gray-300">Profit/loss exchanged in cash at expiration</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-blue-500 mt-0.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold text-sm">Physical Delivery</span>
+                                                    <p className="text-xs text-gray-300">Actual transfer of underlying asset</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-blue-500 mt-0.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold text-sm">Offset/Closeout</span>
+                                                    <p className="text-xs text-gray-300">Taking opposite position to neutralize</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg space-y-3">
+                                            <h4 className="font-semibold text-md mb-1 text-blue-400">Pricing Factors</h4>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-blue-500 mt-0.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold text-sm">Underlying Price</span>
+                                                    <p className="text-xs text-gray-300">Current market value of the asset</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-blue-500 mt-0.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold text-sm">Time to Expiration</span>
+                                                    <p className="text-xs text-gray-300">Remaining contract lifespan</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-blue-500 mt-0.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold text-sm">Volatility</span>
+                                                    <p className="text-xs text-gray-300">Expected price fluctuation magnitude</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-blue-500 mt-0.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold text-sm">Interest Rates</span>
+                                                    <p className="text-xs text-gray-300">Cost of funding/opportunity cost</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Risks Tab */}
+                            {activeTab === 'risks' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Derivatives Risks</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-red-400 mb-2">Market Risks</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Price Movement Risk</span>
+                                                        <p className="text-gray-300 text-xs">Adverse price changes in the underlying asset</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Volatility Risk</span>
+                                                        <p className="text-gray-300 text-xs">Unexpected changes in market volatility</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Liquidity Risk</span>
+                                                        <p className="text-gray-300 text-xs">Difficulty entering/exiting positions at desired price</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Counterparty Risks</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Default Risk</span>
+                                                        <p className="text-gray-300 text-xs">Failure of counterparty to fulfill obligations</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Settlement Risk</span>
+                                                        <p className="text-gray-300 text-xs">Issues with final closeout and payment</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Credit Deterioration</span>
+                                                        <p className="text-gray-300 text-xs">Declining creditworthiness of trading partner</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Operational Risks</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Model Risk</span>
+                                                        <p className="text-gray-300 text-xs">Flawed pricing or risk models</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Execution Risk</span>
+                                                        <p className="text-gray-300 text-xs">Errors in trade execution or processing</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Documentation Risk</span>
+                                                        <p className="text-gray-300 text-xs">Inadequate or unclear contract terms</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-purple-400 mb-2">Systemic Risk</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Interconnectedness</span>
+                                                        <p className="text-gray-300 text-xs">Cascading failures across financial system</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Concentration Risk</span>
+                                                        <p className="text-gray-300 text-xs">Too many similar positions/counterparties</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Leverage Amplification</span>
+                                                        <p className="text-gray-300 text-xs">Magnifying market shocks throughout system</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg mt-4">
+                                        <h4 className="font-semibold text-md mb-2 text-blue-400">Risk Management Approaches</h4>
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold text-sm">Position Limits</span>
+                                                    <p className="text-xs text-gray-300">Maximum exposure thresholds</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold text-sm">Stop-Loss Orders</span>
+                                                    <p className="text-xs text-gray-300">Automated exit at preset levels</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold text-sm">Diversification</span>
+                                                    <p className="text-xs text-gray-300">Spreading exposure across assets</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold text-sm">Stress Testing</span>
+                                                    <p className="text-xs text-gray-300">Simulating extreme market conditions</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold text-sm">Collateral/Margin</span>
+                                                    <p className="text-xs text-gray-300">Assets pledged against potential losses</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold text-sm">Hedging Strategies</span>
+                                                    <p className="text-xs text-gray-300">Offsetting positions to reduce risk</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-blue-400">Key Derivative Market Statistics</div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                        <div className="text-blue-400 font-semibold mb-1">Market Size</div>
+                                        <div className="grid grid-cols-2 gap-2 text-sm">
+                                            <div className="text-gray-400">Notional Value:</div>
+                                            <div className="text-gray-300">$600+ Trillion</div>
+                                            <div className="text-gray-400">Exchange-Traded:</div>
+                                            <div className="text-gray-300">~$100 Trillion</div>
+                                            <div className="text-gray-400">OTC Markets:</div>
+                                            <div className="text-gray-300">~$500 Trillion</div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                        <div className="text-amber-400 font-semibold mb-1">Trading Volume</div>
+                                        <div className="grid grid-cols-2 gap-2 text-sm">
+                                            <div className="text-gray-400">Daily Volume:</div>
+                                            <div className="text-gray-300">~$10+ Trillion</div>
+                                            <div className="text-gray-400">Top Asset Class:</div>
+                                            <div className="text-gray-300">Interest Rates</div>
+                                            <div className="text-gray-400">Fastest Growth:</div>
+                                            <div className="text-gray-300">Currency Derivatives</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<DerivativesVisual />);
+    </script>
+</body>
+</html>
