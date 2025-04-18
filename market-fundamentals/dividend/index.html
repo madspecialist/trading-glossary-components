@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dividend Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const DividendVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('types');
+            const [dividendType, setDividendType] = React.useState('cash');
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const [showingYield, setShowingYield] = React.useState(false);
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const brandColor = "#079A4F"; // Brand green color
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+            
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 5 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 5);
+            };
+
+            const dividendTypes = {
+                cash: {
+                    name: "Cash Dividends",
+                    description: "The most common type of dividend where companies distribute a portion of earnings as cash payments to shareholders.",
+                    advantages: "Direct income for shareholders, simple to process, tax-efficient in some jurisdictions",
+                    considerations: "Reduces company cash reserves, may decrease stock price by dividend amount on ex-dividend date",
+                    examples: "Quarterly dividends from blue-chip companies like Coca-Cola, Johnson & Johnson",
+                    color: "#3B82F6" // Blue
+                },
+                stock: {
+                    name: "Stock Dividends",
+                    description: "Distribution of additional shares to existing shareholders instead of cash, usually expressed as a percentage of current holdings.",
+                    advantages: "Conserves company cash, potentially tax-deferred for shareholders, maintains ownership proportions",
+                    considerations: "Dilutes earnings per share, may not provide immediate income for shareholders",
+                    examples: "5% stock dividend means receiving 5 additional shares for every 100 shares owned",
+                    color: "#F59E0B" // Amber
+                },
+                special: {
+                    name: "Special Dividends",
+                    description: "One-time distribution of company profits to shareholders, often following extraordinary events like large asset sales or exceptional earnings.",
+                    advantages: "Returns excess capital to shareholders, signals financial strength, rewards investors without commitment to future payments",
+                    considerations: "Irregular and unpredictable, may create short-term trading volatility",
+                    examples: "Microsoft's $3 per share special dividend in 2004 ($32B total distribution)",
+                    color: "#10B981" // Emerald
+                },
+                property: {
+                    name: "Property Dividends",
+                    description: "Distribution of assets other than cash or stock, such as inventory, real estate, or securities of other companies.",
+                    advantages: "Enables distribution of non-cash assets, may be more tax-efficient, allows for strategic corporate restructuring",
+                    considerations: "Complex valuation and distribution process, potential liquidity issues for recipients",
+                    examples: "Spin-offs where parent company distributes subsidiary stock to shareholders",
+                    color: "#8B5CF6" // Purple
+                }
+            };
+
+            // Chart for dividend yield comparison
+            React.useEffect(() => {
+                if (chartRef.current && activeTab === 'metrics') {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    if (showingYield) {
+                        // Dividend Yield Comparison by Sector
+                        const sectors = ['Utilities', 'Real Estate', 'Consumer Staples', 'Energy', 'Financials', 'Materials', 'Healthcare', 'Industrials', 'Communication', 'Consumer Discretionary', 'Technology'];
+                        const avgYields = [3.8, 3.5, 2.8, 2.7, 2.5, 2.2, 1.8, 1.7, 1.5, 1.3, 1.1]; // Average dividend yields by sector (example data)
+                        
+                        const newChart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: sectors,
+                                datasets: [{
+                                    label: 'Average Dividend Yield (%)',
+                                    data: avgYields,
+                                    backgroundColor: [
+                                        'rgba(59, 130, 246, 0.7)', // Blue
+                                        'rgba(245, 158, 11, 0.7)', // Amber
+                                        'rgba(16, 185, 129, 0.7)', // Emerald
+                                        'rgba(239, 68, 68, 0.7)',  // Red
+                                        'rgba(139, 92, 246, 0.7)', // Purple
+                                        'rgba(20, 184, 166, 0.7)', // Teal
+                                        'rgba(249, 115, 22, 0.7)', // Orange
+                                        'rgba(234, 88, 12, 0.7)',  // Amber
+                                        'rgba(168, 85, 247, 0.7)', // Purple
+                                        'rgba(236, 72, 153, 0.7)', // Pink
+                                        'rgba(79, 70, 229, 0.7)'   // Indigo
+                                    ],
+                                    borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.1)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        callbacks: {
+                                            label: function(context) {
+                                                return `Avg. Yield: ${context.parsed.y}%`;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        title: {
+                                            display: true,
+                                            text: 'Dividend Yield (%)',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    },
+                                    x: {
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        setChart(newChart);
+                    } else {
+                        // Dividend Growth vs. Stock Performance
+                        const years = ['2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022'];
+                        const dividendGrowth = [5.2, 6.4, 5.9, 5.0, 7.1, 8.5, 8.0, 2.9, 6.5, 10.2]; // Example data
+                        const stockReturns = [29.6, 11.4, -0.7, 9.5, 19.4, -6.2, 28.9, 16.3, 26.9, -19.4]; // S&P 500 annual returns
+                        
+                        const newChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: years,
+                                datasets: [
+                                    {
+                                        label: 'Dividend Growth (%)',
+                                        data: dividendGrowth,
+                                        borderColor: '#079A4F', // Brand green
+                                        backgroundColor: 'rgba(7, 154, 79, 0.1)',
+                                        borderWidth: 2,
+                                        tension: 0.3,
+                                        yAxisID: 'y'
+                                    },
+                                    {
+                                        label: 'Stock Returns (%)',
+                                        data: stockReturns,
+                                        borderColor: '#3B82F6', // Blue
+                                        backgroundColor: 'transparent',
+                                        borderWidth: 2,
+                                        tension: 0.3,
+                                        borderDash: [5, 5],
+                                        yAxisID: 'y1'
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: {
+                                    mode: 'index',
+                                    intersect: false
+                                },
+                                plugins: {
+                                    legend: {
+                                        position: 'top',
+                                        labels: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563',
+                                            usePointStyle: true
+                                        }
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        type: 'linear',
+                                        display: true,
+                                        position: 'left',
+                                        title: {
+                                            display: true,
+                                            text: 'Dividend Growth (%)',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    },
+                                    y1: {
+                                        type: 'linear',
+                                        display: true,
+                                        position: 'right',
+                                        title: {
+                                            display: true,
+                                            text: 'Stock Returns (%)',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            drawOnChartArea: false,
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    },
+                                    x: {
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        setChart(newChart);
+                    }
+                }
+            }, [showingYield, isDarkMode, activeTab]);
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Dividend
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    A distribution of a portion of a company's earnings paid to its shareholders, usually in cash but sometimes in additional shares or other assets. Dividends are typically approved by the company's board of directors and represent a return on investment for shareholders.
+                                </p>
+                            </div>
+
+                            <div className="mb-4 flex">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'types' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('types')}
+                                >
+                                    Types
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'process' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('process')}
+                                >
+                                    Process
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'metrics' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('metrics')}
+                                >
+                                    Metrics
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'strategies' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('strategies')}
+                                >
+                                    Strategies
+                                </button>
+                            </div>
+
+                            {/* Types of Dividends */}
+                            {activeTab === 'types' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Types of Dividends</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-2 mb-4">
+                                        {Object.keys(dividendTypes).map(type => (
+                                            <button
+                                                key={type}
+                                                className={`p-2 rounded-lg border-2 transition-colors ${dividendType === type ? 'border-white bg-gray-700' : 'border-gray-600 bg-gray-800'}`}
+                                                style={{ borderLeftColor: dividendTypes[type].color }}
+                                                onClick={() => setDividendType(type)}
+                                            >
+                                                <div className="font-semibold" style={{ color: dividendTypes[type].color }}>
+                                                    {dividendTypes[type].name}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-lg mb-2" style={{ color: dividendTypes[dividendType].color }}>
+                                            {dividendTypes[dividendType].name}
+                                        </h4>
+                                        <div className="space-y-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: dividendTypes[dividendType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Description:</span>
+                                                    <p className="text-gray-200 text-sm">{dividendTypes[dividendType].description}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: dividendTypes[dividendType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Advantages:</span>
+                                                    <p className="text-gray-200 text-sm">{dividendTypes[dividendType].advantages}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: dividendTypes[dividendType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Considerations:</span>
+                                                    <p className="text-gray-200 text-sm">{dividendTypes[dividendType].considerations}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: dividendTypes[dividendType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Examples:</span>
+                                                    <p className="text-gray-200 text-sm">{dividendTypes[dividendType].examples}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-green-400 mb-2">Dividend Payment Classification</h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <div className="text-blue-400 font-semibold text-center mb-2">By Frequency</div>
+                                                <div className="space-y-2">
+                                                    <div className="bg-gray-700 p-2 rounded text-sm">
+                                                        <span className="font-semibold">Regular Dividends</span>
+                                                        <div className="text-xs text-gray-300 mt-1">Paid at consistent intervals (quarterly, semi-annually, annually)</div>
+                                                    </div>
+                                                    <div className="bg-gray-700 p-2 rounded text-sm">
+                                                        <span className="font-semibold">Irregular Dividends</span>
+                                                        <div className="text-xs text-gray-300 mt-1">Paid without a set schedule, based on profitability</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <div className="text-amber-400 font-semibold text-center mb-2">By Stability</div>
+                                                <div className="space-y-2">
+                                                    <div className="bg-gray-700 p-2 rounded text-sm">
+                                                        <span className="font-semibold">Stable Dividend Policy</span>
+                                                        <div className="text-xs text-gray-300 mt-1">Fixed amount per share, regardless of earnings fluctuations</div>
+                                                    </div>
+                                                    <div className="bg-gray-700 p-2 rounded text-sm">
+                                                        <span className="font-semibold">Constant Payout Ratio</span>
+                                                        <div className="text-xs text-gray-300 mt-1">Fixed percentage of earnings, varies with profitability</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Dividend Process */}
+                            {activeTab === 'process' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Dividend Distribution Process</h3>
+                                    
+                                    <div className="relative h-96 mb-4 bg-gray-700 rounded-lg overflow-hidden">
+                                        <div className="absolute inset-0 overflow-y-auto p-4">
+                                            {/* Step 1: Declaration */}
+                                            {currentStep === 1 && (
+                                                <div>
+                                                    <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 1: Declaration Date</h3>
+                                                    <div className="space-y-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Board Decision</h4>
+                                                            <div className="text-sm text-gray-300 mb-3">
+                                                                <p>The company's board of directors meets to decide on dividend distribution:</p>
+                                                            </div>
+                                                            <div className="grid grid-cols-3 gap-3">
+                                                                <div className="bg-gray-700 p-2 rounded text-center">
+                                                                    <div className="font-semibold text-xs">Approve</div>
+                                                                    <div className="text-xs text-gray-300 mt-1">Whether to pay a dividend</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-center">
+                                                                    <div className="font-semibold text-xs">Amount</div>
+                                                                    <div className="text-xs text-gray-300 mt-1">How much per share</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-center">
+                                                                    <div className="font-semibold text-xs">Dates</div>
+                                                                    <div className="text-xs text-gray-300 mt-1">Key timeline dates</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Dividend Announcement</h4>
+                                                            <div className="flex items-center justify-center mb-3">
+                                                                <div className="p-4 border border-gray-600 rounded-lg max-w-md">
+                                                                    <div className="text-center text-sm font-semibold mb-2">Sample Dividend Declaration</div>
+                                                                    <div className="text-xs text-gray-300 space-y-2">
+                                                                        <p>
+                                                                            <span className="font-semibold">Company:</span> ABC Corporation
+                                                                        </p>
+                                                                        <p>
+                                                                            <span className="font-semibold">Date:</span> April 15, 2023
+                                                                        </p>
+                                                                        <p>
+                                                                            <span className="font-semibold">Statement:</span> The Board of Directors of ABC Corporation has declared a quarterly dividend of $0.75 per share, payable on June 1, 2023, to shareholders of record as of May 15, 2023. The ex-dividend date will be May 14, 2023.
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-purple-400 font-semibold text-center mb-2">Financial Considerations</h4>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Corporate Factors</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li>Current earnings</li>
+                                                                            <li>Cash reserves</li>
+                                                                            <li>Growth opportunities</li>
+                                                                            <li>Debt obligations</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Market Factors</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li>Industry norms</li>
+                                                                            <li>Economic outlook</li>
+                                                                            <li>Shareholder expectations</li>
+                                                                            <li>Competitive positioning</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Step 2: Ex-Dividend */}
+                                            {currentStep === 2 && (
+                                                <div>
+                                                    <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 2: Ex-Dividend Date</h3>
+                                                    <div className="space-y-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Ownership Cutoff</h4>
+                                                            <div className="text-sm text-gray-300 mb-3">
+                                                                <p>The ex-dividend date is the trading day when the stock begins trading without the value of the upcoming dividend payment.</p>
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div className="bg-blue-900 bg-opacity-30 p-3 rounded-lg">
+                                                                    <div className="text-center font-semibold mb-2">Before Ex-Dividend Date</div>
+                                                                    <div className="text-xs text-gray-300">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li>Buy shares → Eligible for dividend</li>
+                                                                            <li>Stock trades with dividend value included</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-red-900 bg-opacity-30 p-3 rounded-lg">
+                                                                    <div className="text-center font-semibold mb-2">On or After Ex-Dividend Date</div>
+                                                                    <div className="text-xs text-gray-300">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li>Buy shares → Not eligible for dividend</li>
+                                                                            <li>Stock typically drops by dividend amount</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Stock Price Adjustment</h4>
+                                                            <div className="relative">
+                                                                <div className="flex flex-col items-center">
+                                                                    <div className="bg-gray-700 p-2 rounded-lg w-full mb-4">
+                                                                        <div className="flex justify-between">
+                                                                            <div>
+                                                                                <div className="font-semibold text-sm">Example Stock</div>
+                                                                                <div className="text-xs text-gray-400">$1.00 quarterly dividend</div>
+                                                                            </div>
+                                                                            <div className="text-right">
+                                                                                <div className="font-semibold text-sm text-green-400">$50.00</div>
+                                                                                <div className="text-xs text-gray-400">Price before ex-dividend</div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    
+                                                                    <div className="h-8 w-1 bg-gray-600"></div>
+                                                                    
+                                                                    <div className="text-center bg-red-900 bg-opacity-40 p-2 rounded-lg mb-4">
+                                                                        <div className="text-sm">Ex-Dividend Date</div>
+                                                                        <div className="text-xs text-gray-300">Price typically drops by dividend amount</div>
+                                                                    </div>
+                                                                    
+                                                                    <div className="h-8 w-1 bg-gray-600"></div>
+                                                                    
+                                                                    <div className="bg-gray-700 p-2 rounded-lg w-full">
+                                                                        <div className="flex justify-between">
+                                                                            <div>
+                                                                                <div className="font-semibold text-sm">Example Stock</div>
+                                                                                <div className="text-xs text-gray-400">Adjustment for dividend</div>
+                                                                            </div>
+                                                                            <div className="text-right">
+                                                                                <div className="font-semibold text-sm text-red-400">$49.00</div>
+                                                                                <div className="text-xs text-gray-400">Price after ex-dividend</div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-purple-400 font-semibold text-center mb-2">Market Implications</h4>
+                                                            <div className="text-xs text-gray-300">
+                                                                <p className="mb-2">While the stock price theoretically drops by the dividend amount on the ex-dividend date, real market behavior is influenced by multiple factors:</p>
+                                                                <div className="grid grid-cols-2 gap-2">
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li>Broader market movements</li>
+                                                                            <li>Company-specific news</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li>Dividend capture strategies</li>
+                                                                            <li>Investor sentiment</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {/* Step 3: Record Date */}
+                                            {currentStep === 3 && (
+                                                <div>
+                                                    <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 3: Record Date</h3>
+                                                    <div className="space-y-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Shareholder Eligibility</h4>
+                                                            <div className="text-sm text-gray-300 mb-3">
+                                                                <p>The record date (also called "date of record") is when the company reviews its books to determine who will receive the dividend.</p>
+                                                            </div>
+                                                            <div className="flex justify-center mb-3">
+                                                                <div className="bg-gray-700 p-3 rounded-lg max-w-md">
+                                                                    <div className="text-center font-semibold mb-2">Key Point</div>
+                                                                    <div className="text-xs text-gray-300">
+                                                                        <p>Only shareholders listed on the company's books on this date will receive the dividend. This is why the ex-dividend date is critical - it's set to ensure settlement occurs before the record date.</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Date Relationship</h4>
+                                                            <div className="relative">
+                                                                <div className="absolute w-full h-1 bg-gray-600 top-12 z-0"></div>
+                                                                <div className="flex justify-between relative z-10">
+                                                                    <div className="flex flex-col items-center">
+                                                                        <div className="bg-blue-900 bg-opacity-40 p-2 rounded-lg mb-3">
+                                                                            <div className="text-sm text-center">Declaration Date</div>
+                                                                        </div>
+                                                                        <div className="w-6 h-6 rounded-full bg-blue-500 mb-1"></div>
+                                                                    </div>
+                                                                    <div className="flex flex-col items-center">
+                                                                        <div className="bg-red-900 bg-opacity-40 p-2 rounded-lg mb-3">
+                                                                            <div className="text-sm text-center">Ex-Dividend Date</div>
+                                                                        </div>
+                                                                        <div className="w-6 h-6 rounded-full bg-red-500 mb-1"></div>
+                                                                    </div>
+                                                                    <div className="flex flex-col items-center">
+                                                                        <div className="bg-green-900 bg-opacity-40 p-2 rounded-lg mb-3">
+                                                                            <div className="text-sm text-center">Record Date</div>
+                                                                        </div>
+                                                                        <div className="w-6 h-6 rounded-full bg-green-500 mb-1"></div>
+                                                                    </div>
+                                                                    <div className="flex flex-col items-center">
+                                                                        <div className="bg-purple-900 bg-opacity-40 p-2 rounded-lg mb-3">
+                                                                            <div className="text-sm text-center">Payment Date</div>
+                                                                        </div>
+                                                                        <div className="w-6 h-6 rounded-full bg-purple-500 mb-1"></div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="mt-4 text-center text-xs text-gray-300">
+                                                                    <p>The record date is typically 1-2 business days after the ex-dividend date to allow for trade settlement.</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-purple-400 font-semibold text-center mb-2">Administrative Process</h4>
+                                                            <div className="grid grid-cols-1 gap-3">
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold mb-1">Shareholder Registry</div>
+                                                                    <p className="text-gray-300">The company (or its transfer agent) maintains a complete list of shareholders and their holdings as of the record date</p>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold mb-1">Different Ownership Types</div>
+                                                                    <div className="grid grid-cols-2 gap-2">
+                                                                        <div>
+                                                                            <span className="font-semibold">Direct Ownership:</span> Registered directly with the company
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="font-semibold">Indirect Ownership:</span> Held through brokers in "street name"
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold mb-1">Dividend Processing</div>
+                                                                    <p className="text-gray-300">The company calculates the total dividend payout based on eligible shares and prepares for distribution</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Step 4: Payment Date */}
+                                            {currentStep === 4 && (
+                                                <div>
+                                                    <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 4: Payment Date</h3>
+                                                    <div className="space-y-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Dividend Distribution</h4>
+                                                            <div className="text-sm text-gray-300 mb-3">
+                                                                <p>The payment date is when the dividend is actually distributed to eligible shareholders. This can occur through various mechanisms:</p>
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Cash Dividends</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li>Direct deposit to brokerage accounts</li>
+                                                                            <li>Physical checks for registered holders</li>
+                                                                            <li>Dividend reinvestment plans (DRIPs)</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Stock Dividends</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li>Additional shares deposited to accounts</li>
+                                                                            <li>Fractional shares handled according to policy</li>
+                                                                            <li>Updated in shareholder records</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Payment Process Flow</h4>
+                                                            <div className="relative">
+                                                                <div className="absolute w-1 bg-amber-600 h-full left-[15px] top-0 z-0"></div>
+                                                                <div className="space-y-3 relative z-10">
+                                                                    <div className="flex items-start ml-2">
+                                                                        <div className="w-7 h-7 rounded-full bg-amber-600 flex items-center justify-center mr-3 -ml-4">1</div>
+                                                                        <div className="bg-gray-700 p-2 rounded flex-1">
+                                                                            <div className="font-semibold text-sm">Funds Transfer</div>
+                                                                            <div className="text-xs text-gray-300">Company transfers total dividend amount to paying agent</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-start ml-2">
+                                                                        <div className="w-7 h-7 rounded-full bg-amber-600 flex items-center justify-center mr-3 -ml-4">2</div>
+                                                                        <div className="bg-gray-700 p-2 rounded flex-1">
+                                                                            <div className="font-semibold text-sm">Processing</div>
+                                                                            <div className="text-xs text-gray-300">Agent processes payments according to shareholder registry</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-start ml-2">
+                                                                        <div className="w-7 h-7 rounded-full bg-amber-600 flex items-center justify-center mr-3 -ml-4">3</div>
+                                                                        <div className="bg-gray-700 p-2 rounded flex-1">
+                                                                            <div className="font-semibold text-sm">Distribution</div>
+                                                                            <div className="text-xs text-gray-300">Payments distributed to registered holders and brokerages</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-start ml-2">
+                                                                        <div className="w-7 h-7 rounded-full bg-amber-600 flex items-center justify-center mr-3 -ml-4">4</div>
+                                                                        <div className="bg-gray-700 p-2 rounded flex-1">
+                                                                            <div className="font-semibold text-sm">Receipt</div>
+                                                                            <div className="text-xs text-gray-300">Shareholders receive dividends in their accounts</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-purple-400 font-semibold text-center mb-2">Tax Considerations</h4>
+                                                            <div className="text-xs text-gray-300 mb-2">
+                                                                <p>Dividend payments typically have tax implications for recipients:</p>
+                                                            </div>
+                                                            <div className="grid grid-cols-1 gap-3">
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold">Taxable Event</div>
+                                                                    <p className="text-gray-300 mt-1">Most dividends are taxable in the year they are paid, even if automatically reinvested</p>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold">Tax Classification</div>
+                                                                    <div className="grid grid-cols-2 gap-2 mt-1">
+                                                                        <div>
+                                                                            <span className="font-semibold">Qualified Dividends:</span> Lower tax rates (capital gains)
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="font-semibold">Ordinary Dividends:</span> Taxed as regular income
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold">Reporting</div>
+                                                                    <p className="text-gray-300 mt-1">Companies issue Form 1099-DIV to shareholders for tax reporting purposes</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Step 5: Post-Payment */}
+                                            {currentStep === 5 && (
+                                                <div>
+                                                    <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 5: Post-Payment & Considerations</h3>
+                                                    <div className="space-y-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Corporate Accounting</h4>
+                                                            <div className="text-sm text-gray-300 mb-3">
+                                                                <p>After dividend payment, companies update their financial records:</p>
+                                                            </div>
+                                                            <div className="grid grid-cols-1 gap-3">
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold mb-1">Balance Sheet Impact</div>
+                                                                    <div className="grid grid-cols-2 gap-2">
+                                                                        <div>
+                                                                            <span className="font-semibold">Cash Dividends:</span>
+                                                                            <ul className="list-disc pl-4 space-y-1 mt-1">
+                                                                                <li>Reduces cash assets</li>
+                                                                                <li>Reduces shareholders' equity</li>
+                                                                            </ul>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="font-semibold">Stock Dividends:</span>
+                                                                            <ul className="list-disc pl-4 space-y-1 mt-1">
+                                                                                <li>Transfers from retained earnings</li>
+                                                                                <li>Increases outstanding shares</li>
+                                                                            </ul>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold mb-1">Retained Earnings</div>
+                                                                    <p className="text-gray-300">Dividends reduce retained earnings as the company distributes accumulated profits to shareholders rather than reinvesting them</p>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold mb-1">Financial Disclosures</div>
+                                                                    <p className="text-gray-300">Companies must report dividend payments in their financial statements and annual reports</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Future Dividend Planning</h4>
+                                                            <div className="space-y-3">
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Sustainability Assessment</span>
+                                                                        <p className="text-gray-300 text-xs">Companies review whether current dividend levels can be maintained or increased based on earnings projections and cash flow needs</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Payout Ratio Analysis</span>
+                                                                        <p className="text-gray-300 text-xs">Board evaluates whether the current proportion of earnings paid as dividends remains appropriate given business conditions</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Dividend Growth Trajectory</span>
+                                                                        <p className="text-gray-300 text-xs">Management considers expectations for dividend increases and long-term dividend growth policy</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-purple-400 font-semibold text-center mb-2">Market Response Analysis</h4>
+                                                            <div className="text-xs text-gray-300 mb-2">
+                                                                <p>Companies assess market reaction to dividend announcements and payments:</p>
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold">Stock Performance</div>
+                                                                    <ul className="list-disc pl-4 space-y-1 mt-1">
+                                                                        <li>Price movement after announcement</li>
+                                                                        <li>Trading volume analysis</li>
+                                                                        <li>Recovery after ex-dividend drop</li>
+                                                                    </ul>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold">Investor Feedback</div>
+                                                                    <ul className="list-disc pl-4 space-y-1 mt-1">
+                                                                        <li>Analyst commentary</li>
+                                                                        <li>Major shareholder reactions</li>
+                                                                        <li>Market sentiment indicators</li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3, 4, 5].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-green-500' : 'bg-gray-500'}`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Dividend Metrics */}
+                            {activeTab === 'metrics' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Dividend Metrics & Analysis</h3>
+                                    
+                                    <div className="flex mb-4">
+                                        <button
+                                            className={`px-4 py-2 rounded-tl-lg rounded-bl-lg ${!showingYield ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingYield(false)}
+                                        >
+                                            Dividend Growth
+                                        </button>
+                                        <button
+                                            className={`px-4 py-2 rounded-tr-lg rounded-br-lg ${showingYield ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingYield(true)}
+                                        >
+                                            Sector Yields
+                                        </button>
+                                    </div>
+
+                                    <div className="h-64 mb-4">
+                                        <canvas ref={chartRef}></canvas>
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-md mb-2 text-green-400">
+                                            {showingYield ? "Dividend Yield by Sector Analysis" : "Dividend Growth vs. Market Returns"}
+                                        </h4>
+                                        
+                                        {showingYield ? (
+                                            <div className="space-y-2">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Sector Variation:</span> Dividend yields vary significantly across sectors based on industry maturity, growth prospects, and cash flow characteristics.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Defensive Sectors:</span> Utilities, real estate, and consumer staples typically offer higher yields, reflecting their stable cash flows and lower growth rates.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Growth Sectors:</span> Technology and consumer discretionary companies often pay lower yields, preferring to reinvest profits for expansion.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Dividend Growth:</span> Consistent dividend increases (green line) demonstrate corporate financial health and management's confidence in future earnings.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Market Correlation:</span> Stock returns (blue line) can be volatile year-to-year, while dividend growth tends to be more stable, providing income consistency.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Economic Impact:</span> Note how dividend growth slowed during the 2020 pandemic but recovered strongly afterward as corporate earnings rebounded.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 mt-6 gap-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Key Dividend Metrics</h4>
+                                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold text-blue-400 mb-2">Dividend Yield</div>
+                                                    <div className="text-xs text-gray-300 mb-2">
+                                                        <p>Annual dividend per share divided by current share price</p>
+                                                        <div className="bg-gray-700 p-2 rounded mt-2">
+                                                            <div className="font-mono text-center">
+                                                                Dividend Yield = Annual Dividend ÷ Share Price
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-xs text-gray-300">
+                                                        <p><span className="font-semibold">Interpretation:</span> Higher yields may indicate better income potential but could signal limited growth prospects or elevated risk</p>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold text-amber-400 mb-2">Dividend Payout Ratio</div>
+                                                    <div className="text-xs text-gray-300 mb-2">
+                                                        <p>Percentage of earnings paid as dividends</p>
+                                                        <div className="bg-gray-700 p-2 rounded mt-2">
+                                                            <div className="font-mono text-center">
+                                                                Payout Ratio = Annual Dividend ÷ EPS
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-xs text-gray-300">
+                                                        <p><span className="font-semibold">Interpretation:</span> Lower ratios suggest more sustainable dividends with room for future increases</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Advanced Dividend Metrics</h4>
+                                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold text-purple-400 mb-2">Dividend Growth Rate</div>
+                                                    <div className="text-xs text-gray-300 mb-2">
+                                                        <p>Annual percentage increase in dividend payments</p>
+                                                        <div className="bg-gray-700 p-2 rounded mt-2">
+                                                            <div className="font-mono text-center">
+                                                                DGR = (New Dividend - Old Dividend) ÷ Old Dividend
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-xs text-gray-300">
+                                                        <p><span className="font-semibold">Interpretation:</span> Consistent growth indicates financial strength and shareholder-friendly management</p>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold text-green-400 mb-2">Dividend Coverage Ratio</div>
+                                                    <div className="text-xs text-gray-300 mb-2">
+                                                        <p>How many times earnings cover the dividend payment</p>
+                                                        <div className="bg-gray-700 p-2 rounded mt-2">
+                                                            <div className="font-mono text-center">
+                                                                Coverage Ratio = EPS ÷ Annual Dividend
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-xs text-gray-300">
+                                                        <p><span className="font-semibold">Interpretation:</span> Higher coverage ratios indicate safer dividends with lower risk of reduction</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Dividend Strategies */}
+                            {activeTab === 'strategies' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Dividend Investment Strategies</h3>
+                                    
+                                    <div className="grid grid-cols-1 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Dividend Growth Investing</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Strategy Focus</span>
+                                                        <p className="text-gray-300 text-xs">Targeting companies with a history of consistent dividend increases rather than just high current yield</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Key Characteristics</span>
+                                                        <p className="text-gray-300 text-xs">Companies with moderate payout ratios, strong cash flows, sustainable competitive advantages, and management commitment to dividend growth</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Long-Term Benefits</span>
+                                                        <p className="text-gray-300 text-xs">Increasing income stream that can outpace inflation; potential for both income and capital appreciation</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Examples</span>
+                                                        <p className="text-gray-300 text-xs">Dividend Aristocrats (25+ years of consecutive dividend increases) and Dividend Kings (50+ years)</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">High-Yield Dividend Strategies</h4>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <h5 className="text-sm font-semibold text-center mb-2">Income Focus</h5>
+                                                    <div className="space-y-2">
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Strategy</span>
+                                                            <p className="text-gray-300 mt-1">Prioritizing current income over growth potential by targeting securities with above-average dividend yields</p>
+                                                        </div>
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Asset Types</span>
+                                                            <p className="text-gray-300 mt-1">High-yield stocks, REITs, MLPs, preferred shares, closed-end funds</p>
+                                                        </div>
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Risk Factors</span>
+                                                            <p className="text-gray-300 mt-1">Dividend sustainability concerns, lower growth potential, interest rate sensitivity</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <h5 className="text-sm font-semibold text-center mb-2">Yield Evaluation</h5>
+                                                    <div className="space-y-2">
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Yield Traps</span>
+                                                            <p className="text-gray-300 mt-1">Extremely high yields often signal increased risk or unsustainable dividend policies</p>
+                                                        </div>
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Due Diligence</span>
+                                                            <p className="text-gray-300 mt-1">Examine cash flow coverage, debt levels, industry trends, and dividend history</p>
+                                                        </div>
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Portfolio Role</span>
+                                                            <p className="text-gray-300 mt-1">Often utilized by retirees or others requiring current income from investments</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Dividend Reinvestment Plans (DRIPs)</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Automatic Reinvestment</span>
+                                                        <p className="text-gray-300 text-xs">Programs that automatically use dividend payments to purchase additional shares of the company's stock</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Compounding Benefits</span>
+                                                        <p className="text-gray-300 text-xs">DRIPs harness the power of compounding by increasing share count over time, which generates more dividends that can be reinvested</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Implementation Methods</span>
+                                                        <p className="text-gray-300 text-xs">Through brokerage accounts automatically or company-sponsored plans (some offer discounted share purchases)</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Long-Term Impact</span>
+                                                        <p className="text-gray-300 text-xs">Research shows significantly enhanced total returns for long-term investors who consistently reinvest dividends</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-green-400">Key Dividend Concepts</div>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <span className="font-semibold">Dividend Policy:</span> 
+                                        <p className="text-gray-300">Company's approach to distributing earnings to shareholders</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Retention Ratio:</span> 
+                                        <p className="text-gray-300">Portion of earnings retained for business reinvestment</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Ex-Dividend:</span> 
+                                        <p className="text-gray-300">First day stock trades without dividend entitlement</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Qualified Dividends:</span> 
+                                        <p className="text-gray-300">Tax-advantaged dividends meeting IRS holding requirements</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Dividend Aristocrats:</span> 
+                                        <p className="text-gray-300">S&P 500 companies with 25+ years of consecutive dividend increases</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Dividend Capture:</span> 
+                                        <p className="text-gray-300">Strategy of buying before ex-date and selling after to collect dividend</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<DividendVisual />);
+    </script>
+</body>
+</html>
