@@ -288,11 +288,11 @@
                                     <h3 className="text-lg font-semibold mb-3 text-green-400">Key Functions of Financial Markets</h3>
                                     
                                     <div className="relative h-96 mb-4 bg-gray-700 rounded-lg overflow-hidden">
-                                        {/* Step 1: Price Discovery */}
+                                        {/* Step 1: Price Discovery - ADDED SCROLLING */}
                                         {currentStep === 1 && (
                                             <div className="absolute inset-0 p-4">
                                                 <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Function 1: Price Discovery</h3>
-                                                <div className="flex flex-col items-center h-72">
+                                                <div className="flex flex-col items-center h-72 overflow-y-auto">
                                                     <div className="w-full bg-gray-800 p-4 rounded-lg mb-4">
                                                         <p className="text-gray-300 text-center mb-4">Markets determine the price of assets through the interaction of buyers and sellers</p>
                                                         
@@ -334,11 +334,11 @@
                                             </div>
                                         )}
 
-                                        {/* Step 2: Liquidity Provision */}
+                                        {/* Step 2: Liquidity Provision - ADDED SCROLLING */}
                                         {currentStep === 2 && (
                                             <div className="absolute inset-0 p-4">
                                                 <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Function 2: Liquidity Provision</h3>
-                                                <div className="flex flex-col items-center h-72">
+                                                <div className="flex flex-col items-center h-72 overflow-y-auto">
                                                     <div className="w-full bg-gray-800 p-4 rounded-lg mb-4">
                                                         <p className="text-gray-300 text-center mb-4">Markets enable quick buying and selling of assets without significant price impact</p>
                                                         
