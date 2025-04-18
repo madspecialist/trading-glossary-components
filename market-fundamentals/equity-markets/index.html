@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equity Markets Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const EquityMarketsVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('types');
+            const [marketType, setMarketType] = React.useState('primary');
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const [showingMarketCap, setShowingMarketCap] = React.useState(false);
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const brandColor = "#079A4F"; // Brand green color
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+            
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 5 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 5);
+            };
+
+            const marketTypes = {
+                primary: {
+                    name: "Primary Markets",
+                    description: "Markets where new securities are issued and sold to investors for the first time, allowing companies to raise capital directly.",
+                    characteristics: "Involves underwriters, typically investment banks; pricing determined by company valuation and investor demand",
+                    examples: "Initial Public Offerings (IPOs), Private Placements, Rights Issues, Follow-on Public Offerings",
+                    significance: "Critical for capital formation, enabling companies to fund growth, expansion, R&D, or debt reduction",
+                    color: "#3B82F6" // Blue
+                },
+                secondary: {
+                    name: "Secondary Markets",
+                    description: "Markets where previously issued securities are bought and sold between investors, without direct involvement from the issuing companies.",
+                    characteristics: "High liquidity, continuous price discovery, regulated trading venues, standardized settlement processes",
+                    examples: "NYSE, Nasdaq, Tokyo Stock Exchange, London Stock Exchange, over-the-counter markets",
+                    significance: "Provides liquidity for investors, enables price discovery, allows for portfolio management and investment strategies",
+                    color: "#F59E0B" // Amber
+                },
+                exchange: {
+                    name: "Exchange Markets",
+                    description: "Centralized, regulated marketplaces with formal membership requirements where buyers and sellers trade securities according to established rules.",
+                    characteristics: "Standardized trading processes, transparent pricing, regulatory oversight, defined trading hours",
+                    examples: "New York Stock Exchange (NYSE), Nasdaq, London Stock Exchange (LSE), Tokyo Stock Exchange (TSE)",
+                    significance: "Creates market integrity, reduces counterparty risk, ensures fair and orderly trading, provides market data",
+                    color: "#10B981" // Emerald
+                },
+                otc: {
+                    name: "Over-the-Counter Markets",
+                    description: "Decentralized markets where securities are traded directly between parties without a central exchange, often through dealer networks.",
+                    characteristics: "Less regulation, variable liquidity, customizable trade terms, often used for securities not meeting exchange listing requirements",
+                    examples: "OTC Markets Group (OTCQX, OTCQB, Pink Sheets), bond markets, certain derivatives markets",
+                    significance: "Provides trading venues for smaller companies, allows for custom financial instruments, facilitates international trading",
+                    color: "#8B5CF6" // Purple
+                }
+            };
+
+            // Chart for market capitalization comparison
+            React.useEffect(() => {
+                if (chartRef.current && activeTab === 'metrics') {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    if (showingMarketCap) {
+                        // Global market capitalization by region
+                        const regions = ['North America', 'Asia-Pacific', 'Europe', 'Latin America', 'Middle East & Africa'];
+                        const marketCaps = [50.1, 30.4, 15.2, 2.8, 1.5]; // Example data in trillion USD
+                        
+                        const newChart = new Chart(ctx, {
+                            type: 'pie',
+                            data: {
+                                labels: regions,
+                                datasets: [{
+                                    data: marketCaps,
+                                    backgroundColor: [
+                                        'rgba(59, 130, 246, 0.7)', // Blue
+                                        'rgba(16, 185, 129, 0.7)', // Emerald
+                                        'rgba(245, 158, 11, 0.7)', // Amber
+                                        'rgba(139, 92, 246, 0.7)', // Purple
+                                        'rgba(239, 68, 68, 0.7)'   // Red
+                                    ],
+                                    borderColor: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'white',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'right',
+                                        labels: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563',
+                                            padding: 20,
+                                            font: {
+                                                size: 11
+                                            }
+                                        }
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        callbacks: {
+                                            label: function(context) {
+                                                return `${context.label}: $${context.raw} trillion (${Math.round(context.raw / marketCaps.reduce((a, b) => a + b, 0) * 100)}%)`;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        setChart(newChart);
+                    } else {
+                        // Major global exchanges by market cap
+                        const exchanges = ['NYSE', 'Nasdaq', 'Shanghai', 'Euronext', 'Tokyo', 'Hong Kong', 'Shenzhen', 'LSE', 'BSE', 'NSE'];
+                        const marketCaps = [27.1, 24.6, 7.7, 7.3, 6.3, 4.8, 4.4, 3.2, 3.2, 3.1]; // Example data in trillion USD
+                        
+                        const newChart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: exchanges,
+                                datasets: [{
+                                    label: 'Market Cap (Trillion USD)',
+                                    data: marketCaps,
+                                    backgroundColor: [
+                                        'rgba(59, 130, 246, 0.7)', // Blue - NYSE
+                                        'rgba(16, 185, 129, 0.7)', // Emerald - Nasdaq
+                                        'rgba(245, 158, 11, 0.7)', // Amber - Shanghai
+                                        'rgba(139, 92, 246, 0.7)', // Purple - Euronext
+                                        'rgba(239, 68, 68, 0.7)',  // Red - Tokyo
+                                        'rgba(20, 184, 166, 0.7)', // Teal - Hong Kong
+                                        'rgba(249, 115, 22, 0.7)', // Orange - Shenzhen
+                                        'rgba(168, 85, 247, 0.7)', // Purple - LSE
+                                        'rgba(79, 70, 229, 0.7)',  // Indigo - BSE
+                                        'rgba(236, 72, 153, 0.7)'  // Pink - NSE
+                                    ],
+                                    borderColor: isDarkMode ? 'rgba(17, 24, 39, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                indexAxis: 'y',
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        callbacks: {
+                                            label: function(context) {
+                                                return `Market Cap: $${context.parsed.x} trillion`;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    },
+                                    x: {
+                                        title: {
+                                            display: true,
+                                            text: 'Market Capitalization (Trillion USD)',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        setChart(newChart);
+                    }
+                }
+            }, [showingMarketCap, isDarkMode, activeTab]);
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Equity Markets
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    Financial marketplaces where ownership shares (stocks) of companies are issued and traded. Also known as stock markets, these venues allow companies to raise capital through share issuance while providing investors opportunities for capital appreciation and dividend income.
+                                </p>
+                            </div>
+
+                            <div className="mb-4 flex">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'types' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('types')}
+                                >
+                                    Types
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'process' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('process')}
+                                >
+                                    Process
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'metrics' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('metrics')}
+                                >
+                                    Metrics
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'participants' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('participants')}
+                                >
+                                    Participants
+                                </button>
+                            </div>
+
+                            {/* Types of Equity Markets */}
+                            {activeTab === 'types' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Types of Equity Markets</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-2 mb-4">
+                                        {Object.keys(marketTypes).map(type => (
+                                            <button
+                                                key={type}
+                                                className={`p-2 rounded-lg border-2 transition-colors ${marketType === type ? 'border-white bg-gray-700' : 'border-gray-600 bg-gray-800'}`}
+                                                style={{ borderLeftColor: marketTypes[type].color }}
+                                                onClick={() => setMarketType(type)}
+                                            >
+                                                <div className="font-semibold" style={{ color: marketTypes[type].color }}>
+                                                    {marketTypes[type].name}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-lg mb-2" style={{ color: marketTypes[marketType].color }}>
+                                            {marketTypes[marketType].name}
+                                        </h4>
+                                        <div className="space-y-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: marketTypes[marketType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Description:</span>
+                                                    <p className="text-gray-200 text-sm">{marketTypes[marketType].description}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: marketTypes[marketType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Key Characteristics:</span>
+                                                    <p className="text-gray-200 text-sm">{marketTypes[marketType].characteristics}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: marketTypes[marketType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Examples:</span>
+                                                    <p className="text-gray-200 text-sm">{marketTypes[marketType].examples}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: marketTypes[marketType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Market Significance:</span>
+                                                    <p className="text-gray-200 text-sm">{marketTypes[marketType].significance}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-green-400 mb-2">Additional Market Classifications</h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <div className="text-blue-400 font-semibold text-center mb-2">By Development Stage</div>
+                                                <div className="space-y-2">
+                                                    <div className="bg-gray-700 p-2 rounded text-sm">
+                                                        <span className="font-semibold">Developed Markets</span>
+                                                        <div className="text-xs text-gray-300 mt-1">Mature economies with high liquidity, strong regulatory frameworks, and established market infrastructure</div>
+                                                    </div>
+                                                    <div className="bg-gray-700 p-2 rounded text-sm">
+                                                        <span className="font-semibold">Emerging Markets</span>
+                                                        <div className="text-xs text-gray-300 mt-1">Growing economies with improving market infrastructure but higher volatility and political/economic risk</div>
+                                                    </div>
+                                                    <div className="bg-gray-700 p-2 rounded text-sm">
+                                                        <span className="font-semibold">Frontier Markets</span>
+                                                        <div className="text-xs text-gray-300 mt-1">Early-stage markets with limited liquidity, accessibility, and regulatory development</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <div className="text-amber-400 font-semibold text-center mb-2">By Trading Mechanism</div>
+                                                <div className="space-y-2">
+                                                    <div className="bg-gray-700 p-2 rounded text-sm">
+                                                        <span className="font-semibold">Auction Markets</span>
+                                                        <div className="text-xs text-gray-300 mt-1">Buy and sell orders matched through a centralized auction process (e.g., NYSE)</div>
+                                                    </div>
+                                                    <div className="bg-gray-700 p-2 rounded text-sm">
+                                                        <span className="font-semibold">Dealer Markets</span>
+                                                        <div className="text-xs text-gray-300 mt-1">Market makers provide liquidity by maintaining inventories of securities (e.g., Nasdaq)</div>
+                                                    </div>
+                                                    <div className="bg-gray-700 p-2 rounded text-sm">
+                                                        <span className="font-semibold">Electronic Communication Networks (ECNs)</span>
+                                                        <div className="text-xs text-gray-300 mt-1">Automated systems matching buy and sell orders without intermediaries</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Trading Process */}
+                            {activeTab === 'process' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Equity Market Trading Process</h3>
+                                    
+                                    <div className="relative h-96 mb-4 bg-gray-700 rounded-lg overflow-hidden">
+                                        <div className="absolute inset-0 overflow-y-auto p-4">
+                                            {/* Step 1: Market Access */}
+                                            {currentStep === 1 && (
+                                                <div>
+                                                    <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 1: Market Access</h3>
+                                                    <div className="space-y-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Brokerage Relationship</h4>
+                                                            <div className="text-sm text-gray-300 mb-3">
+                                                                <p>Investors typically access equity markets through licensed brokers who execute trades on their behalf:</p>
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Full-Service Brokers</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li>Personalized investment advice</li>
+                                                                            <li>Research and portfolio analysis</li>
+                                                                            <li>Financial planning services</li>
+                                                                            <li>Higher commission fees</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Discount/Online Brokers</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li>Self-directed trading platforms</li>
+                                                                            <li>Lower commission fees/free trades</li>
+                                                                            <li>Basic research tools</li>
+                                                                            <li>Minimal personalized guidance</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Account Setup Process</h4>
+                                                            <div className="relative">
+                                                                <div className="absolute w-1 bg-amber-600 h-full left-[15px] top-0 z-0"></div>
+                                                                <div className="space-y-3 relative z-10">
+                                                                    <div className="flex items-start ml-2">
+                                                                        <div className="w-7 h-7 rounded-full bg-amber-600 flex items-center justify-center mr-3 -ml-4">1</div>
+                                                                        <div className="bg-gray-700 p-2 rounded flex-1">
+                                                                            <div className="font-semibold text-sm">Application & Verification</div>
+                                                                            <div className="text-xs text-gray-300">Complete account application with personal information, identification documents, and financial details</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-start ml-2">
+                                                                        <div className="w-7 h-7 rounded-full bg-amber-600 flex items-center justify-center mr-3 -ml-4">2</div>
+                                                                        <div className="bg-gray-700 p-2 rounded flex-1">
+                                                                            <div className="font-semibold text-sm">Funding</div>
+                                                                            <div className="text-xs text-gray-300">Deposit funds via bank transfer, debit card, or other approved methods</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-start ml-2">
+                                                                        <div className="w-7 h-7 rounded-full bg-amber-600 flex items-center justify-center mr-3 -ml-4">3</div>
+                                                                        <div className="bg-gray-700 p-2 rounded flex-1">
+                                                                            <div className="font-semibold text-sm">Account Configuration</div>
+                                                                            <div className="text-xs text-gray-300">Set up account features, trading permissions, and preferences</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-purple-400 font-semibold text-center mb-2">Account Types</h4>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Individual Accounts</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li>Cash accounts</li>
+                                                                            <li>Margin accounts</li>
+                                                                            <li>Retirement accounts (IRA, 401(k))</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Institutional Accounts</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li>Professional trading accounts</li>
+                                                                            <li>Corporate investment accounts</li>
+                                                                            <li>Prime brokerage services</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Step 2: Order Placement */}
+                                            {currentStep === 2 && (
+                                                <div>
+                                                    <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 2: Order Placement</h3>
+                                                    <div className="space-y-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Order Types</h4>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Market Orders</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <p>Buy or sell at the best currently available price; prioritizes execution speed over price certainty</p>
+                                                                        <div className="mt-1 p-1 bg-gray-800 rounded">
+                                                                            <span className="text-blue-400">Example:</span> "Buy 100 shares of Company X at market price"
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Limit Orders</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <p>Buy or sell at a specified price or better; prioritizes price control over execution certainty</p>
+                                                                        <div className="mt-1 p-1 bg-gray-800 rounded">
+                                                                            <span className="text-blue-400">Example:</span> "Buy 100 shares of Company X at $50 or below"
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Advanced Order Types</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Stop Orders</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <p>Becomes a market order when a specified price is reached; used to limit losses or protect profits</p>
+                                                                        <div className="mt-1 p-1 bg-gray-800 rounded">
+                                                                            <span className="text-amber-400">Example:</span> "Sell 100 shares of Company X if price falls to $45"
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Stop-Limit Orders</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <p>Becomes a limit order when a specified price is reached; combines price trigger with price control</p>
+                                                                        <div className="mt-1 p-1 bg-gray-800 rounded">
+                                                                            <span className="text-amber-400">Example:</span> "Sell 100 shares of Company X at minimum $44 if price falls to $45"
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Time-in-Force Instructions</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li><span className="font-semibold">Day Order:</span> Valid until market close</li>
+                                                                            <li><span className="font-semibold">GTC (Good Till Canceled):</span> Valid until executed or canceled</li>
+                                                                            <li><span className="font-semibold">FOK (Fill or Kill):</span> Must be executed immediately and completely or canceled</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-purple-400 font-semibold text-center mb-2">Order Placement Channels</h4>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold mb-1">Electronic Platforms</div>
+                                                                    <ul className="list-disc pl-4 space-y-1">
+                                                                        <li>Web-based trading portals</li>
+                                                                        <li>Mobile trading applications</li>
+                                                                        <li>Direct market access (DMA) platforms</li>
+                                                                        <li>Algorithmic trading systems</li>
+                                                                    </ul>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold mb-1">Traditional Methods</div>
+                                                                    <ul className="list-disc pl-4 space-y-1">
+                                                                        <li>Phone calls to brokers</li>
+                                                                        <li>In-person visits to branch offices</li>
+                                                                        <li>Written order instructions</li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {/* Step 3: Order Execution */}
+                                            {currentStep === 3 && (
+                                                <div>
+                                                    <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 3: Order Execution</h3>
+                                                    <div className="space-y-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Order Routing</h4>
+                                                            <div className="text-sm text-gray-300 mb-3">
+                                                                <p>After an order is placed, it follows a path through the market infrastructure:</p>
+                                                            </div>
+                                                            <div className="relative">
+                                                                <div className="space-y-3">
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <div className="flex items-center">
+                                                                            <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center mr-3">1</div>
+                                                                            <div>
+                                                                                <div className="font-semibold">Brokerage System</div>
+                                                                                <div className="text-xs text-gray-300">Order validation, account verification, and initial processing</div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex justify-center">
+                                                                        <div className="w-1 h-4 bg-gray-600"></div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <div className="flex items-center">
+                                                                            <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center mr-3">2</div>
+                                                                            <div>
+                                                                                <div className="font-semibold">Smart Order Router</div>
+                                                                                <div className="text-xs text-gray-300">Analyzes available venues to determine optimal routing based on price, liquidity, and fees</div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex justify-center">
+                                                                        <div className="w-1 h-4 bg-gray-600"></div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <div className="flex items-center">
+                                                                            <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center mr-3">3</div>
+                                                                            <div>
+                                                                                <div className="font-semibold">Execution Venue</div>
+                                                                                <div className="text-xs text-gray-300">Stock exchange, alternative trading system (ATS), or market maker where the order is matched</div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Matching Mechanisms</h4>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Continuous Trading</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li>Orders matched continuously during trading hours</li>
+                                                                            <li>Typically price-time priority matching</li>
+                                                                            <li>Instant execution for market orders when market is open</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Auction Mechanisms</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li>Opening/closing auctions to determine daily prices</li>
+                                                                            <li>Intraday auctions for price discovery</li>
+                                                                            <li>Call auctions for less liquid securities</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-purple-400 font-semibold text-center mb-2">Execution Quality Factors</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Price Improvement</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <p>Execution at a better price than the quoted market price (NBBO - National Best Bid and Offer)</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Speed</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <p>Time elapsed between order placement and execution confirmation</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Likelihood of Execution</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <p>Probability of order being filled, especially important for limit orders or large block trades</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Market Impact</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <p>How much the execution affects the market price, particularly for large orders</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Step 4: Clearing & Settlement */}
+                                            {currentStep === 4 && (
+                                                <div>
+                                                    <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 4: Clearing & Settlement</h3>
+                                                    <div className="space-y-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Post-Trade Process</h4>
+                                                            <div className="text-sm text-gray-300 mb-3">
+                                                                <p>After a trade is executed, it must be processed to transfer ownership and funds:</p>
+                                                            </div>
+                                                            <div className="grid grid-cols-1 gap-3">
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="flex justify-between">
+                                                                        <div className="font-semibold">Trade Confirmation (T+0)</div>
+                                                                        <div className="text-blue-400">Execution Day</div>
+                                                                    </div>
+                                                                    <p className="text-gray-300 mt-1">Matching trade details between counterparties; broker confirmation to client</p>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="flex justify-between">
+                                                                        <div className="font-semibold">Clearing (T+1)</div>
+                                                                        <div className="text-blue-400">1 Day After</div>
+                                                                    </div>
+                                                                    <p className="text-gray-300 mt-1">Verification and netting of trades through central counterparty (CCP); risk management</p>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="flex justify-between">
+                                                                        <div className="font-semibold">Settlement (T+2)</div>
+                                                                        <div className="text-blue-400">2 Days After</div>
+                                                                    </div>
+                                                                    <p className="text-gray-300 mt-1">Final transfer of securities to buyer and funds to seller; ownership record updated</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Key Institutions</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Clearinghouses</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <p>Organizations that serve as intermediaries between trading parties, manage settlement risk, and guarantee trades</p>
+                                                                        <div className="mt-1 p-1 bg-gray-800 rounded">
+                                                                            <span className="text-amber-400">Examples:</span> DTCC's National Securities Clearing Corporation (NSCC), OCC (Options Clearing Corporation)
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Central Securities Depositories</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <p>Institutions that hold securities in electronic or physical form and manage ownership records</p>
+                                                                        <div className="mt-1 p-1 bg-gray-800 rounded">
+                                                                            <span className="text-amber-400">Examples:</span> Depository Trust Company (DTC) in the US, Euroclear, Clearstream
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Transfer Agents</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <p>Entity appointed by a corporation to maintain shareholder records, process share transfers, and distribute dividends</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-purple-400 font-semibold text-center mb-2">Settlement Risks & Safeguards</h4>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold mb-1">Key Risks</div>
+                                                                    <ul className="list-disc pl-4 space-y-1">
+                                                                        <li>Counterparty default risk</li>
+                                                                        <li>Operational failures</li>
+                                                                        <li>Liquidity shortfalls</li>
+                                                                        <li>Settlement timing mismatches</li>
+                                                                    </ul>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold mb-1">Risk Controls</div>
+                                                                    <ul className="list-disc pl-4 space-y-1">
+                                                                        <li>Margin requirements</li>
+                                                                        <li>Netting arrangements</li>
+                                                                        <li>Delivery versus Payment (DvP)</li>
+                                                                        <li>Guarantee funds</li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Step 5: Post-Trade */}
+                                            {currentStep === 5 && (
+                                                <div>
+                                                    <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 5: Post-Trade Activities</h3>
+                                                    <div className="space-y-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Shareholder Rights & Responsibilities</h4>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Ownership Rights</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li>Voting at shareholder meetings</li>
+                                                                            <li>Receiving dividends</li>
+                                                                            <li>Accessing company information</li>
+                                                                            <li>Participating in corporate actions</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Corporate Actions</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <ul className="list-disc pl-4 space-y-1">
+                                                                            <li>Dividend distributions</li>
+                                                                            <li>Stock splits and mergers</li>
+                                                                            <li>Rights issues</li>
+                                                                            <li>Share repurchases</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Portfolio Management</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Position Monitoring</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <p>Tracking investment performance, unrealized gains/losses, and portfolio allocation</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Rebalancing</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <p>Adjusting portfolio allocations to maintain desired asset mix and risk profile</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Tax Management</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">
+                                                                        <p>Strategic buying and selling to optimize tax consequences (e.g., tax-loss harvesting)</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-purple-400 font-semibold text-center mb-2">Regulatory Reporting</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold">Investor Reporting</div>
+                                                                    <ul className="list-disc pl-4 space-y-1 mt-1">
+                                                                        <li>Account statements</li>
+                                                                        <li>Tax documents (1099-DIV, 1099-B)</li>
+                                                                        <li>Cost basis reporting</li>
+                                                                        <li>Performance reporting</li>
+                                                                    </ul>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <div className="font-semibold">Institutional Requirements</div>
+                                                                    <ul className="list-disc pl-4 space-y-1 mt-1">
+                                                                        <li>Position disclosure (13F filings)</li>
+                                                                        <li>Significant ownership reports</li>
+                                                                        <li>Short interest reporting</li>
+                                                                        <li>Insider trading reports</li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3, 4, 5].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-green-500' : 'bg-gray-500'}`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Market Metrics */}
+                            {activeTab === 'metrics' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Market Size & Performance Metrics</h3>
+                                    
+                                    <div className="flex mb-4">
+                                        <button
+                                            className={`px-4 py-2 rounded-tl-lg rounded-bl-lg ${!showingMarketCap ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingMarketCap(false)}
+                                        >
+                                            Major Exchanges
+                                        </button>
+                                        <button
+                                            className={`px-4 py-2 rounded-tr-lg rounded-br-lg ${showingMarketCap ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingMarketCap(true)}
+                                        >
+                                            Regional Distribution
+                                        </button>
+                                    </div>
+
+                                    <div className="h-64 mb-4">
+                                        <canvas ref={chartRef}></canvas>
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-md mb-2 text-green-400">
+                                            {showingMarketCap ? "Global Market Capitalization by Region" : "Top 10 Global Stock Exchanges by Market Cap"}
+                                        </h4>
+                                        
+                                        {showingMarketCap ? (
+                                            <div className="space-y-2">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Market Concentration:</span> North America and Asia-Pacific together account for over 80% of global market capitalization, with the US markets being the dominant force.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Emerging Markets:</span> Despite their smaller relative size, Latin America, Middle East, and Africa represent faster-growing markets with increasing global importance.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Regional Trends:</span> These proportions have shifted over time, with Asia-Pacific gaining market share as emerging economies develop more sophisticated capital markets.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">US Dominance:</span> The New York Stock Exchange (NYSE) and Nasdaq together represent over half of the total market cap of the top 10 global exchanges.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Asian Growth:</span> Chinese exchanges (Shanghai, Shenzhen, Hong Kong) have grown significantly in recent decades, now comprising a substantial portion of global market value.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Market Evolution:</span> Consolidation among exchanges (e.g., Euronext) and the rise of emerging market exchanges are reshaping the global equity market landscape.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 mt-6 gap-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Key Market Metrics</h4>
+                                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold text-blue-400 mb-2">Market Capitalization</div>
+                                                    <div className="text-xs text-gray-300 mb-2">
+                                                        <p>Total market value of all outstanding shares of listed companies on an exchange</p>
+                                                        <div className="bg-gray-700 p-2 rounded mt-2">
+                                                            <div className="font-mono text-center">
+                                                                Market Cap = Price per Share × Outstanding Shares
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-xs text-gray-300">
+                                                        <p><span className="font-semibold">Classifications:</span> Large Cap (&gt;$10B), Mid Cap ($2-10B), Small Cap ($300M-2B), Micro Cap (&lt;$300M)</p>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold text-amber-400 mb-2">Market Indices</div>
+                                                    <div className="text-xs text-gray-300 mb-2">
+                                                        <p>Statistical measures tracking the performance of a selected group of securities representing a specific market or segment</p>
+                                                    </div>
+                                                    <div className="text-xs text-gray-300">
+                                                        <p><span className="font-semibold">Major Indices:</span> S&P 500, Dow Jones Industrial Average, Nasdaq Composite, FTSE 100, Nikkei 225, DAX, Shanghai Composite</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Performance & Trading Metrics</h4>
+                                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold text-purple-400 mb-2">Liquidity Measures</div>
+                                                    <div className="space-y-2 text-xs text-gray-300">
+                                                        <div>
+                                                            <span className="font-semibold">Trading Volume:</span> Number of shares traded in a specific period
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-semibold">Turnover Ratio:</span> Volume traded relative to shares outstanding
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-semibold">Bid-Ask Spread:</span> Difference between highest buy price and lowest sell price
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-semibold">Market Depth:</span> Volume of orders at various price levels
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold text-green-400 mb-2">Volatility Measures</div>
+                                                    <div className="space-y-2 text-xs text-gray-300">
+                                                        <div>
+                                                            <span className="font-semibold">Standard Deviation:</span> Dispersion of returns from the mean
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-semibold">Beta:</span> Measure of systemic risk relative to the broader market
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-semibold">VIX:</span> "Fear index" measuring implied volatility of S&P 500 options
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-semibold">Average True Range (ATR):</span> Technical indicator of price volatility
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Market Participants */}
+                            {activeTab === 'participants' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Equity Market Participants</h3>
+                                    
+                                    <div className="grid grid-cols-1 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Issuers (Supply Side)</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Public Companies</span>
+                                                        <p className="text-gray-300 text-xs">Organizations that have issued securities through public offerings, with shares trading on exchanges or OTC markets</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Capital Raising Objectives</span>
+                                                        <p className="text-gray-300 text-xs">Funding business expansion, research & development, debt reduction, acquisitions, or working capital needs</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Issuer Types</span>
+                                                        <p className="text-gray-300 text-xs">Range from established multinational corporations to early-stage growth companies across diverse industries and sectors</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Ongoing Responsibilities</span>
+                                                        <p className="text-gray-300 text-xs">Financial reporting, investor relations, corporate governance, and regulatory compliance</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Investors (Demand Side)</h4>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <h5 className="text-sm font-semibold text-center mb-2">Retail Investors</h5>
+                                                    <div className="space-y-2">
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Individual Participants</span>
+                                                            <p className="text-gray-300 mt-1">Non-professional investors trading personal accounts through retail brokerage platforms</p>
+                                                        </div>
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Investment Objectives</span>
+                                                            <p className="text-gray-300 mt-1">Long-term wealth building, retirement savings, income generation, speculative trading</p>
+                                                        </div>
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Market Impact</span>
+                                                            <p className="text-gray-300 mt-1">Growing influence through social media coordination, commission-free trading, and fractional shares</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <h5 className="text-sm font-semibold text-center mb-2">Institutional Investors</h5>
+                                                    <div className="space-y-2">
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Professional Entities</span>
+                                                            <p className="text-gray-300 mt-1">Organizations managing large pools of capital on behalf of clients or beneficiaries</p>
+                                                        </div>
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Types</span>
+                                                            <p className="text-gray-300 mt-1">Mutual funds, pension funds, insurance companies, hedge funds, sovereign wealth funds, endowments</p>
+                                                        </div>
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Market Dominance</span>
+                                                            <p className="text-gray-300 mt-1">Control majority of trading volume and significantly influence price discovery and corporate governance</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Market Intermediaries</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Broker-Dealers</span>
+                                                        <p className="text-gray-300 text-xs">Firms that both execute trades for clients (as brokers) and trade for their own accounts (as dealers); provide market access, research, and liquidity</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Market Makers</span>
+                                                        <p className="text-gray-300 text-xs">Specialists who maintain inventory of specific securities and continuously quote buy/sell prices, ensuring liquidity and orderly trading</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Investment Banks</span>
+                                                        <p className="text-gray-300 text-xs">Financial institutions that underwrite new securities issuances, facilitate M&A transactions, and provide advisory services to corporate clients</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Custodians & Transfer Agents</span>
+                                                        <p className="text-gray-300 text-xs">Organizations that safekeep securities, maintain ownership records, and process transfers between parties</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-purple-400 mb-2">Regulatory & Infrastructure Entities</h4>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <h5 className="text-sm font-semibold text-center mb-2">Market Regulators</h5>
+                                                    <div className="space-y-2">
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Government Agencies</span>
+                                                            <p className="text-gray-300 mt-1">SEC (US), FCA (UK), SEBI (India), and other national securities regulators</p>
+                                                        </div>
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Self-Regulatory Organizations</span>
+                                                            <p className="text-gray-300 mt-1">FINRA (US), industry associations, and exchanges with regulatory functions</p>
+                                                        </div>
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Functions</span>
+                                                            <p className="text-gray-300 mt-1">Market oversight, participant registration, rule enforcement, investor protection</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <h5 className="text-sm font-semibold text-center mb-2">Market Infrastructure</h5>
+                                                    <div className="space-y-2">
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Exchanges</span>
+                                                            <p className="text-gray-300 mt-1">NYSE, Nasdaq, and other venues providing trading facilities and listing services</p>
+                                                        </div>
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Clearing Organizations</span>
+                                                            <p className="text-gray-300 mt-1">DTCC, OCC, and other firms managing post-trade clearing and settlement</p>
+                                                        </div>
+                                                        <div className="bg-gray-700 p-2 rounded text-xs">
+                                                            <span className="font-semibold">Technology Providers</span>
+                                                            <p className="text-gray-300 mt-1">Data vendors, trading platform developers, and market connectivity services</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-green-400">Key Equity Market Concepts</div>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <span className="font-semibold">Price Discovery:</span> 
+                                        <p className="text-gray-300">Process by which market determines the fair value of securities</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Market Efficiency:</span> 
+                                        <p className="text-gray-300">Degree to which prices reflect all available information</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Liquidity:</span> 
+                                        <p className="text-gray-300">Ease of buying/selling securities without affecting price</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Market Microstructure:</span> 
+                                        <p className="text-gray-300">Study of trading processes and mechanisms affecting price formation</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Circuit Breakers:</span> 
+                                        <p className="text-gray-300">Temporary trading halts triggered by extreme price movements</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Market Cycles:</span> 
+                                        <p className="text-gray-300">Recurring patterns of bull and bear markets reflecting economic conditions</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<EquityMarketsVisual />);
+    </script>
+</body>
+</html>
