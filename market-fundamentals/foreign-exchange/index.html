@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forex Markets Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const ForexMarketsVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('basics');
+            const [pairType, setPairType] = React.useState('major');
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const [volumeView, setVolumeView] = React.useState('currencies');
+            const brandColor = "#079A4F"; // Brand green color
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+            
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 5 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 5);
+            };
+            
+            // Currency pair types
+            const currencyPairs = {
+                major: {
+                    name: "Major Pairs",
+                    description: "Currency pairs that include the USD and one of the other seven major currencies (EUR, JPY, GBP, CHF, CAD, AUD, NZD)",
+                    examples: "EUR/USD, USD/JPY, GBP/USD, USD/CHF, USD/CAD, AUD/USD, NZD/USD",
+                    liquidity: "Highest liquidity and trading volume, tightest spreads",
+                    volatility: "Generally lower volatility compared to other pairs",
+                    color: "#3B82F6" // Blue
+                },
+                minor: {
+                    name: "Minor Pairs (Cross Pairs)",
+                    description: "Currency pairs that do not include the USD but include any two of the other major currencies",
+                    examples: "EUR/GBP, EUR/JPY, GBP/JPY, EUR/CHF, EUR/AUD, GBP/CAD",
+                    liquidity: "Good liquidity but lower than major pairs",
+                    volatility: "Moderate volatility, can be influenced by both currencies' economies",
+                    color: "#10B981" // Emerald
+                },
+                exotic: {
+                    name: "Exotic Pairs",
+                    description: "Currency pairs that include a major currency paired with the currency of a developing or emerging market economy",
+                    examples: "USD/TRY (Turkish Lira), EUR/PLN (Polish Zloty), USD/ZAR (South African Rand)",
+                    liquidity: "Lower liquidity, wider spreads",
+                    volatility: "Higher volatility, can be influenced by political factors",
+                    color: "#F59E0B" // Amber
+                },
+                regional: {
+                    name: "Regional Pairs",
+                    description: "Currency pairs that are traded predominantly in specific regions or for special economic relationships",
+                    examples: "AUD/NZD (Oceania), USD/SGD (Asia), EUR/SEK (Europe)",
+                    liquidity: "Variable liquidity depending on regional activity",
+                    volatility: "Can be affected by regional economic factors",
+                    color: "#EF4444" // Red
+                }
+            };
+
+            // Chart for currency volumes
+            React.useEffect(() => {
+                if (chartRef.current && activeTab === 'volume') {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    if (volumeView === 'currencies') {
+                        // Currency volume by percentage - updated with latest data from BIS/research
+                        const currencies = ['USD', 'EUR', 'JPY', 'GBP', 'AUD', 'CAD', 'CHF', 'CNY'];
+                        const volumes = [88.0, 31.0, 17.0, 13.0, 7.0, 6.5, 5.0, 4.5]; // Sum exceeds 100% due to pairs
+                        
+                        const newChart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: currencies,
+                                datasets: [{
+                                    label: 'Daily Volume (%)',
+                                    data: volumes,
+                                    backgroundColor: [
+                                        '#3B82F6', // USD - Blue
+                                        '#10B981', // EUR - Green
+                                        '#F59E0B', // JPY - Amber
+                                        '#EF4444', // GBP - Red
+                                        '#8B5CF6', // AUD - Purple
+                                        '#EC4899', // CAD - Pink
+                                        '#6366F1', // CHF - Indigo
+                                        '#F97316'  // CNY - Orange
+                                    ],
+                                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        displayColors: true,
+                                        callbacks: {
+                                            label: function(context) {
+                                                return `Volume: ${context.raw}% of global forex`;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        title: {
+                                            display: true,
+                                            text: 'Share of Global Volume (%)',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    },
+                                    x: {
+                                        title: {
+                                            display: true,
+                                            text: 'Currency',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        setChart(newChart);
+                    } else {
+                        // Trading session volume by percentage
+                        const sessions = ['Asian', 'European', 'North American', 'EU/NA Overlap', 'Asia/EU Overlap'];
+                        const volumes = [21, 30, 19, 25, 5]; // Approximate percentages
+                        const colors = ['#F59E0B', '#3B82F6', '#10B981', '#8B5CF6', '#EF4444'];
+                        
+                        const newChart = new Chart(ctx, {
+                            type: 'pie',
+                            data: {
+                                labels: sessions,
+                                datasets: [{
+                                    data: volumes,
+                                    backgroundColor: colors,
+                                    borderColor: isDarkMode ? '#1F2937' : 'white',
+                                    borderWidth: 2
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'right',
+                                        labels: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563',
+                                            padding: 20,
+                                            font: {
+                                                size: 12
+                                            }
+                                        }
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        displayColors: true,
+                                        callbacks: {
+                                            label: function(context) {
+                                                return `${context.label}: ${context.raw}% of daily volume`;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        setChart(newChart);
+                    }
+                }
+            }, [activeTab, isDarkMode, volumeView]);
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Foreign Exchange (Forex) Markets
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    The global marketplace where currencies are traded against each other. With daily volume exceeding $7.5 trillion, forex is the world's largest and most liquid financial market, operating 24 hours a day across major financial centers worldwide.
+                                </p>
+                            </div>
+
+                            <div className="mb-4 flex">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'basics' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('basics')}
+                                >
+                                    Basics
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'pairs' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('pairs')}
+                                >
+                                    Pairs
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'trading' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('trading')}
+                                >
+                                    Trading
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'volume' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('volume')}
+                                >
+                                    Volume
+                                </button>
+                            </div>
+
+                            {/* Forex Basics */}
+                            {activeTab === 'basics' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Forex Market Basics</h3>
+                                    
+                                    <div className="relative h-96 mb-4 bg-gray-700 rounded-lg overflow-hidden">
+                                        {/* Step 1: What is Forex */}
+                                        {currentStep === 1 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-green-400">What is the Forex Market?</h3>
+                                                <div className="flex flex-col items-center h-72 overflow-y-auto">
+                                                    <div className="w-full bg-gray-800 p-4 rounded-lg mb-4">
+                                                        <p className="text-gray-300 text-center mb-4">The foreign exchange market is where currencies are traded against each other</p>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-blue-400 font-semibold mb-2 text-center">Key Characteristics</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="flex items-start">
+                                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                        <p className="text-gray-300 text-sm">Largest financial market globally</p>
+                                                                    </div>
+                                                                    <div className="flex items-start">
+                                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                        <p className="text-gray-300 text-sm">$7.5 trillion daily trading volume</p>
+                                                                    </div>
+                                                                    <div className="flex items-start">
+                                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                        <p className="text-gray-300 text-sm">Decentralized (no central exchange)</p>
+                                                                    </div>
+                                                                    <div className="flex items-start">
+                                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                        <p className="text-gray-300 text-sm">24-hour trading, 5 days a week</p>
+                                                                    </div>
+                                                                    <div className="flex items-start">
+                                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                        <p className="text-gray-300 text-sm">High liquidity and tight spreads</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-green-400 font-semibold mb-2 text-center">Market Purpose</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded">
+                                                                        <span className="font-semibold text-sm">Currency Conversion</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">Facilitates international trade and investment</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded">
+                                                                        <span className="font-semibold text-sm">Price Discovery</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">Establishes exchange rates based on supply and demand</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded">
+                                                                        <span className="font-semibold text-sm">Risk Management</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">Hedging against currency fluctuations</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded">
+                                                                        <span className="font-semibold text-sm">Speculation</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">Profit from currency price movements</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-700 p-3 rounded-lg">
+                                                            <div className="font-semibold text-white mb-2 text-center">Historical Development</div>
+                                                            <div className="grid grid-cols-3 gap-2 text-xs">
+                                                                <div className="bg-gray-800 p-2 rounded">
+                                                                    <div className="text-amber-400 font-semibold mb-1">Pre-1970s</div>
+                                                                    <p className="text-gray-300">Fixed exchange rates under Bretton Woods system</p>
+                                                                </div>
+                                                                <div className="bg-gray-800 p-2 rounded">
+                                                                    <div className="text-amber-400 font-semibold mb-1">1970s</div>
+                                                                    <p className="text-gray-300">Shift to floating exchange rates</p>
+                                                                </div>
+                                                                <div className="bg-gray-800 p-2 rounded">
+                                                                    <div className="text-amber-400 font-semibold mb-1">1990s-Present</div>
+                                                                    <p className="text-gray-300">Electronic trading and retail participation</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 2: Currency Pairs */}
+                                        {currentStep === 2 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Currency Pairs and Quotes</h3>
+                                                <div className="flex flex-col items-center h-72 overflow-y-auto">
+                                                    <div className="w-full bg-gray-800 p-4 rounded-lg mb-4">
+                                                        <p className="text-gray-300 text-center mb-4">Currencies are always traded in pairs, with each pair expressing a relationship between two currencies</p>
+                                                        
+                                                        <div className="bg-gray-700 p-3 rounded-lg mb-4">
+                                                            <div className="text-blue-400 font-semibold mb-2 text-center">Anatomy of a Currency Pair</div>
+                                                            <div className="flex justify-center items-center mb-3">
+                                                                <div className="bg-blue-900 bg-opacity-40 p-3 rounded-lg text-center">
+                                                                    <div className="text-xl font-bold">EUR/USD</div>
+                                                                    <div className="grid grid-cols-2 gap-4 mt-2">
+                                                                        <div>
+                                                                            <div className="text-blue-400 font-semibold">Base Currency</div>
+                                                                            <div className="text-sm text-gray-300">Euro (EUR)</div>
+                                                                            <div className="text-xs text-gray-400 mt-1">The currency being bought or sold</div>
+                                                                        </div>
+                                                                        <div>
+                                                                            <div className="text-green-400 font-semibold">Quote Currency</div>
+                                                                            <div className="text-sm text-gray-300">US Dollar (USD)</div>
+                                                                            <div className="text-xs text-gray-400 mt-1">The currency used to price the base</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-center text-xs text-gray-300">
+                                                                EUR/USD = 1.1050 means 1 Euro costs 1.1050 US Dollars
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-green-400 font-semibold mb-2 text-center">Bid & Ask Prices</div>
+                                                                <div className="bg-green-900 bg-opacity-30 p-2 rounded mb-2">
+                                                                    <div className="grid grid-cols-2 gap-2">
+                                                                        <div>
+                                                                            <div className="text-sm font-semibold">Bid Price</div>
+                                                                            <div className="text-xs text-gray-300">1.1048</div>
+                                                                            <div className="text-xs text-gray-400 mt-1">Price to sell EUR</div>
+                                                                        </div>
+                                                                        <div>
+                                                                            <div className="text-sm font-semibold">Ask Price</div>
+                                                                            <div className="text-xs text-gray-300">1.1052</div>
+                                                                            <div className="text-xs text-gray-400 mt-1">Price to buy EUR</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-xs text-gray-300">
+                                                                    <span className="font-semibold">Spread:</span> 4 pips (difference between bid & ask)
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-amber-400 font-semibold mb-2 text-center">Pips & Pipettes</div>
+                                                                <div className="bg-amber-900 bg-opacity-30 p-2 rounded mb-2 text-center">
+                                                                    <div className="text-sm font-bold">1.10<span className="text-amber-400">5</span>0</div>
+                                                                    <div className="flex justify-center items-center">
+                                                                        <div className="text-xs text-gray-300 mt-1">
+                                                                            <span className="inline-block text-amber-400 border border-amber-400 px-1 rounded">pip</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-xs text-gray-300">
+                                                                    <div><span className="font-semibold">Pip:</span> 4th decimal place (0.0001)</div>
+                                                                    <div><span className="font-semibold">Pipette:</span> 5th decimal place (0.00001)</div>
+                                                                    <div className="mt-1">For JPY pairs, pips are at 2nd decimal</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-700 p-3 rounded-lg">
+                                                            <div className="text-purple-400 font-semibold mb-2 text-center">Direct vs. Indirect Quotes</div>
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div className="bg-purple-900 bg-opacity-30 p-2 rounded">
+                                                                    <div className="text-sm font-semibold">Direct Quote</div>
+                                                                    <div className="text-xs text-gray-300 mt-1">Shows how much domestic currency is needed to buy one unit of foreign currency</div>
+                                                                    <div className="text-xs text-gray-300 mt-1">Example: USD/JPY = 110.25 (for US perspective)</div>
+                                                                </div>
+                                                                <div className="bg-purple-900 bg-opacity-30 p-2 rounded">
+                                                                    <div className="text-sm font-semibold">Indirect Quote</div>
+                                                                    <div className="text-xs text-gray-300 mt-1">Shows how much foreign currency is needed to buy one unit of domestic currency</div>
+                                                                    <div className="text-xs text-gray-300 mt-1">Example: EUR/USD = 1.1050 (for US perspective)</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 3: Market Participants */}
+                                        {currentStep === 3 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Market Participants</h3>
+                                                <div className="flex flex-col items-center h-72 overflow-y-auto">
+                                                    <div className="w-full bg-gray-800 p-4 rounded-lg mb-4">
+                                                        <p className="text-gray-300 text-center mb-4">The forex market consists of a diverse range of participants with different objectives</p>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-blue-400 font-semibold mb-2 text-center">Banks & Financial Institutions</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Commercial Banks</span>
+                                                                        <div className="text-gray-300 mt-1">Facilitate transactions for clients, manage currency risk</div>
+                                                                        <div className="text-gray-300 mt-1">Examples: Citibank, HSBC, Deutsche Bank</div>
+                                                                    </div>
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Investment Banks</span>
+                                                                        <div className="text-gray-300 mt-1">Trade on behalf of clients and their own accounts</div>
+                                                                        <div className="text-gray-300 mt-1">Examples: Goldman Sachs, Morgan Stanley</div>
+                                                                    </div>
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Hedge Funds</span>
+                                                                        <div className="text-gray-300 mt-1">Trade currencies for speculative purposes</div>
+                                                                        <div className="text-gray-300 mt-1">Examples: Bridgewater, Soros Fund Management</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-green-400 font-semibold mb-2 text-center">Central Banks & Governments</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Central Banks</span>
+                                                                        <div className="text-gray-300 mt-1">Implement monetary policy, manage foreign reserves</div>
+                                                                        <div className="text-gray-300 mt-1">Examples: Federal Reserve, ECB, Bank of Japan</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Sovereign Wealth Funds</span>
+                                                                        <div className="text-gray-300 mt-1">Manage state-owned investment portfolios</div>
+                                                                        <div className="text-gray-300 mt-1">Examples: Norway's Government Pension Fund</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Government Treasuries</span>
+                                                                        <div className="text-gray-300 mt-1">Conduct foreign exchange operations</div>
+                                                                        <div className="text-gray-300 mt-1">Example: US Treasury</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-amber-400 font-semibold mb-2 text-center">Corporations</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-amber-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Multinational Companies</span>
+                                                                        <div className="text-gray-300 mt-1">Convert profits from foreign operations</div>
+                                                                        <div className="text-gray-300 mt-1">Hedge against currency risks in global operations</div>
+                                                                    </div>
+                                                                    <div className="bg-amber-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Importers & Exporters</span>
+                                                                        <div className="text-gray-300 mt-1">Exchange currencies for international trade</div>
+                                                                        <div className="text-gray-300 mt-1">Protect profit margins from currency fluctuations</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-purple-400 font-semibold mb-2 text-center">Retail Participants</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-purple-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Individual Traders</span>
+                                                                        <div className="text-gray-300 mt-1">Trade for speculation or investment</div>
+                                                                        <div className="text-gray-300 mt-1">Access market through online platforms</div>
+                                                                    </div>
+                                                                    <div className="bg-purple-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Retail Brokers</span>
+                                                                        <div className="text-gray-300 mt-1">Provide trading services to individuals</div>
+                                                                        <div className="text-gray-300 mt-1">Examples: FXCM, Oanda, IG Markets</div>
+                                                                    </div>
+                                                                    <div className="bg-purple-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Money Transfer Services</span>
+                                                                        <div className="text-gray-300 mt-1">Currency conversion for remittances and travel</div>
+                                                                        <div className="text-gray-300 mt-1">Examples: Western Union, Wise</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {/* Step 4: Trading Sessions - FIXED OVERLAPPING TEXT */}
+                                        {currentStep === 4 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Trading Sessions</h3>
+                                                <div className="flex flex-col items-center h-72 overflow-y-auto">
+                                                    <div className="w-full bg-gray-800 p-4 rounded-lg mb-4">
+                                                        <p className="text-gray-300 text-center mb-4">The forex market operates 24 hours a day across different global financial centers</p>
+                                                        
+                                                        <div className="bg-gray-700 p-3 rounded-lg mb-4">
+                                                            <div className="text-blue-400 font-semibold mb-2 text-center">24-Hour Trading Cycle</div>
+                                                            <div className="relative h-16 mb-2">
+                                                                <div className="absolute inset-0 bg-gray-800 rounded-full"></div>
+                                                                
+                                                                {/* Trading Sessions (simplified for visualization) */}
+                                                                <div className="absolute top-0 left-0 h-full w-1/3 bg-amber-500 bg-opacity-40 rounded-l-full flex items-center justify-start pl-4">
+                                                                    <span className="text-xs font-semibold text-amber-400">Asian</span>
+                                                                </div>
+                                                                <div className="absolute top-0 left-1/4 h-full w-1/3 bg-blue-500 bg-opacity-40 flex items-center justify-center">
+                                                                    <span className="text-xs font-semibold text-blue-400">European</span>
+                                                                </div>
+                                                                <div className="absolute top-0 left-1/2 h-full w-1/3 bg-green-500 bg-opacity-40 rounded-r-full flex items-center justify-end pr-4">
+                                                                    <span className="text-xs font-semibold text-green-400">North American</span>
+                                                                </div>
+                                                                
+                                                                {/* Overlaps - FIXED POSITION */}
+                                                                <div className="absolute top-0 left-1/4 h-full w-1/12 bg-purple-500 bg-opacity-60 flex items-center justify-center">
+                                                                    <span className="text-xs font-semibold text-purple-200 -ml-2 -mr-2">Asia/EU</span>
+                                                                </div>
+                                                                <div className="absolute top-0 left-1/2 h-full w-1/12 bg-purple-500 bg-opacity-60 flex items-center justify-center">
+                                                                    <span className="text-xs font-semibold text-purple-200 -ml-2 -mr-2">EU/NA</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-center text-xs text-gray-300 mb-3">
+                                                                The forex market cycles through major trading sessions: Asian, European, and North American
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="grid grid-cols-3 gap-3 mb-4">
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-amber-400 font-semibold mb-2 text-center">Asian Session</div>
+                                                                <div className="text-xs text-gray-300">
+                                                                    <div className="mb-1"><span className="font-semibold">Major Centers:</span> Tokyo, Singapore, Hong Kong</div>
+                                                                    <div className="mb-1"><span className="font-semibold">Hours (GMT):</span> 23:00-08:00</div>
+                                                                    <div className="mb-1"><span className="font-semibold">Characteristics:</span></div>
+                                                                    <ul className="list-disc pl-4 space-y-1">
+                                                                        <li>Lower volatility compared to other sessions</li>
+                                                                        <li>Focus on JPY, AUD, NZD pairs</li>
+                                                                        <li>Can set directional trends for day</li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-blue-400 font-semibold mb-2 text-center">European Session</div>
+                                                                <div className="text-xs text-gray-300">
+                                                                    <div className="mb-1"><span className="font-semibold">Major Centers:</span> London, Frankfurt, Paris</div>
+                                                                    <div className="mb-1"><span className="font-semibold">Hours (GMT):</span> 07:00-16:00</div>
+                                                                    <div className="mb-1"><span className="font-semibold">Characteristics:</span></div>
+                                                                    <ul className="list-disc pl-4 space-y-1">
+                                                                        <li>High liquidity and volatility</li>
+                                                                        <li>Largest trading volume (London)</li>
+                                                                        <li>Focus on EUR, GBP, CHF pairs</li>
+                                                                        <li>Major economic data releases</li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-green-400 font-semibold mb-2 text-center">North American Session</div>
+                                                                <div className="text-xs text-gray-300">
+                                                                    <div className="mb-1"><span className="font-semibold">Major Centers:</span> New York, Chicago, Toronto</div>
+                                                                    <div className="mb-1"><span className="font-semibold">Hours (GMT):</span> 12:00-21:00</div>
+                                                                    <div className="mb-1"><span className="font-semibold">Characteristics:</span></div>
+                                                                    <ul className="list-disc pl-4 space-y-1">
+                                                                        <li>High volatility, especially during overlaps</li>
+                                                                        <li>Focus on USD, CAD pairs</li>
+                                                                        <li>U.S. economic reports impact</li>
+                                                                        <li>Significant institutional activity</li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-700 p-3 rounded-lg">
+                                                            <div className="text-purple-400 font-semibold mb-2 text-center">Session Overlaps</div>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div className="bg-purple-900 bg-opacity-30 p-2 rounded">
+                                                                    <div className="text-sm font-semibold">European/North American</div>
+                                                                    <div className="text-xs text-gray-300 mt-1"><span className="font-semibold">Hours (GMT):</span> 12:00-16:00</div>
+                                                                    <div className="text-xs text-gray-300 mt-1">Highest trading volume and liquidity</div>
+                                                                    <div className="text-xs text-gray-300 mt-1">Most volatile period for EUR/USD pair</div>
+                                                                </div>
+                                                                <div className="bg-purple-900 bg-opacity-30 p-2 rounded">
+                                                                    <div className="text-sm font-semibold">Asian/European</div>
+                                                                    <div className="text-xs text-gray-300 mt-1"><span className="font-semibold">Hours (GMT):</span> 07:00-08:00</div>
+                                                                    <div className="text-xs text-gray-300 mt-1">Moderate liquidity and volatility</div>
+                                                                    <div className="text-xs text-gray-300 mt-1">Opportunity for GBP/JPY, EUR/JPY pairs</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 5: Forex Market Drivers */}
+                                        {currentStep === 5 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Market Drivers</h3>
+                                                <div className="flex flex-col items-center h-72 overflow-y-auto">
+                                                    <div className="w-full bg-gray-800 p-4 rounded-lg mb-4">
+                                                        <p className="text-gray-300 text-center mb-4">Key factors that influence currency exchange rates</p>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-blue-400 font-semibold mb-2 text-center">Economic Factors</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Interest Rates</span>
+                                                                        <div className="text-gray-300 mt-1">Higher rates typically strengthen a currency as they attract foreign capital seeking better returns</div>
+                                                                    </div>
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Inflation</span>
+                                                                        <div className="text-gray-300 mt-1">Lower inflation rates generally support stronger currencies by preserving purchasing power</div>
+                                                                    </div>
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Economic Growth</span>
+                                                                        <div className="text-gray-300 mt-1">Strong GDP growth typically strengthens a currency as it signals economic health</div>
+                                                                    </div>
+                                                                    <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Employment Data</span>
+                                                                        <div className="text-gray-300 mt-1">Strong job markets support currency values by indicating economic strength</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-green-400 font-semibold mb-2 text-center">Monetary Policy</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Central Bank Actions</span>
+                                                                        <div className="text-gray-300 mt-1">Policy decisions regarding interest rates, money supply, and quantitative easing/tightening</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Forward Guidance</span>
+                                                                        <div className="text-gray-300 mt-1">Communications about future monetary policy intentions impact currencies</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Asset Purchase Programs</span>
+                                                                        <div className="text-gray-300 mt-1">Expansionary policies like QE typically weaken a currency by increasing supply</div>
+                                                                    </div>
+                                                                    <div className="bg-green-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Currency Interventions</span>
+                                                                        <div className="text-gray-300 mt-1">Direct buying or selling of currencies to influence exchange rates</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-amber-400 font-semibold mb-2 text-center">Trade & Capital Flows</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-amber-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Trade Balance</span>
+                                                                        <div className="text-gray-300 mt-1">Trade surpluses tend to strengthen currencies; deficits may weaken them</div>
+                                                                    </div>
+                                                                    <div className="bg-amber-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Foreign Investment</span>
+                                                                        <div className="text-gray-300 mt-1">Inflows of foreign capital strengthen a currency; outflows weaken it</div>
+                                                                    </div>
+                                                                    <div className="bg-amber-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Commodity Prices</span>
+                                                                        <div className="text-gray-300 mt-1">Impact currencies of major commodity exporters (CAD, AUD, NZD)</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-purple-400 font-semibold mb-2 text-center">Geopolitical Factors</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="bg-purple-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Political Stability</span>
+                                                                        <div className="text-gray-300 mt-1">Stable governments typically support stronger currencies</div>
+                                                                    </div>
+                                                                    <div className="bg-purple-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Elections & Policy Changes</span>
+                                                                        <div className="text-gray-300 mt-1">Can create uncertainty and volatility in currency markets</div>
+                                                                    </div>
+                                                                    <div className="bg-purple-900 bg-opacity-30 p-2 rounded text-xs">
+                                                                        <span className="font-semibold">Global Risk Sentiment</span>
+                                                                        <div className="text-gray-300 mt-1">Drives flows between "safe haven" currencies (USD, JPY, CHF) and higher-yielding ones</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3, 4, 5].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-green-500' : 'bg-gray-500'}`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Currency Pairs */}
+                            {activeTab === 'pairs' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Currency Pair Types</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-2 mb-4">
+                                        {Object.keys(currencyPairs).map(type => (
+                                            <button
+                                                key={type}
+                                                className={`p-2 rounded-lg border-2 transition-colors ${pairType === type ? 'border-white bg-gray-700' : 'border-gray-600 bg-gray-800'}`}
+                                                style={{ borderLeftColor: currencyPairs[type].color }}
+                                                onClick={() => setPairType(type)}
+                                            >
+                                                <div className="font-semibold text-sm" style={{ color: currencyPairs[type].color }}>
+                                                    {currencyPairs[type].name}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-lg mb-2" style={{ color: currencyPairs[pairType].color }}>
+                                            {currencyPairs[pairType].name}
+                                        </h4>
+                                        <div className="space-y-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: currencyPairs[pairType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Description:</span>
+                                                    <p className="text-gray-200 text-sm">{currencyPairs[pairType].description}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: currencyPairs[pairType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Examples:</span>
+                                                    <p className="text-gray-200 text-sm">{currencyPairs[pairType].examples}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: currencyPairs[pairType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Liquidity:</span>
+                                                    <p className="text-gray-200 text-sm">{currencyPairs[pairType].liquidity}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: currencyPairs[pairType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Volatility:</span>
+                                                    <p className="text-gray-200 text-sm">{currencyPairs[pairType].volatility}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4 bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-green-400 mb-2">Major Currency Codes</h4>
+                                        <div className="grid grid-cols-3 gap-2 text-sm">
+                                            <div className="bg-gray-800 p-2 rounded">
+                                                <span className="font-semibold text-blue-400">USD</span>
+                                                <p className="text-gray-300">US Dollar</p>
+                                            </div>
+                                            <div className="bg-gray-800 p-2 rounded">
+                                                <span className="font-semibold text-green-400">EUR</span>
+                                                <p className="text-gray-300">Euro</p>
+                                            </div>
+                                            <div className="bg-gray-800 p-2 rounded">
+                                                <span className="font-semibold text-amber-400">JPY</span>
+                                                <p className="text-gray-300">Japanese Yen</p>
+                                            </div>
+                                            <div className="bg-gray-800 p-2 rounded">
+                                                <span className="font-semibold text-red-400">GBP</span>
+                                                <p className="text-gray-300">British Pound</p>
+                                            </div>
+                                            <div className="bg-gray-800 p-2 rounded">
+                                                <span className="font-semibold text-purple-400">AUD</span>
+                                                <p className="text-gray-300">Australian Dollar</p>
+                                            </div>
+                                            <div className="bg-gray-800 p-2 rounded">
+                                                <span className="font-semibold text-pink-400">CAD</span>
+                                                <p className="text-gray-300">Canadian Dollar</p>
+                                            </div>
+                                            <div className="bg-gray-800 p-2 rounded">
+                                                <span className="font-semibold text-indigo-400">CHF</span>
+                                                <p className="text-gray-300">Swiss Franc</p>
+                                            </div>
+                                            <div className="bg-gray-800 p-2 rounded">
+                                                <span className="font-semibold text-cyan-400">NZD</span>
+                                                <p className="text-gray-300">New Zealand Dollar</p>
+                                            </div>
+                                            <div className="bg-gray-800 p-2 rounded">
+                                                <span className="font-semibold text-orange-400">CNY</span>
+                                                <p className="text-gray-300">Chinese Yuan</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Forex Trading */}
+                            {activeTab === 'trading' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Forex Trading Concepts</h3>
+                                    
+                                    <div className="grid grid-cols-1 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Order Types</h4>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="text-blue-400 font-semibold mb-1">Market Orders</div>
+                                                    <p className="text-xs text-gray-300">Buy or sell a currency pair immediately at the best available current price</p>
+                                                    <div className="mt-2 flex items-center justify-between text-xs">
+                                                        <span className="text-gray-400">Advantage:</span>
+                                                        <span className="text-gray-300">Immediate execution</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-xs">
+                                                        <span className="text-gray-400">Disadvantage:</span>
+                                                        <span className="text-gray-300">Potential slippage</span>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="text-green-400 font-semibold mb-1">Limit Orders</div>
+                                                    <p className="text-xs text-gray-300">Buy at or below a specified price; sell at or above a specified price</p>
+                                                    <div className="mt-2 flex items-center justify-between text-xs">
+                                                        <span className="text-gray-400">Advantage:</span>
+                                                        <span className="text-gray-300">Price certainty</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-xs">
+                                                        <span className="text-gray-400">Disadvantage:</span>
+                                                        <span className="text-gray-300">May not execute</span>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="text-amber-400 font-semibold mb-1">Stop Orders</div>
+                                                    <p className="text-xs text-gray-300">Buy when price rises to specified level; sell when price falls to specified level</p>
+                                                    <div className="mt-2 flex items-center justify-between text-xs">
+                                                        <span className="text-gray-400">Advantage:</span>
+                                                        <span className="text-gray-300">Trend confirmation</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-xs">
+                                                        <span className="text-gray-400">Disadvantage:</span>
+                                                        <span className="text-gray-300">Slippage in volatility</span>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="text-red-400 font-semibold mb-1">Stop-Loss Orders</div>
+                                                    <p className="text-xs text-gray-300">Automatically close a position when price reaches a specified level to limit losses</p>
+                                                    <div className="mt-2 flex items-center justify-between text-xs">
+                                                        <span className="text-gray-400">Advantage:</span>
+                                                        <span className="text-gray-300">Risk management</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-xs">
+                                                        <span className="text-gray-400">Disadvantage:</span>
+                                                        <span className="text-gray-300">May trigger in volatility</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Leverage & Margin</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="text-gray-200 text-sm"><span className="font-semibold">Leverage</span>: Trading with borrowed funds to control larger positions</p>
+                                                        <p className="text-gray-400 text-xs mt-1">Example: 50:1 leverage means controlling $50,000 with $1,000 capital</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="text-gray-200 text-sm"><span className="font-semibold">Margin</span>: Collateral required to open leveraged positions</p>
+                                                        <p className="text-gray-400 text-xs mt-1">Example: 2% margin requirement = 50:1 leverage</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="text-gray-200 text-sm"><span className="font-semibold">Margin Call</span>: Requirement to deposit additional funds when losses approach margin amount</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="text-gray-200 text-sm"><span className="font-semibold">Risk Warning</span>: Leverage amplifies both profits and losses</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Lot Sizes</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="text-gray-200 text-sm"><span className="font-semibold">Standard Lot</span>: 100,000 units of base currency</p>
+                                                        <p className="text-gray-400 text-xs mt-1">Each pip in EUR/USD ≈ $10 value change</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="text-gray-200 text-sm"><span className="font-semibold">Mini Lot</span>: 10,000 units of base currency</p>
+                                                        <p className="text-gray-400 text-xs mt-1">Each pip in EUR/USD ≈ $1 value change</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="text-gray-200 text-sm"><span className="font-semibold">Micro Lot</span>: 1,000 units of base currency</p>
+                                                        <p className="text-gray-400 text-xs mt-1">Each pip in EUR/USD ≈ $0.10 value change</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <p className="text-gray-200 text-sm"><span className="font-semibold">Nano Lot</span>: 100 units of base currency</p>
+                                                        <p className="text-gray-400 text-xs mt-1">Each pip in EUR/USD ≈ $0.01 value change</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Trading Approaches</h4>
+                                            <div className="space-y-2">
+                                                <div className="bg-gray-800 p-2 rounded">
+                                                    <div className="text-sm font-semibold text-amber-400">Technical Analysis</div>
+                                                    <p className="text-xs text-gray-300">Using price charts, patterns, and indicators to identify trading opportunities</p>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded">
+                                                    <div className="text-sm font-semibold text-amber-400">Fundamental Analysis</div>
+                                                    <p className="text-xs text-gray-300">Analyzing economic data, central bank policies, and geopolitical factors</p>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded">
+                                                    <div className="text-sm font-semibold text-amber-400">Sentiment Analysis</div>
+                                                    <p className="text-xs text-gray-300">Gauging market positioning and trader psychology</p>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded">
+                                                    <div className="text-sm font-semibold text-amber-400">Algorithmic Trading</div>
+                                                    <p className="text-xs text-gray-300">Using automated systems to execute trades based on programmed rules</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-purple-400 mb-2">Trading Styles</h4>
+                                            <div className="space-y-2">
+                                                <div className="bg-gray-800 p-2 rounded">
+                                                    <div className="text-sm font-semibold text-purple-400">Scalping</div>
+                                                    <p className="text-xs text-gray-300">Very short-term trades (seconds to minutes) aiming for small profits</p>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded">
+                                                    <div className="text-sm font-semibold text-purple-400">Day Trading</div>
+                                                    <p className="text-xs text-gray-300">Positions opened and closed within the same trading day</p>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded">
+                                                    <div className="text-sm font-semibold text-purple-400">Swing Trading</div>
+                                                    <p className="text-xs text-gray-300">Holding positions for several days to capture larger market moves</p>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded">
+                                                    <div className="text-sm font-semibold text-purple-400">Position Trading</div>
+                                                    <p className="text-xs text-gray-300">Long-term approach holding trades for weeks, months, or longer</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Market Volume - UPDATED WITH DATA SOURCE INFO */}
+                            {activeTab === 'volume' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Forex Market Volume</h3>
+                                    
+                                    <div className="flex mb-4">
+                                        <button
+                                            className={`px-4 py-2 rounded-tl-lg rounded-bl-lg ${volumeView === 'currencies' ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setVolumeView('currencies')}
+                                        >
+                                            Currency Distribution
+                                        </button>
+                                        <button
+                                            className={`px-4 py-2 rounded-tr-lg rounded-br-lg ${volumeView === 'sessions' ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setVolumeView('sessions')}
+                                        >
+                                            Trading Sessions
+                                        </button>
+                                    </div>
+
+                                    <div className="h-64 mb-4">
+                                        <canvas ref={chartRef}></canvas>
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-md mb-2 text-green-400">
+                                            {volumeView === 'currencies' ? 'Currency Trading Volume' : 'Session Trading Volume'}
+                                        </h4>
+                                        
+                                        {volumeView === 'currencies' ? (
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">USD Dominance:</span> The US Dollar is involved in 88% of all forex transactions, maintaining its status as the world's primary reserve currency.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Major Currencies:</span> The top currencies (USD, EUR, JPY, GBP, AUD, CAD, CHF, CNY) account for over 170% of total volume (adds to over 100% as each transaction involves two currencies).
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">EUR/USD Popularity:</span> This pair accounts for approximately 22.7% of global forex trading volume, making it the most liquid and actively traded currency pair.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Total Daily Volume:</span> The forex market reached a record daily trading volume of $7.5 trillion in 2022, up 14% from $6.6 trillion in 2019.
+                                                    </p>
+                                                </div>
+                                                <div className="text-xs text-gray-400 mt-4">
+                                                    <span className="font-semibold">Data Source:</span> Bank for International Settlements (BIS) Triennial Central Bank Survey, April 2022. 
+                                                    <a href="https://www.bis.org/statistics/rpfx22_fx.htm" target="_blank" rel="noopener noreferrer" className="ml-1 text-blue-400 hover:underline">
+                                                        View latest data
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">European Session Dominance:</span> The London trading session accounts for approximately 30% of daily forex volume, making it the largest single market center.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Session Overlaps:</span> The London-New York overlap (European/North American) sees the highest trading volume and liquidity, accounting for approximately 25% of daily activity.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Regional Distribution:</span> The UK remains the largest forex trading center globally with $3.35 trillion in daily volume as of April 2024, followed by the US, Singapore, and Hong Kong.
+                                                    </p>
+                                                </div>
+                                                <div className="text-xs text-gray-400 mt-4">
+                                                    <span className="font-semibold">Data Sources:</span> Foreign Exchange Joint Standing Committee (FXJSC) and New York Fed FX Volume Survey.
+                                                    <a href="https://www.newyorkfed.org/medialibrary/Microsites/fxc/files/2024/Volume-Survey-Results_07222024" target="_blank" rel="noopener noreferrer" className="ml-1 text-blue-400 hover:underline">
+                                                        View latest data
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-green-400">Key Forex Concepts</div>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <span className="font-semibold">Base/Quote Currency:</span> 
+                                        <p className="text-gray-300">Pairs show how much quote currency equals one unit of base</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Pip:</span> 
+                                        <p className="text-gray-300">Smallest price movement in a currency pair (0.0001 for most pairs)</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Spread:</span> 
+                                        <p className="text-gray-300">Difference between bid (sell) and ask (buy) prices</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Leverage:</span> 
+                                        <p className="text-gray-300">Ability to control larger positions with smaller capital</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Rollover/Swap:</span> 
+                                        <p className="text-gray-300">Interest earned/paid when positions are held overnight</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Carry Trade:</span> 
+                                        <p className="text-gray-300">Strategy exploiting interest rate differentials between currencies</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<ForexMarketsVisual />);
+    </script>
+</body>
+</html>
