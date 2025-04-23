@@ -25,7 +25,7 @@
             margin: 0;
             min-height: 100vh;
         }
-
+        
         /* Custom slider styling */
         input[type="range"] {
             -webkit-appearance: none;
@@ -63,9 +63,15 @@
     <script type="text/babel">
         const MarketSentimentVisual = () => {
             const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('interactive');
+            const [showingChart, setShowingChart] = React.useState('fear-greed');
+            const [currentStep, setCurrentStep] = React.useState(1);
             const [sentiment, setSentiment] = React.useState(50);
             const chartRef = React.useRef(null);
+            const interactiveChartRef = React.useRef(null);
             const [chart, setChart] = React.useState(null);
+            const [interactiveChart, setInteractiveChart] = React.useState(null);
+            const brandColor = "#079A4F"; // Your brand green color
 
             React.useEffect(() => {
                 const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -77,6 +83,15 @@
                 return () => darkModeQuery.removeEventListener('change', handler);
             }, []);
 
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 4 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 4);
+            };
+
+            // Interactive chart data generation
             const generatePriceData = (sentimentValue) => {
                 const basePrice = 100;
                 const volatility = 5;
@@ -101,27 +116,162 @@
                 Bearish: [
                     "Widespread pessimism",
                     "Selling pressure dominates",
-                    "Risk aversion high"
+                    "Risk aversion high",
+                    "Negative news emphasized",
+                    "Defensive positioning favored"
                 ],
                 Neutral: [
                     "Balanced market views",
                     "Mixed trading signals",
-                    "Awaiting market direction"
+                    "Awaiting market direction",
+                    "Selective opportunities sought",
+                    "Data-driven decisions prevail"
                 ],
                 Bullish: [
                     "Strong market confidence",
                     "Buying pressure dominates",
-                    "Risk appetite high"
+                    "Risk appetite high",
+                    "Positive news amplified",
+                    "Growth opportunities pursued"
                 ]
             };
 
+            // Example market sentiment data for visualization
+            const sentimentData = {
+                // Historical Fear & Greed Index data (monthly values)
+                fearGreedHistory: [
+                    { date: "Jan", value: 70, label: "Greed" },
+                    { date: "Feb", value: 55, label: "Neutral" },
+                    { date: "Mar", value: 25, label: "Fear" },
+                    { date: "Apr", value: 15, label: "Extreme Fear" },
+                    { date: "May", value: 40, label: "Neutral" },
+                    { date: "Jun", value: 60, label: "Greed" },
+                    { date: "Jul", value: 75, label: "Extreme Greed" },
+                    { date: "Aug", value: 65, label: "Greed" },
+                    { date: "Sep", value: 45, label: "Neutral" },
+                    { date: "Oct", value: 30, label: "Fear" },
+                    { date: "Nov", value: 20, label: "Fear" },
+                    { date: "Dec", value: 35, label: "Fear" }
+                ],
+                
+                // Example correlation between sentiment and market returns
+                sentimentMarketCorrelation: [
+                    { sentiment: "Extreme Fear", avgReturns: 12.5, color: "#10B981" },  // Green (positive)
+                    { sentiment: "Fear", avgReturns: 8.3, color: "#10B981" },  // Green (positive)
+                    { sentiment: "Neutral", avgReturns: 4.2, color: "#10B981" },  // Green (positive)
+                    { sentiment: "Greed", avgReturns: 1.8, color: "#10B981" },  // Green (positive)
+                    { sentiment: "Extreme Greed", avgReturns: -2.7, color: "#FF4444" }  // Red (negative)
+                ],
+                
+                // Sentiment indicators
+                sentimentIndicators: {
+                    "Fear & Greed Index": {
+                        description: "A composite measure that gauges investor sentiment based on multiple market indicators including volatility, put/call ratios, market momentum, and safe haven demand.",
+                        interpretation: "Scores range from 0 (Extreme Fear) to 100 (Extreme Greed), with contrarian investors often using extreme readings as potential reversal signals.",
+                        frequency: "Daily",
+                        reliability: "Moderate",
+                        color: "#3B82F6"  // Blue
+                    },
+                    "VIX (Volatility Index)": {
+                        description: "Often called the 'fear gauge,' the VIX measures expected market volatility based on S&P 500 index options prices.",
+                        interpretation: "Higher VIX values (above 30) typically indicate fear, while lower values (below 20) suggest complacency or confidence.",
+                        frequency: "Real-time during market hours",
+                        reliability: "High for measuring fear, less reliable for predicting upside",
+                        color: "#8B5CF6"  // Purple
+                    },
+                    "Put/Call Ratio": {
+                        description: "The ratio between put option volume and call option volume, indicating whether traders are positioning more defensively (puts) or aggressively (calls).",
+                        interpretation: "Ratios above 1.0 suggest bearish sentiment, while ratios below 0.7 indicate bullish sentiment. Extreme readings can signal potential reversals.",
+                        frequency: "Daily",
+                        reliability: "Moderate to high as a contrarian indicator",
+                        color: "#F59E0B"  // Amber
+                    },
+                    "Bullish Sentiment Surveys": {
+                        description: "Surveys of investors or newsletter writers reporting their market outlook, such as the AAII Investor Sentiment Survey or Investors Intelligence Bull/Bear ratio.",
+                        interpretation: "Extreme readings in either direction often precede market reversals, with high bullishness sometimes signaling market tops.",
+                        frequency: "Weekly",
+                        reliability: "Moderate as a contrarian indicator",
+                        color: "#10B981"  // Emerald
+                    },
+                    "Fund Flows": {
+                        description: "Tracks the movement of money into or out of different asset classes, such as equity mutual funds and ETFs versus bond funds or money market funds.",
+                        interpretation: "Heavy outflows from equities can signal extreme pessimism, while large inflows may indicate euphoria.",
+                        frequency: "Weekly/Monthly",
+                        reliability: "Moderate",
+                        color: "#FF4444"  // Red
+                    }
+                },
+                // Sentiment vs. Fundamentals examples
+                sentimentVsFundamentals: [
+                    {
+                        scenario: "Post-Earnings Movement",
+                        sentiment: "Company reports strong earnings but stock drops 5% as results weren't 'good enough' compared to elevated expectations",
+                        fundamentals: "Revenue growth of 25%, profit margin expansion, positive forward guidance",
+                        divergence: "Negative sentiment despite positive fundamental data"
+                    },
+                    {
+                        scenario: "Speculative Rally",
+                        sentiment: "Investors bid up stock price 40% on rumors of new technology breakthrough",
+                        fundamentals: "No verified product, no change in revenue projections, increased R&D expenses",
+                        divergence: "Positive sentiment without fundamental support"
+                    },
+                    {
+                        scenario: "Market Panic",
+                        sentiment: "Broad market selloff during economic uncertainty causes quality stocks to drop 20%",
+                        fundamentals: "Stable earnings, strong balance sheets, minimal exposure to affected sectors",
+                        divergence: "Negative sentiment despite resilient fundamentals"
+                    },
+                    {
+                        scenario: "Sector Rotation",
+                        sentiment: "Investors shift away from technology due to interest rate fears, prices drop across the sector",
+                        fundamentals: "Tech companies continue to post strong growth, cash flow generation, and market share gains",
+                        divergence: "Short-term sentiment shifts despite unchanged business fundamentals"
+                    }
+                ],
+                
+                // Market cycles information
+                marketCycles: {
+                    phases: [
+                        {
+                            name: "Accumulation",
+                            sentiment: "Pessimistic to Neutral",
+                            characteristics: ["Market has bottomed", "Smart money begins buying", "General public still fearful", "Low trading volume", "Valuations attractive"],
+                            indicators: ["Put/call ratio elevated but declining", "Insider buying increases", "Value stocks outperform"],
+                            color: "#3B82F6"  // Blue
+                        },
+                        {
+                            name: "Mark-Up",
+                            sentiment: "Improving to Bullish",
+                            characteristics: ["Prices trend higher", "Increased media coverage", "Public begins to participate", "Trading volume increases", "Positive economic data"],
+                            indicators: ["Breadth indicators strengthen", "Fund flows turn positive", "Growth stocks gain momentum"],
+                            color: "#10B981"  // Green
+                        },
+                        {
+                            name: "Distribution",
+                            sentiment: "Euphoric to Overconfident",
+                            characteristics: ["Smart money begins selling", "Retail investors highly engaged", "New participants enter market", "High trading volume", "Excessive optimism"],
+                            indicators: ["Bullish sentiment surveys at extremes", "Valuation metrics extended", "Speculative assets surge"],
+                            color: "#F59E0B"  // Amber
+                        },
+                        {
+                            name: "Mark-Down",
+                            sentiment: "Denial to Panic",
+                            characteristics: ["Prices trend lower", "Initial buying opportunities fail", "Rising volatility", "Negative news flow", "Capitulation selling"],
+                            indicators: ["VIX spikes higher", "Defensive sectors outperform", "Fund outflows accelerate"],
+                            color: "#FF4444"  // Red
+                        }
+                    ]
+                }
+            };
+
+            // Interactive sentiment chart effect
             React.useEffect(() => {
-                if (chartRef.current) {
-                    if (chart) {
-                        chart.destroy();
+                if (interactiveChartRef.current && activeTab === 'interactive') {
+                    if (interactiveChart) {
+                        interactiveChart.destroy();
                     }
 
-                    const ctx = chartRef.current.getContext('2d');
+                    const ctx = interactiveChartRef.current.getContext('2d');
                     const priceData = generatePriceData(sentiment);
                     
                     const newChart = new Chart(ctx, {
@@ -185,65 +335,667 @@
                         }
                     });
 
+                    setInteractiveChart(newChart);
+                }
+            }, [sentiment, isDarkMode, activeTab]);
+
+            // Chart for Fear & Greed Index history
+            React.useEffect(() => {
+                if (chartRef.current && activeTab === 'indicators' && showingChart === 'fear-greed') {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    const fearGreedData = sentimentData.fearGreedHistory;
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: fearGreedData.map(d => d.date),
+                            datasets: [{
+                                label: 'Fear & Greed Index',
+                                data: fearGreedData.map(d => d.value),
+                                borderColor: '#3B82F6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.4,
+                                fill: true,
+                                pointRadius: 4,
+                                pointBackgroundColor: fearGreedData.map(d => {
+                                    if (d.value >= 70) return '#FF4444';  // Extreme Greed (red)
+                                    if (d.value >= 55) return '#F59E0B';  // Greed (amber)
+                                    if (d.value >= 35) return '#10B981';  // Neutral (green)
+                                    if (d.value >= 20) return '#3B82F6';  // Fear (blue)
+                                    return '#8B5CF6';  // Extreme Fear (purple)
+                                }),
+                                pointBorderColor: '#FFFFFF'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    displayColors: true,
+                                    callbacks: {
+                                        label: function(context) {
+                                            const index = context.dataIndex;
+                                            const data = fearGreedData[index];
+                                            return `Index: ${data.value} (${data.label})`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    min: 0,
+                                    max: 100,
+                                    title: {
+                                        display: true,
+                                        text: 'Fear & Greed Index',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
                     setChart(newChart);
                 }
-            }, [sentiment, isDarkMode]);
+            }, [activeTab, isDarkMode, showingChart]);
+
+            // Chart for Sentiment vs. Market Returns
+            React.useEffect(() => {
+                if (chartRef.current && activeTab === 'indicators' && showingChart === 'sentiment-returns') {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    const correlationData = sentimentData.sentimentMarketCorrelation;
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: correlationData.map(d => d.sentiment),
+                            datasets: [{
+                                label: 'Avg. Future 6-Month Returns (%)',
+                                data: correlationData.map(d => d.avgReturns),
+                                backgroundColor: correlationData.map(d => d.color),
+                                borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    displayColors: true,
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `Average Returns: ${context.raw}%`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563',
+                                        callback: function(value) {
+                                            return value + '%';
+                                        }
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: 'Average 6-Month Forward Returns (%)',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    setChart(newChart);
+                }
+            }, [activeTab, isDarkMode, showingChart]);
 
             return (
-                <div className="min-h-screen bg-gray-900 py-8">
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
                     <div className="w-full max-w-2xl mx-auto p-4">
                         <div className="rounded-lg shadow-lg p-6 bg-gray-800">
                             <h2 className="text-2xl font-bold mb-4 text-white">
-                                Market Sentiment Indicator
+                                Market Sentiment
                             </h2>
-
-                            {/* Sentiment Gauge */}
-                            <div className="mb-6">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-red-500">Bearish</span>
-                                    <span className="text-blue-500">Neutral</span>
-                                    <span className="text-green-500">Bullish</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="100"
-                                    value={sentiment}
-                                    onChange={(e) => setSentiment(Number(e.target.value))}
-                                    className="w-full cursor-pointer"
-                                />
-                                <div className="text-center mt-2">
-                                    <span className="text-white font-bold">
-                                        Current Sentiment: 
-                                        <span style={{ color: getSentimentColor(sentiment) }}>
-                                            {` ${getSentimentText(sentiment)}`}
-                                        </span>
-                                    </span>
-                                </div>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    The overall attitude or feeling that investors and traders have toward a particular security, sector, or market. It reflects the collective psychology of market participants and can indicate whether they are generally optimistic (bullish) or pessimistic (bearish). Often influenced by psychology rather than fundamental analysis, sentiment can drive short-term price movements and contribute to market cycles of greed and fear.
+                                </p>
                             </div>
 
-                            {/* Price Chart */}
-                            <div className="h-64 mb-6">
-                                <canvas ref={chartRef}></canvas>
+                            <div className="mb-4 flex">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'interactive' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('interactive')}
+                                >
+                                    Interactive
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'indicators' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('indicators')}
+                                >
+                                    Indicators
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'psychology' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('psychology')}
+                                >
+                                    Psychology
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'cycles' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('cycles')}
+                                >
+                                    Market Cycles
+                                </button>
                             </div>
 
-                            {/* Characteristics */}
-                            <div className="space-y-4">
-                                {sentimentCharacteristics[getSentimentText(sentiment)].map((characteristic, index) => (
-                                    <div key={index} className="flex items-center">
-                                        <div 
-                                            className="w-3 h-3 rounded-full mr-2" 
-                                            style={{ backgroundColor: getSentimentColor(sentiment) }}
-                                        ></div>
-                                        <p className="text-gray-200">
-                                            {characteristic}
+                            {activeTab === 'interactive' && (
+                                <>
+                                    <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-blue-400 mb-2 text-center">Explore Market Sentiment</h4>
+                                        <p className="text-sm text-gray-300 mb-4 text-center">
+                                            Move the slider to see how different market sentiment states affect price trends
                                         </p>
+                                        
+                                        {/* Sentiment Gauge */}
+                                        <div className="mb-6">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-red-500">Bearish</span>
+                                                <span className="text-blue-500">Neutral</span>
+                                                <span className="text-green-500">Bullish</span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="100"
+                                                value={sentiment}
+                                                onChange={(e) => setSentiment(Number(e.target.value))}
+                                                className="w-full cursor-pointer"
+                                            />
+                                            <div className="text-center mt-2">
+                                                <span className="text-white font-bold">
+                                                    Current Sentiment: 
+                                                    <span style={{ color: getSentimentColor(sentiment) }}>
+                                                        {` ${getSentimentText(sentiment)}`}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Price Chart */}
+                                        <div className="h-64 mb-6">
+                                            <canvas ref={interactiveChartRef}></canvas>
+                                        </div>
+
+                                        {/* Sentiment Description */}
+                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                            <div className="font-semibold mb-2" style={{ color: getSentimentColor(sentiment) }}>
+                                                {getSentimentText(sentiment)} Market Sentiment Characteristics
+                                            </div>
+                                            <div className="space-y-2">
+                                                {sentimentCharacteristics[getSentimentText(sentiment)].map((characteristic, index) => (
+                                                    <div key={index} className="flex items-start">
+                                                        <div 
+                                                            className="w-3 h-3 rounded-full mt-1 mr-2" 
+                                                            style={{ backgroundColor: getSentimentColor(sentiment) }}
+                                                        ></div>
+                                                        <p className="text-gray-200 text-sm">
+                                                            {characteristic}
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
-                                ))}
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-blue-400 mb-2">Impact on Trading Activity</h4>
+                                        <div className="grid grid-cols-3 gap-3 text-center text-sm">
+                                            <div className="bg-red-900 bg-opacity-30 p-3 rounded-lg">
+                                                <div className="text-red-400 font-semibold mb-1">Bearish</div>
+                                                <div className="text-xs text-gray-300">Increased selling</div>
+                                                <div className="text-xs text-gray-300">Defensive positioning</div>
+                                                <div className="text-xs text-gray-300">Lower risk tolerance</div>
+                                            </div>
+                                            <div className="bg-blue-900 bg-opacity-30 p-3 rounded-lg">
+                                                <div className="text-blue-400 font-semibold mb-1">Neutral</div>
+                                                <div className="text-xs text-gray-300">Balanced trading</div>
+                                                <div className="text-xs text-gray-300">Selective positioning</div>
+                                                <div className="text-xs text-gray-300">Normal risk tolerance</div>
+                                            </div>
+                                            <div className="bg-green-900 bg-opacity-30 p-3 rounded-lg">
+                                                <div className="text-green-400 font-semibold mb-1">Bullish</div>
+                                                <div className="text-xs text-gray-300">Increased buying</div>
+                                                <div className="text-xs text-gray-300">Growth positioning</div>
+                                                <div className="text-xs text-gray-300">Higher risk tolerance</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                            {activeTab === 'indicators' && (
+                <>
+                    <div className="flex mb-4">
+                        <button
+                            className={`px-4 py-2 rounded-tl-lg rounded-bl-lg ${showingChart === 'fear-greed' ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                            onClick={() => setShowingChart('fear-greed')}
+                        >
+                            Fear & Greed Index
+                        </button>
+                        <button
+                            className={`px-4 py-2 rounded-tr-lg rounded-br-lg ${showingChart === 'sentiment-returns' ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                            onClick={() => setShowingChart('sentiment-returns')}
+                        >
+                            Sentiment vs. Returns
+                        </button>
+                    </div>
+
+                    <div className="h-64 mb-6">
+                        <canvas ref={chartRef}></canvas>
+                    </div>
+
+                    {showingChart === 'fear-greed' && (
+                        <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                            <h4 className="font-semibold text-blue-400 mb-2">Fear & Greed Index Interpretation</h4>
+                            <p className="text-sm text-gray-300 mb-4">The CNN Fear & Greed Index measures investor sentiment by analyzing seven different indicators, helping identify potential market extremes.</p>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-2 text-center text-xs">
+                                <div className="bg-purple-900 bg-opacity-40 p-2 rounded-lg">
+                                    <div className="font-semibold mb-1">0-20</div>
+                                    <div className="text-purple-400">Extreme Fear</div>
+                                </div>
+                                <div className="bg-blue-900 bg-opacity-40 p-2 rounded-lg">
+                                    <div className="font-semibold mb-1">21-40</div>
+                                    <div className="text-blue-400">Fear</div>
+                                </div>
+                                <div className="bg-green-900 bg-opacity-40 p-2 rounded-lg">
+                                    <div className="font-semibold mb-1">41-60</div>
+                                    <div className="text-green-400">Neutral</div>
+                                </div>
+                                <div className="bg-amber-900 bg-opacity-40 p-2 rounded-lg">
+                                    <div className="font-semibold mb-1">61-80</div>
+                                    <div className="text-amber-400">Greed</div>
+                                </div>
+                                <div className="bg-red-900 bg-opacity-40 p-2 rounded-lg">
+                                    <div className="font-semibold mb-1">81-100</div>
+                                    <div className="text-red-400">Extreme Greed</div>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-4 text-sm text-gray-300">
+                                <p className="mb-2">
+                                    <span className="font-semibold">Contrarian Perspective:</span> Extreme readings may indicate potential market turning points. When investors are extremely fearful, it could be a buying opportunity, and when they're extremely greedy, it might signal caution.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {showingChart === 'sentiment-returns' && (
+                        <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                            <h4 className="font-semibold text-blue-400 mb-2">Sentiment as a Contrarian Indicator</h4>
+                            <p className="text-sm text-gray-300 mb-4">Historical data suggests that extreme sentiment readings often precede market reversals. The chart shows average market returns 6 months after different sentiment states.</p>
+                            
+                            <div className="text-sm text-gray-300">
+                                <div className="flex items-start mb-2">
+                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                    <p>
+                                        <span className="font-semibold">Buy When Fearful:</span> Markets have historically delivered stronger forward returns after periods of extreme fear as prices already reflect negative expectations.
+                                    </p>
+                                </div>
+                                <div className="flex items-start">
+                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                    <p>
+                                        <span className="font-semibold">Caution When Greedy:</span> Periods of extreme optimism often precede disappointing returns as markets may have already priced in very positive scenarios.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="bg-gray-700 p-4 rounded-lg">
+                        <h4 className="font-semibold text-blue-400 mb-2">Common Sentiment Indicators</h4>
+                        <div className="space-y-3">
+                            {Object.keys(sentimentData.sentimentIndicators).map((indicator, index) => {
+                                const data = sentimentData.sentimentIndicators[indicator];
+                                return (
+                                    <div key={index} className="bg-gray-800 p-3 rounded-lg" style={{ borderLeft: `4px solid ${data.color}` }}>
+                                        <div className="font-semibold mb-1">{indicator}</div>
+                                        <p className="text-xs text-gray-300 mb-2">{data.description}</p>
+                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                            <div>
+                                                <span className="text-gray-400">Interpretation: </span>
+                                                <span className="text-gray-300">{data.interpretation}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-400">Reliability: </span>
+                                                <span className="text-gray-300">{data.reliability}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {activeTab === 'psychology' && (
+                <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Market Psychology</h3>
+                    
+                    <div className="bg-gray-700 p-4 rounded-lg mb-4">
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="bg-blue-900 bg-opacity-30 p-3 rounded-lg w-5/12 text-center">
+                                <div className="text-blue-400 font-semibold mb-1">Bullish Psychology</div>
+                                <div className="text-sm text-gray-300">Optimistic outlook believing prices will rise</div>
+                            </div>
+                            <div className="font-bold text-lg">vs.</div>
+                            <div className="bg-red-900 bg-opacity-30 p-3 rounded-lg w-5/12 text-center">
+                                <div className="text-red-400 font-semibold mb-1">Bearish Psychology</div>
+                                <div className="text-sm text-gray-300">Pessimistic outlook believing prices will fall</div>
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-gray-800 p-3 rounded-lg">
+                                <div className="text-blue-400 font-semibold mb-2">Bull Market Emotions</div>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex items-start">
+                                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                        <div>
+                                            <span className="font-semibold">Optimism → Excitement → Thrill</span>
+                                            <p className="text-xs text-gray-300">Positive returns fuel confidence</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start">
+                                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                        <div>
+                                            <span className="font-semibold">Euphoria → Complacency</span>
+                                            <p className="text-xs text-gray-300">Peak sentiment, maximum risk-taking</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start">
+                                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                        <div>
+                                            <span className="font-semibold">Common Phrases:</span>
+                                            <p className="text-xs text-gray-300">"This time is different"</p>
+                                            <p className="text-xs text-gray-300">"Don't miss out"</p>
+                                            <p className="text-xs text-gray-300">"New paradigm"</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-gray-800 p-3 rounded-lg">
+                                <div className="text-red-400 font-semibold mb-2">Bear Market Emotions</div>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex items-start">
+                                        <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                        <div>
+                                            <span className="font-semibold">Anxiety → Denial → Fear</span>
+                                            <p className="text-xs text-gray-300">Initial price drops create uncertainty</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start">
+                                        <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                        <div>
+                                            <span className="font-semibold">Panic → Capitulation → Despair</span>
+                                            <p className="text-xs text-gray-300">Sentiment bottom, maximum pessimism</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start">
+                                        <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                        <div>
+                                            <span className="font-semibold">Common Phrases:</span>
+                                            <p className="text-xs text-gray-300">"It's going to zero"</p>
+                                            <p className="text-xs text-gray-300">"I'll never invest again"</p>
+                                            <p className="text-xs text-gray-300">"No one saw this coming"</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    
+                    <div className="bg-gray-700 p-4 rounded-lg mb-4">
+                        <h4 className="font-semibold text-blue-400 mb-2">Psychological Biases in Markets</h4>
+                        <div className="space-y-3">
+                            <div className="bg-gray-800 p-3 rounded-lg">
+                                <div className="font-semibold mb-1">Herding Behavior</div>
+                                <p className="text-sm text-gray-300">
+                                    The tendency to follow the actions of a larger group. In markets, investors often buy when others are buying and sell when others are selling, amplifying trends.
+                                </p>
+                            </div>
+                            <div className="bg-gray-800 p-3 rounded-lg">
+                                <div className="font-semibold mb-1">Confirmation Bias</div>
+                                <p className="text-sm text-gray-300">
+                                    Seeking out information that confirms existing beliefs while ignoring contradictory evidence. Investors tend to focus on news that supports their market outlook.
+                                </p>
+                            </div>
+                            <div className="bg-gray-800 p-3 rounded-lg">
+                                <div className="font-semibold mb-1">Recency Bias</div>
+                                <p className="text-sm text-gray-300">
+                                    Giving greater importance to recent events. Investors often project recent market performance into the future, leading to excessive optimism in uptrends and pessimism in downtrends.
+                                </p>
+                            </div>
+                            <div className="bg-gray-800 p-3 rounded-lg">
+                                <div className="font-semibold mb-1">Loss Aversion</div>
+                                <p className="text-sm text-gray-300">
+                                    The psychological tendency to feel the pain of losses more strongly than the pleasure of equivalent gains. This can lead to holding losing positions too long and selling winners too early.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="bg-gray-700 p-4 rounded-lg">
+                        <h4 className="font-semibold text-blue-400 mb-2">Sentiment vs. Fundamentals</h4>
+                        <p className="text-sm text-gray-300 mb-3">
+                            Market sentiment often diverges from fundamental analysis, creating potential opportunities and risks:
+                        </p>
+                        
+                        <div className="space-y-3">
+                            {sentimentData.sentimentVsFundamentals.map((example, index) => (
+                                <div key={index} className="bg-gray-800 p-3 rounded-lg">
+                                    <div className="font-semibold mb-1">{example.scenario}</div>
+                                    <div className="grid grid-cols-2 gap-3 text-xs">
+                                        <div>
+                                            <div className="bg-blue-900 bg-opacity-30 p-2 rounded-lg mb-1">
+                                                <div className="font-semibold text-blue-400">Sentiment</div>
+                                                <p className="text-gray-300">{example.sentiment}</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="bg-green-900 bg-opacity-30 p-2 rounded-lg mb-1">
+                                                <div className="font-semibold text-green-400">Fundamentals</div>
+                                                <p className="text-gray-300">{example.fundamentals}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-sm italic text-gray-400 mt-2">
+                                        {example.divergence}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
+            )}
+
+            {activeTab === 'cycles' && (
+                <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Market Sentiment Cycles</h3>
+                    
+                    <div className="relative h-80 mb-4 bg-gray-700 rounded-lg overflow-hidden">
+                        {/* Market Cycle Display */}
+                        {sentimentData.marketCycles.phases.map((phase, index) => (
+                            currentStep === index + 1 && (
+                                <div key={index} className="absolute inset-0 p-4">
+                                    <h3 className="text-lg font-semibold mb-2 text-center" style={{ color: phase.color }}>
+                                        {phase.name} Phase
+                                    </h3>
+                                    <div className="flex flex-col h-60 overflow-y-auto">
+                                        <div className="bg-gray-800 p-4 rounded-lg mb-4">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <div className="font-semibold text-sm" style={{ color: phase.color }}>{phase.name}</div>
+                                                <div className="text-sm text-gray-400">Sentiment: {phase.sentiment}</div>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                                <div>
+                                                    <div className="font-semibold text-sm mb-2">Characteristics</div>
+                                                    <ul className="list-disc pl-4 text-xs text-gray-300 space-y-1">
+                                                        {phase.characteristics.map((item, idx) => (
+                                                            <li key={idx}>{item}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                                <div>
+                                                    <div className="font-semibold text-sm mb-2">Indicators</div>
+                                                    <ul className="list-disc pl-4 text-xs text-gray-300 space-y-1">
+                                                        {phase.indicators.map((item, idx) => (
+                                                            <li key={idx}>{item}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="relative h-20 bg-gray-700 rounded-lg mb-2">
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <div className="w-3/4 h-1 bg-gray-600 relative">
+                                                        {/* Cycle position indicators */}
+                                                        <div className="absolute top-0 left-0 w-2 h-2 rounded-full bg-blue-500 transform -translate-y-1/2" style={{ left: '0%' }}></div>
+                                                        <div className="absolute top-0 left-0 w-2 h-2 rounded-full bg-green-500 transform -translate-y-1/2" style={{ left: '25%' }}></div>
+                                                        <div className="absolute top-0 left-0 w-2 h-2 rounded-full bg-amber-500 transform -translate-y-1/2" style={{ left: '50%' }}></div>
+                                                        <div className="absolute top-0 left-0 w-2 h-2 rounded-full bg-red-500 transform -translate-y-1/2" style={{ left: '75%' }}></div>
+                                                        
+                                                        {/* Current position indicator */}
+                                                        <div className="absolute top-0 left-0 w-4 h-4 rounded-full transform -translate-y-1/2" style={{ backgroundColor: phase.color, left: `${index * 25}%` }}></div>
+                                                    </div>
+                                                </div>
+                                                <div className="absolute bottom-0 left-0 w-full flex justify-between text-xs text-gray-400 px-4">
+                                                    <div>Accumulation</div>
+                                                    <div>Mark-Up</div>
+                                                    <div>Distribution</div>
+                                                    <div>Mark-Down</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        ))}
+                    </div>
+
+                    <div className="flex justify-between">
+                        <button 
+                            onClick={prevStep}
+                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                        >
+                            Previous Phase
+                        </button>
+                        <div className="flex space-x-2">
+                            {sentimentData.marketCycles.phases.map((_, i) => (
+                                <div 
+                                    key={i}
+                                    className={`w-2 h-2 rounded-full ${currentStep === i + 1 ? 'bg-blue-500' : 'bg-gray-500'}`}
+                                    onClick={() => setCurrentStep(i + 1)}
+                                ></div>
+                            ))}
+                        </div>
+                        <button 
+                            onClick={nextStep}
+                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                        >
+                            Next Phase
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                <div className="font-semibold mb-2 text-blue-400">Key Points</div>
+                <div className="space-y-2">
+                    <div className="flex items-start">
+                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                        <p className="text-gray-200 text-sm">
+                            <span className="font-semibold">Collective Psychology:</span> Market sentiment reflects the aggregate psychology of all market participants, influencing price action especially in the short term.
+                        </p>
+                    </div>
+                    <div className="flex items-start">
+                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                        <p className="text-gray-200 text-sm">
+                            <span className="font-semibold">Contrarian Value:</span> Extreme sentiment readings often coincide with major market turning points, potentially providing contrarian investment opportunities.
+                        </p>
+                    </div>
+                    <div className="flex items-start">
+                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                        <p className="text-gray-200 text-sm">
+                            <span className="font-semibold">Integration Approach:</span> The most effective strategies combine sentiment analysis with fundamental and technical factors rather than relying on sentiment indicators alone.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
             );
         };
 
