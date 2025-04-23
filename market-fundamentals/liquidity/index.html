@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liquidity Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const LiquidityVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('characteristics');
+            const [showingExample, setShowingExample] = React.useState(false);
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const brandColor = "#079A4F"; // Brand green color
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 3 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 3);
+            };
+
+            // Liquidity spectrum data
+            const assetLiquidityData = [
+                { asset: "Cash", liquidity: 95, color: "#3B82F6" },
+                { asset: "Treasury Bills", liquidity: 90, color: "#3B82F6" },
+                { asset: "Blue Chip Stocks", liquidity: 85, color: "#3B82F6" },
+                { asset: "Corporate Bonds", liquidity: 70, color: "#8B5CF6" },
+                { asset: "Small Cap Stocks", liquidity: 65, color: "#8B5CF6" },
+                { asset: "Real Estate ETFs", liquidity: 60, color: "#8B5CF6" },
+                { asset: "Municipal Bonds", liquidity: 55, color: "#F59E0B" },
+                { asset: "Corporate Bonds (Lower Rated)", liquidity: 45, color: "#F59E0B" },
+                { asset: "Private Equity", liquidity: 25, color: "#FF4444" },
+                { asset: "Real Estate", liquidity: 20, color: "#FF4444" },
+                { asset: "Collectibles", liquidity: 15, color: "#FF4444" },
+                { asset: "Startup Equity", liquidity: 10, color: "#FF4444" }
+            ];
+
+            // Example data for bid-ask spread visualization
+            const spreadExampleData = {
+                "High Liquidity Asset": {
+                    ticker: "AAPL",
+                    name: "Apple Inc.",
+                    bid: 185.25,
+                    ask: 185.28,
+                    spread: 0.03,
+                    spreadPercent: 0.016,
+                    volume: "42.5M",
+                    color: "#3B82F6"
+                },
+                "Medium Liquidity Asset": {
+                    ticker: "XYZ",
+                    name: "Mid-Size Corp",
+                    bid: 27.35,
+                    ask: 27.48,
+                    spread: 0.13,
+                    spreadPercent: 0.47,
+                    volume: "850K",
+                    color: "#8B5CF6"
+                },
+                "Low Liquidity Asset": {
+                    ticker: "MICRO",
+                    name: "Micro Cap Inc.",
+                    bid: 3.75,
+                    ask: 4.15,
+                    spread: 0.40,
+                    spreadPercent: 10.67,
+                    volume: "25K",
+                    color: "#FF4444"
+                }
+            };
+
+            // Create/update chart based on visibility and chart type
+            React.useEffect(() => {
+                if (chartRef.current && activeTab === 'characteristics') {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    if (showingExample) {
+                        // Bid-ask spread example chart
+                        const assets = Object.keys(spreadExampleData);
+                        const spreads = assets.map(asset => spreadExampleData[asset].spreadPercent);
+                        const colors = assets.map(asset => spreadExampleData[asset].color);
+                        
+                        // Use logarithmic scale for better visualization of widely varying values
+                        const newChart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: assets,
+                                datasets: [{
+                                    label: 'Bid-Ask Spread (%)',
+                                    data: spreads,
+                                    backgroundColor: colors,
+                                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                                    borderWidth: 1,
+                                    // Ensure minimum bar height for visibility
+                                    minBarLength: 10
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        displayColors: true,
+                                        callbacks: {
+                                            label: function(context) {
+                                                const asset = context.label;
+                                                const data = spreadExampleData[asset];
+                                                return [
+                                                    `Ticker: ${data.ticker}`,
+                                                    `Bid: $${data.bid}`,
+                                                    `Ask: $${data.ask}`,
+                                                    `Spread: $${data.spread.toFixed(2)} (${data.spreadPercent.toFixed(2)}%)`,
+                                                    `Volume: ${data.volume}`
+                                                ];
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        type: 'logarithmic', // Use log scale to better show differences
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563',
+                                            callback: function(value) {
+                                                return value.toFixed(2) + '%';
+                                            }
+                                        },
+                                        title: {
+                                            display: true,
+                                            text: 'Bid-Ask Spread (%) - Log Scale',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        min: 0.01 // Set minimum value to show small values
+                                    },
+                                    x: {
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        setChart(newChart);
+                    } else {
+                        // Liquidity spectrum chart
+                        const newChart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: assetLiquidityData.map(d => d.asset),
+                                datasets: [{
+                                    label: 'Liquidity Score',
+                                    data: assetLiquidityData.map(d => d.liquidity),
+                                    backgroundColor: assetLiquidityData.map(d => d.color),
+                                    borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                indexAxis: 'y',
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        displayColors: true,
+                                        callbacks: {
+                                            label: function(context) {
+                                                return `Liquidity Score: ${context.raw}/100`;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    },
+                                    x: {
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        max: 100
+                                    }
+                                }
+                            }
+                        });
+                        setChart(newChart);
+                    }
+                }
+            }, [showingExample, isDarkMode, activeTab]);
+
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Liquidity
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    The degree to which an asset can be quickly bought or sold in the market without affecting its price. High liquidity means an asset can be converted to cash easily with minimal loss of value.
+                                </p>
+                            </div>
+
+                            {activeTab === 'characteristics' && (
+                                <>
+                                    <div className="flex mb-4">
+                                        <button
+                                            className={`px-4 py-2 rounded-tl-lg rounded-bl-lg ${!showingExample ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingExample(false)}
+                                        >
+                                            Liquidity Spectrum
+                                        </button>
+                                        <button
+                                            className={`px-4 py-2 rounded-tr-lg rounded-br-lg ${showingExample ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingExample(true)}
+                                        >
+                                            Bid-Ask Spread Example
+                                        </button>
+                                    </div>
+
+                                    <div className="h-64 mb-6">
+                                        <canvas ref={chartRef}></canvas>
+                                    </div>
+
+                                    {showingExample && (
+                                        <div className="mb-6">
+                                            <div className="text-center text-sm text-gray-300 mb-3">
+                                                Note: Y-axis uses logarithmic scale to better display the large range of values
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {Object.keys(spreadExampleData).map((asset) => {
+                                                    const data = spreadExampleData[asset];
+                                                    return (
+                                                        <div key={asset} className="bg-gray-700 p-3 rounded-lg">
+                                                            <div className="flex justify-between items-center">
+                                                                <div className="flex items-center">
+                                                                    <div className="w-4 h-4 rounded-full mr-2" style={{ backgroundColor: data.color }}></div>
+                                                                    <div>
+                                                                        <div className="font-semibold">{data.ticker}</div>
+                                                                        <div className="text-xs text-gray-400">{data.name}</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <div className="text-sm">
+                                                                        <span className="text-gray-400">Bid:</span> ${data.bid}
+                                                                        <span className="mx-1">|</span>
+                                                                        <span className="text-gray-400">Ask:</span> ${data.ask}
+                                                                    </div>
+                                                                    <div className="text-xs text-gray-400">
+                                                                        Spread: ${data.spread.toFixed(2)} ({data.spreadPercent.toFixed(2)}%)
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {!showingExample && (
+                                        <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Liquidity Spectrum</h4>
+                                            <p className="text-sm text-gray-300 mb-4">Assets exist on a spectrum from highly liquid to highly illiquid. The chart above ranks common financial assets by their typical liquidity level, with a higher score indicating greater liquidity.</p>
+                                            
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
+                                                <div className="bg-blue-900 bg-opacity-20 p-3 rounded-lg border-l-4 border-blue-500">
+                                                    <div className="text-blue-400 font-semibold mb-1">High Liquidity</div>
+                                                    <div className="text-xs text-gray-300">Cash, Treasuries, Large-Cap Stocks</div>
+                                                </div>
+                                                <div className="bg-purple-900 bg-opacity-20 p-3 rounded-lg border-l-4 border-purple-500">
+                                                    <div className="text-purple-400 font-semibold mb-1">Medium Liquidity</div>
+                                                    <div className="text-xs text-gray-300">Corporate Bonds, Small-Cap Stocks</div>
+                                                </div>
+                                                <div className="bg-red-900 bg-opacity-20 p-3 rounded-lg border-l-4 border-red-500">
+                                                    <div className="text-red-400 font-semibold mb-1">Low Liquidity</div>
+                                                    <div className="text-xs text-gray-300">Real Estate, Private Equity, Collectibles</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {activeTab === 'mechanisms' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Market Mechanisms & Liquidity</h3>
+                                    
+                                    <div className="relative h-80 mb-4 bg-gray-700 rounded-lg overflow-hidden">
+                                        {/* Step 1: Bid-Ask Spread */}
+                                        {currentStep === 1 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-blue-400">Bid-Ask Spread</h3>
+                                                <div className="flex flex-col h-60 overflow-y-auto">
+                                                    <div className="bg-gray-800 p-4 rounded-lg mb-4">
+                                                        <p className="text-sm text-gray-300 mb-3">The difference between the highest price a buyer is willing to pay (bid) and the lowest price a seller is willing to accept (ask). Narrower spreads indicate higher liquidity.</p>
+                                                        
+                                                        <div className="flex justify-between items-center mb-4">
+                                                            <div className="text-center">
+                                                                <div className="text-green-400 font-semibold mb-1">Liquid Market</div>
+                                                                <div className="bg-gray-700 px-4 py-2 rounded-lg">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="text-green-500">$99.95</div>
+                                                                        <div className="text-xs text-gray-400 mx-2">Spread: $0.10 (0.1%)</div>
+                                                                        <div className="text-red-500">$100.05</div>
+                                                                    </div>
+                                                                    <div className="flex items-center justify-between text-xs mt-1">
+                                                                        <div>Bid</div>
+                                                                        <div>Ask</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-center">
+                                                                <div className="text-red-400 font-semibold mb-1">Illiquid Market</div>
+                                                                <div className="bg-gray-700 px-4 py-2 rounded-lg">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="text-green-500">$95.00</div>
+                                                                        <div className="text-xs text-gray-400 mx-2">Spread: $10.00 (10%)</div>
+                                                                        <div className="text-red-500">$105.00</div>
+                                                                    </div>
+                                                                    <div className="flex items-center justify-between text-xs mt-1">
+                                                                        <div>Bid</div>
+                                                                        <div>Ask</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="text-sm text-gray-300">
+                                                            <p className="mb-2"><span className="font-semibold">Impact on Traders:</span> Narrow spreads reduce transaction costs and make it easier to enter and exit positions with minimal price impact.</p>
+                                                            <p><span className="font-semibold">Market Makers:</span> Provide liquidity by continuously quoting buy and sell prices, profiting from the spread while reducing market friction.</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 2: Market Depth */}
+                                        {currentStep === 2 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-blue-400">Market Depth</h3>
+                                                <div className="flex flex-col h-60 overflow-y-auto">
+                                                    <div className="bg-gray-800 p-4 rounded-lg mb-4">
+                                                        <p className="text-sm text-gray-300 mb-3">The volume of orders at various price levels away from the current market price. Greater depth means larger orders can be executed without significantly moving the price.</p>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                                            <div className="text-center">
+                                                                <div className="text-blue-400 font-semibold mb-1">Deep Market</div>
+                                                                <div className="h-32 bg-gray-700 rounded-lg relative overflow-hidden">
+                                                                    <div className="absolute top-0 left-0 w-full h-full flex">
+                                                                        <div className="w-1/2 border-r border-gray-600 flex flex-col-reverse">
+                                                                            <div className="h-10 bg-green-900 bg-opacity-50"></div>
+                                                                            <div className="h-14 bg-green-800 bg-opacity-50"></div>
+                                                                            <div className="h-8 bg-green-700 bg-opacity-50"></div>
+                                                                        </div>
+                                                                        <div className="w-1/2 flex flex-col-reverse">
+                                                                            <div className="h-10 bg-red-900 bg-opacity-50"></div>
+                                                                            <div className="h-14 bg-red-800 bg-opacity-50"></div>
+                                                                            <div className="h-8 bg-red-700 bg-opacity-50"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="absolute top-1/2 left-0 w-full border-t border-dashed border-gray-500 transform -translate-y-1/2"></div>
+                                                                    <div className="absolute bottom-2 left-0 w-full text-center text-xs text-gray-400">Large order volume at each price level</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-center">
+                                                                <div className="text-red-400 font-semibold mb-1">Shallow Market</div>
+                                                                <div className="h-32 bg-gray-700 rounded-lg relative overflow-hidden">
+                                                                    <div className="absolute top-0 left-0 w-full h-full flex">
+                                                                        <div className="w-1/2 border-r border-gray-600 flex flex-col-reverse">
+                                                                            <div className="h-5 bg-green-900 bg-opacity-50"></div>
+                                                                            <div className="h-7 bg-green-800 bg-opacity-50"></div>
+                                                                            <div className="h-3 bg-green-700 bg-opacity-50"></div>
+                                                                        </div>
+                                                                        <div className="w-1/2 flex flex-col-reverse">
+                                                                            <div className="h-5 bg-red-900 bg-opacity-50"></div>
+                                                                            <div className="h-7 bg-red-800 bg-opacity-50"></div>
+                                                                            <div className="h-3 bg-red-700 bg-opacity-50"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="absolute top-1/2 left-0 w-full border-t border-dashed border-gray-500 transform -translate-y-1/2"></div>
+                                                                    <div className="absolute bottom-2 left-0 w-full text-center text-xs text-gray-400">Limited order volume at each price level</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="text-sm text-gray-300">
+                                                            <p className="mb-2"><span className="font-semibold">Price Impact:</span> In deep markets, large buy or sell orders can be executed with minimal price movement.</p>
+                                                            <p><span className="font-semibold">Institutional Trading:</span> Professionals assess market depth to determine optimal order sizes and timing to minimize execution costs.</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 3: Trading Volume */}
+                                        {currentStep === 3 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-blue-400">Trading Volume & Frequency</h3>
+                                                <div className="flex flex-col h-60 overflow-y-auto">
+                                                    <div className="bg-gray-800 p-4 rounded-lg mb-4">
+                                                        <p className="text-sm text-gray-300 mb-3">The number of units of an asset traded over a specific period. Higher trading volumes and frequent transactions indicate greater liquidity.</p>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-blue-400 font-semibold text-center mb-2">High Volume Market</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="flex justify-between text-sm">
+                                                                        <span>Daily Trades:</span>
+                                                                        <span className="text-blue-300">10,000+</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between text-sm">
+                                                                        <span>Avg. Trade Size:</span>
+                                                                        <span className="text-blue-300">$25,000</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between text-sm">
+                                                                        <span>Time Between Trades:</span>
+                                                                        <span className="text-blue-300">Seconds</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between text-sm">
+                                                                        <span>Large Order Impact:</span>
+                                                                        <span className="text-blue-300">Minimal</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-3 rounded-lg">
+                                                                <div className="text-red-400 font-semibold text-center mb-2">Low Volume Market</div>
+                                                                <div className="space-y-2">
+                                                                    <div className="flex justify-between text-sm">
+                                                                        <span>Daily Trades:</span>
+                                                                        <span className="text-red-300">10-50</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between text-sm">
+                                                                        <span>Avg. Trade Size:</span>
+                                                                        <span className="text-red-300">$5,000</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between text-sm">
+                                                                        <span>Time Between Trades:</span>
+                                                                        <span className="text-red-300">Hours/Days</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between text-sm">
+                                                                        <span>Large Order Impact:</span>
+                                                                        <span className="text-red-300">Significant</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="text-sm text-gray-300">
+                                                            <p className="mb-2"><span className="font-semibold">Market Activity:</span> Higher trading volumes typically indicate more active markets with many participants and better price discovery.</p>
+                                                            <p><span className="font-semibold">Volume Trends:</span> Declining volumes can signal deteriorating liquidity conditions and potential market stress.</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-blue-500' : 'bg-gray-500'}`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'importance' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Importance of Liquidity</h3>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg space-y-4">
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Price Efficiency</p>
+                                                <p className="text-gray-200 text-sm">Liquid markets promote accurate price discovery and reduce arbitrage opportunities. Prices more accurately reflect underlying value and new information is quickly incorporated.</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Transaction Costs</p>
+                                                <p className="text-gray-200 text-sm">Higher liquidity typically means lower transaction costs through narrower bid-ask spreads and reduced price impact when executing orders.</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Risk Management</p>
+                                                <p className="text-gray-200 text-sm">The ability to quickly enter or exit positions at predictable prices is crucial for managing portfolio risk, especially during market stress.</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Market Stability</p>
+                                                <p className="text-gray-200 text-sm">Liquid markets tend to be less volatile and more resilient during stress periods. Liquidity shortages can trigger price spirals and exacerbate market crashes.</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Investment Strategy</p>
+                                                <p className="text-gray-200 text-sm">Liquidity considerations affect investment horizon, position sizing, and timing decisions. Illiquid assets often require long-term commitment and may offer liquidity premiums.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mb-4 flex">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'characteristics' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('characteristics')}
+                                >
+                                    Characteristics
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'mechanisms' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('mechanisms')}
+                                >
+                                    Mechanisms
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'importance' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('importance')}
+                                >
+                                    Importance
+                                </button>
+                            </div>
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-blue-400">Liquidity Considerations for Traders</div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-blue-900 bg-opacity-30 p-3 rounded-lg">
+                                        <div className="text-blue-400 font-semibold mb-1">Advantages of Liquid Assets</div>
+                                        <div className="text-sm text-gray-300">Lower transaction costs</div>
+                                        <div className="text-sm text-gray-300">Ease of entry and exit</div>
+                                        <div className="text-sm text-gray-300">Minimal price slippage</div>
+                                        <div className="text-sm text-gray-300">Better price discovery</div>
+                                    </div>
+                                    <div className="bg-purple-900 bg-opacity-30 p-3 rounded-lg">
+                                        <div className="text-purple-400 font-semibold mb-1">Illiquidity Premium</div>
+                                        <div className="text-sm text-gray-300">Higher potential returns</div>
+                                        <div className="text-sm text-gray-300">Less competition</div>
+                                        <div className="text-sm text-gray-300">Long-term value opportunities</div>
+                                        <div className="text-sm text-gray-300">Reduced short-term volatility</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<LiquidityVisual />);
+    </script>
+</body>
+</html>
