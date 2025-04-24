@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Money Markets Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+        
+        /* Add custom scrollbar styling */
+        .custom-scrollbar {
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #4B5563 #1F2937;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1F2937;
+            border-radius: 8px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #4B5563;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const MoneyMarketsVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('instruments');
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const [showingExample, setShowingExample] = React.useState(false);
+            const [yieldCurveInfo, setYieldCurveInfo] = React.useState('normal');
+            const brandColor = "#079A4F"; // Brand green color
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 4 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 4);
+            };
+
+            // Chart effect for interest rates and maturity visualization
+            React.useEffect(() => {
+                if (chartRef.current && activeTab === 'rates') {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    if (showingExample) {
+                        // Historical Money Market Rates chart
+                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        const treasuryBillRates = [3.1, 3.3, 3.6, 3.9, 4.2, 4.5, 4.7, 4.6, 4.5, 4.3, 4.0, 3.8]; 
+                        const fedFundsRates = [3.3, 3.5, 3.8, 4.2, 4.5, 4.8, 5.0, 4.9, 4.7, 4.5, 4.2, 4.0];
+                        const commercialPaperRates = [3.5, 3.7, 4.0, 4.3, 4.7, 5.0, 5.2, 5.1, 4.9, 4.7, 4.4, 4.2];
+                        
+                        const newChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: months,
+                                datasets: [
+                                    {
+                                        label: 'Treasury Bills (3m)',
+                                        data: treasuryBillRates,
+                                        borderColor: '#3B82F6', // Blue
+                                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                        tension: 0.3,
+                                        borderWidth: 2,
+                                        pointRadius: 3
+                                    },
+                                    {
+                                        label: 'Fed Funds Rate',
+                                        data: fedFundsRates,
+                                        borderColor: '#079A4F', // Brand green
+                                        backgroundColor: 'rgba(7, 154, 79, 0.1)',
+                                        tension: 0.3,
+                                        borderWidth: 2,
+                                        pointRadius: 3
+                                    },
+                                    {
+                                        label: 'Commercial Paper (30d)',
+                                        data: commercialPaperRates,
+                                        borderColor: '#8B5CF6', // Purple
+                                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                        tension: 0.3,
+                                        borderWidth: 2,
+                                        pointRadius: 3
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: {
+                                    intersect: false,
+                                    mode: 'index'
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: true,
+                                        position: 'top',
+                                        labels: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563',
+                                            font: {
+                                                size: 11
+                                            }
+                                        }
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        displayColors: true,
+                                        callbacks: {
+                                            afterLabel: function(context) {
+                                                const index = context.dataIndex;
+                                                // Add explanatory text for key events in the historical timeline
+                                                if (index === 0 && context.datasetIndex === 0) {
+                                                    return ['Beginning of monetary policy cycle'];
+                                                }
+                                                if (index === 5 && context.datasetIndex === 1) {
+                                                    return ['Peak of rate hiking cycle'];
+                                                }
+                                                if (index === 11 && context.datasetIndex === 2) {
+                                                    return ['Monetary easing begins'];
+                                                }
+                                                return null;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        title: {
+                                            display: true,
+                                            text: 'Interest Rate (%)',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    },
+                                    x: {
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        setChart(newChart);
+                    } else {
+                        // Yield curve shapes based on selection
+                        let maturities = ['1d', '7d', '1m', '3m', '6m', '1y'];
+                        let yields;
+                        
+                        if (yieldCurveInfo === 'normal') {
+                            // Normal upward sloping yield curve
+                            yields = [3.8, 3.9, 4.1, 4.3, 4.5, 4.6];
+                        } else if (yieldCurveInfo === 'flat') {
+                            // Flat yield curve
+                            yields = [4.2, 4.2, 4.2, 4.2, 4.2, 4.2];
+                        } else if (yieldCurveInfo === 'inverted') {
+                            // Inverted yield curve
+                            yields = [4.6, 4.5, 4.3, 4.1, 3.9, 3.7];
+                        }
+                        
+                        const newChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: maturities,
+                                datasets: [{
+                                    label: 'Money Market Yields',
+                                    data: yields,
+                                    borderColor: yieldCurveInfo === 'normal' ? brandColor : 
+                                               (yieldCurveInfo === 'flat' ? '#F59E0B' : '#EF4444'),
+                                    backgroundColor: yieldCurveInfo === 'normal' ? `rgba(7, 154, 79, 0.1)` : 
+                                                   (yieldCurveInfo === 'flat' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)'),
+                                    tension: 0.3,
+                                    fill: true,
+                                    pointRadius: 5,
+                                    pointBackgroundColor: yieldCurveInfo === 'normal' ? brandColor : 
+                                                       (yieldCurveInfo === 'flat' ? '#F59E0B' : '#EF4444')
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: {
+                                    intersect: false,
+                                    mode: 'index'
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        displayColors: false,
+                                        callbacks: {
+                                            label: function(context) {
+                                                return `Yield: ${context.parsed.y}%`;
+                                            },
+                                            afterLabel: function(context) {
+                                                const timeframe = context.label;
+                                                if (timeframe === '1d') {
+                                                    return ['Overnight rate'];
+                                                } else if (timeframe === '1m') {
+                                                    return ['30-day instruments (Commercial Paper, CDs)'];
+                                                } else if (timeframe === '3m') {
+                                                    return ['Treasury Bills, 90-day CDs'];
+                                                } else if (timeframe === '1y') {
+                                                    return ['Longest money market maturity'];
+                                                }
+                                                return null;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        title: {
+                                            display: true,
+                                            text: 'Yield (%)',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    },
+                                    x: {
+                                        title: {
+                                            display: true,
+                                            text: 'Maturity',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        setChart(newChart);
+                    }
+                }
+            }, [showingExample, isDarkMode, activeTab, yieldCurveInfo]);
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Money Markets
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    Financial markets for short-term borrowing, lending, and trading of highly liquid instruments with maturities of one year or less. These markets provide essential liquidity for financial institutions, businesses, and governments while offering investors safe, short-term investment opportunities.
+                                </p>
+                            </div>
+
+                            <div className="mb-4 flex">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'instruments' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('instruments')}
+                                >
+                                    Instruments
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'players' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('players')}
+                                >
+                                    Participants
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'rates' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('rates')}
+                                >
+                                    Rates
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'functions' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('functions')}
+                                >
+                                    Functions
+                                </button>
+                            </div>
+
+                            {/* Money Market Instruments Tab */}
+                            {activeTab === 'instruments' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Key Money Market Instruments</h3>
+                                    
+                                    <div className="relative h-80 mb-4 bg-gray-700 rounded-lg overflow-hidden">
+                                        {/* Step 1: Treasury Bills */}
+                                        {currentStep === 1 && (
+                                            <div className="absolute inset-0 p-4 custom-scrollbar">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-blue-400">Treasury Bills (T-Bills)</h3>
+                                                <div className="flex flex-col">
+                                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Key Features</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <p className="text-gray-300 text-sm">Issued by national governments</p>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <p className="text-gray-300 text-sm">Maturities: 4, 13, 26, and 52 weeks</p>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <p className="text-gray-300 text-sm">Sold at discount to face value</p>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <p className="text-gray-300 text-sm">No periodic interest payments</p>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <p className="text-gray-300 text-sm">Among the safest securities</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">How They Work</h4>
+                                                            <div className="bg-gray-700 p-3 rounded-lg mb-3">
+                                                                <div className="flex justify-between mb-2 text-sm">
+                                                                    <div>Purchase Price:</div>
+                                                                    <div className="font-semibold">$9,750</div>
+                                                                </div>
+                                                                <div className="flex justify-between mb-2 text-sm">
+                                                                    <div>Face Value:</div>
+                                                                    <div className="font-semibold">$10,000</div>
+                                                                </div>
+                                                                <div className="flex justify-between mb-2 text-sm">
+                                                                    <div>Maturity Period:</div>
+                                                                    <div className="font-semibold">3 months</div>
+                                                                </div>
+                                                                <div className="flex justify-between mb-2 text-sm">
+                                                                    <div>Return at Maturity:</div>
+                                                                    <div className="font-semibold text-green-400">$250</div>
+                                                                </div>
+                                                                <div className="flex justify-between text-sm">
+                                                                    <div>Annualized Yield:</div>
+                                                                    <div className="font-semibold text-green-400">~10.26%</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-xs text-gray-300">
+                                                                Investors earn the difference between the purchase price and face value. The yield is implicit in the discount.
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-blue-900 bg-opacity-30 p-3 rounded-lg">
+                                                        <h4 className="font-semibold text-center mb-2">Investment Considerations</h4>
+                                                        <div className="grid grid-cols-2 gap-3 text-xs">
+                                                            <div className="flex items-center">
+                                                                <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                                                                <span>Extremely low default risk</span>
+                                                            </div>
+                                                            <div className="flex items-center">
+                                                                <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                                                                <span>High liquidity in secondary markets</span>
+                                                            </div>
+                                                            <div className="flex items-center">
+                                                                <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                                                                <span>Exempt from state/local taxes</span>
+                                                            </div>
+                                                            <div className="flex items-center">
+                                                                <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                                                                <span>Inflation risk on fixed return</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg mt-4">
+                                                        <h4 className="text-blue-400 font-semibold text-center mb-2">Market Impact</h4>
+                                                        <div className="text-sm text-gray-300">
+                                                            T-Bills serve as the benchmark for the "risk-free rate" in financial markets. Their yields influence pricing across virtually all fixed income securities and affect monetary policy transmission. The Treasury Bill market is one of the largest and most liquid markets globally.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 2: Commercial Paper */}
+                                        {currentStep === 2 && (
+                                            <div className="absolute inset-0 p-4 custom-scrollbar">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-purple-400">Commercial Paper</h3>
+                                                <div className="flex flex-col">
+                                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-purple-400 font-semibold text-center mb-2">Key Features</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <p className="text-gray-300 text-sm">Issued by large corporations</p>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <p className="text-gray-300 text-sm">Maturities: 1-270 days (typically 30-90)</p>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <p className="text-gray-300 text-sm">Unsecured debt obligations</p>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <p className="text-gray-300 text-sm">Sold at discount like T-Bills</p>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <p className="text-gray-300 text-sm">Rated by credit rating agencies</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-purple-400 font-semibold text-center mb-2">Corporate Usage</h4>
+                                                            <div className="space-y-3">
+                                                                <div className="bg-gray-700 p-2 rounded-lg text-sm">
+                                                                    <span className="font-semibold">Short-term Financing</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Working capital, inventory, accounts receivable</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded-lg text-sm">
+                                                                    <span className="font-semibold">Bridge Financing</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Temporary funding before long-term financing</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded-lg text-sm">
+                                                                    <span className="font-semibold">Alternative to Bank Loans</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Often cheaper for highly-rated companies</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-purple-900 bg-opacity-30 p-3 rounded-lg">
+                                                        <h4 className="font-semibold text-center mb-2">Risk-Return Profile</h4>
+                                                        <div className="grid grid-cols-3 gap-2">
+                                                            <div className="bg-gray-800 p-2 rounded-lg text-center">
+                                                                <div className="text-xs font-semibold mb-1">A-1+/P-1 (Highest)</div>
+                                                                <div className="text-xs text-gray-300">Minimal risk</div>
+                                                                <div className="text-xs text-gray-300">Lowest yield</div>
+                                                            </div>
+                                                            <div className="bg-gray-800 p-2 rounded-lg text-center">
+                                                                <div className="text-xs font-semibold mb-1">A-1/P-1 (Strong)</div>
+                                                                <div className="text-xs text-gray-300">Very low risk</div>
+                                                                <div className="text-xs text-gray-300">Modest yield</div>
+                                                            </div>
+                                                            <div className="bg-gray-800 p-2 rounded-lg text-center">
+                                                                <div className="text-xs font-semibold mb-1">A-2/P-2 (Satisfactory)</div>
+                                                                <div className="text-xs text-gray-300">Low risk</div>
+                                                                <div className="text-xs text-gray-300">Higher yield</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4 mt-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-purple-400 font-semibold text-center mb-2">Market Size</h4>
+                                                            <div className="text-sm text-gray-300">
+                                                                The commercial paper market represents a substantial portion of money markets, with trillions of dollars in outstanding issues. Major issuers include financial institutions, large corporations, and asset-backed programs.
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-purple-400 font-semibold text-center mb-2">Market Risks</h4>
+                                                            <div className="text-sm text-gray-300">
+                                                                During financial crises, the commercial paper market can experience liquidity freezes as investors flee to safer assets. Central banks often intervene to support this market during stress periods, as seen in 2008 and 2020.
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {/* Step 3: Certificates of Deposit */}
+                                        {currentStep === 3 && (
+                                            <div className="absolute inset-0 p-4 custom-scrollbar">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-amber-400">Certificates of Deposit (CDs)</h3>
+                                                <div className="flex flex-col">
+                                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Key Features</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <p className="text-gray-300 text-sm">Issued by banks & financial institutions</p>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <p className="text-gray-300 text-sm">Maturities: 1 month to 5 years</p>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <p className="text-gray-300 text-sm">Fixed interest rate and maturity date</p>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <p className="text-gray-300 text-sm">FDIC insured up to $250,000</p>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <p className="text-gray-300 text-sm">Penalties for early withdrawal</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Types of CDs</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-gray-700 p-2 rounded-lg text-sm">
+                                                                    <span className="font-semibold">Traditional CDs</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Fixed rate for entire term</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded-lg text-sm">
+                                                                    <span className="font-semibold">Jumbo CDs</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Deposits over $100,000 with higher rates</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded-lg text-sm">
+                                                                    <span className="font-semibold">Negotiable CDs</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Tradable in secondary markets</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded-lg text-sm">
+                                                                    <span className="font-semibold">Brokered CDs</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Purchased through brokerage firms</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-amber-900 bg-opacity-30 p-3 rounded-lg">
+                                                        <h4 className="font-semibold text-center mb-2">CD Yield Comparison</h4>
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="text-xs mr-2">Lower Yield</div>
+                                                            <div className="flex-1 h-4 bg-gray-700 rounded-full overflow-hidden">
+                                                                <div className="h-full w-1/4 bg-red-500 relative">
+                                                                    <span className="absolute top-0 w-full text-center text-xs">Savings</span>
+                                                                </div>
+                                                                <div className="h-full w-1/4 bg-yellow-500 relative" style={{marginLeft: '25%'}}>
+                                                                    <span className="absolute top-0 w-full text-center text-xs">1m CD</span>
+                                                                </div>
+                                                                <div className="h-full w-1/4 bg-green-500 relative" style={{marginLeft: '50%'}}>
+                                                                    <span className="absolute top-0 w-full text-center text-xs">6m CD</span>
+                                                                </div>
+                                                                <div className="h-full w-1/4 bg-blue-500 relative" style={{marginLeft: '75%'}}>
+                                                                    <span className="absolute top-0 w-full text-center text-xs">1y CD</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-xs ml-2">Higher Yield</div>
+                                                        </div>
+                                                        <div className="text-center text-xs mt-2 text-gray-300">
+                                                            Longer maturity typically provides higher interest rates but reduces flexibility
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4 mt-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Banking Perspective</h4>
+                                                            <div className="text-sm text-gray-300">
+                                                                For banks, CDs provide predictable funding with known durations, helping to manage the liability side of their balance sheets. They offer CDs to diversify funding sources and match assets with liabilities of similar duration.
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Investor Strategy</h4>
+                                                            <div className="text-sm text-gray-300">
+                                                                CD laddering is a popular strategy where investors purchase multiple CDs with staggered maturities to balance liquidity needs with yield maximization, creating a regular maturity schedule for reinvestment decisions.
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 4: Other Instruments */}
+                                        {currentStep === 4 && (
+                                            <div className="absolute inset-0 p-4 custom-scrollbar">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Other Money Market Instruments</h3>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="text-green-400 font-semibold text-center mb-2">Repurchase Agreements (Repos)</h4>
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-300 text-sm">Short-term collateralized loans</p>
+                                                            </div>
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-300 text-sm">Typically overnight to 2 weeks</p>
+                                                            </div>
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-300 text-sm">Seller agrees to repurchase securities</p>
+                                                            </div>
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-300 text-sm">Used by central banks for monetary policy</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-2 bg-gray-700 p-2 rounded-lg text-xs">
+                                                            <div className="font-semibold mb-1">How It Works:</div>
+                                                            <p className="text-gray-300">
+                                                                Bank sells securities to investor with agreement to repurchase at a slightly higher price, creating an implicit interest rate.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="text-green-400 font-semibold text-center mb-2">Banker's Acceptances</h4>
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-300 text-sm">Short-term debt guaranteed by bank</p>
+                                                            </div>
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-300 text-sm">Maturities: 30-180 days</p>
+                                                            </div>
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-300 text-sm">Often used in international trade</p>
+                                                            </div>
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-300 text-sm">Sold at discount to face value</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-2 bg-gray-700 p-2 rounded-lg text-xs">
+                                                            <div className="font-semibold mb-1">Purpose:</div>
+                                                            <p className="text-gray-300">
+                                                                Facilitates commercial transactions by providing bank guarantee of payment to exporters or sellers.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="text-green-400 font-semibold text-center mb-2">Federal Funds</h4>
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-300 text-sm">Unsecured loans between banks</p>
+                                                            </div>
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-300 text-sm">Very short-term (typically overnight)</p>
+                                                            </div>
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-300 text-sm">Helps banks meet reserve requirements</p>
+                                                            </div>
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-300 text-sm">Fed Funds Rate is key benchmark</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-2 bg-gray-700 p-2 rounded-lg text-xs">
+                                                            <div className="font-semibold mb-1">Market Function:</div>
+                                                            <p className="text-gray-300">
+                                                                The Federal Funds market redistributes liquidity among banks, enabling efficient allocation of excess reserves throughout the banking system.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="text-green-400 font-semibold text-center mb-2">Money Market Funds</h4>
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-300 text-sm">Mutual funds investing in money markets</p>
+                                                            </div>
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-300 text-sm">Provides diversified exposure</p>
+                                                            </div>
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-300 text-sm">Highly liquid with check-writing</p>
+                                                            </div>
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-300 text-sm">Not FDIC insured, but low risk</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-2 bg-gray-700 p-2 rounded-lg text-xs">
+                                                            <div className="font-semibold mb-1">Investor Benefits:</div>
+                                                            <p className="text-gray-300">
+                                                                Offer individual investors access to institutional money markets with professional management, diversification, and daily liquidity.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-gray-800 p-3 rounded-lg mt-4 col-span-2">
+                                                        <h4 className="text-green-400 font-semibold text-center mb-2">Money Market Interconnections</h4>
+                                                        <div className="text-sm text-gray-300">
+                                                            These various instruments form an interconnected ecosystem that facilitates short-term liquidity flow throughout the financial system. Each instrument serves different needs and risk appetites, but together they create deep and efficient markets essential to modern financial operations. This complexity became evident during the 2008 financial crisis and 2020 pandemic, when stress in one segment quickly spread to others.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3, 4].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-green-500' : 'bg-gray-500'}`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Money Market Participants Tab */}
+                            {activeTab === 'players' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Money Market Participants</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Suppliers of Funds</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Commercial Banks</span>
+                                                        <p className="text-gray-300 text-xs">Deploy excess reserves to earn short-term income</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Money Market Funds</span>
+                                                        <p className="text-gray-300 text-xs">Pool investor money to purchase money market instruments</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Corporations</span>
+                                                        <p className="text-gray-300 text-xs">Invest surplus cash for liquidity and modest returns</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Retail Investors</span>
+                                                        <p className="text-gray-300 text-xs">Individuals seeking safety and liquidity</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-purple-400 mb-2">Borrowers of Funds</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Government Treasuries</span>
+                                                        <p className="text-gray-300 text-xs">Issue T-bills to fund short-term government operations</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Corporations</span>
+                                                        <p className="text-gray-300 text-xs">Issue commercial paper to fund operations and working capital</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Financial Institutions</span>
+                                                        <p className="text-gray-300 text-xs">Borrow to meet reserve requirements and manage liquidity</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Municipalities</span>
+                                                        <p className="text-gray-300 text-xs">Issue short-term notes for interim funding needs</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Intermediaries</h4>
+                                            <div className="space-y-3">
+                                                <div className="bg-gray-800 p-2 rounded-lg text-sm">
+                                                    <span className="font-semibold">Primary Dealers</span>
+                                                    <div className="text-xs text-gray-300 mt-1">Financial institutions that trade directly with the Federal Reserve</div>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded-lg text-sm">
+                                                    <span className="font-semibold">Investment Banks</span>
+                                                    <div className="text-xs text-gray-300 mt-1">Underwrite and trade money market securities</div>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded-lg text-sm">
+                                                    <span className="font-semibold">Brokers</span>
+                                                    <div className="text-xs text-gray-300 mt-1">Connect buyers and sellers in secondary markets</div>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded-lg text-sm">
+                                                    <span className="font-semibold">Asset Managers</span>
+                                                    <div className="text-xs text-gray-300 mt-1">Manage money market funds and institutional cash</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Regulators & Market Makers</h4>
+                                            <div className="space-y-3">
+                                                <div className="bg-gray-800 p-2 rounded-lg text-sm">
+                                                    <span className="font-semibold">Central Banks</span>
+                                                    <div className="text-xs text-gray-300 mt-1">Implement monetary policy through money markets</div>
+                                                    <div className="text-xs text-gray-300">Example: Federal Reserve, ECB, Bank of England</div>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded-lg text-sm">
+                                                    <span className="font-semibold">Banking Regulators</span>
+                                                    <div className="text-xs text-gray-300 mt-1">Ensure stability and proper functioning</div>
+                                                    <div className="text-xs text-gray-300">Example: FDIC, OCC, Federal Reserve</div>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded-lg text-sm">
+                                                    <span className="font-semibold">Securities Regulators</span>
+                                                    <div className="text-xs text-gray-300 mt-1">Oversee issuance and trading practices</div>
+                                                    <div className="text-xs text-gray-300">Example: SEC, FINRA</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="mt-4 bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-center mb-2">Money Market Ecosystem</h4>
+                                        <div className="flex items-center justify-center">
+                                            <div className="text-center bg-blue-900 bg-opacity-30 p-2 rounded-lg w-1/3">
+                                                <div className="text-sm font-semibold mb-1">Suppliers</div>
+                                                <div className="text-xs">Seek safety, liquidity, and return</div>
+                                            </div>
+                                            <div className="w-12 flex justify-center">
+                                                <div className="border-t-2 border-gray-500 w-full"></div>
+                                            </div>
+                                            <div className="text-center bg-purple-900 bg-opacity-30 p-2 rounded-lg w-1/3">
+                                                <div className="text-sm font-semibold mb-1">Intermediaries</div>
+                                                <div className="text-xs">Facilitate transactions</div>
+                                            </div>
+                                            <div className="w-12 flex justify-center">
+                                                <div className="border-t-2 border-gray-500 w-full"></div>
+                                            </div>
+                                            <div className="text-center bg-amber-900 bg-opacity-30 p-2 rounded-lg w-1/3">
+                                                <div className="text-sm font-semibold mb-1">Borrowers</div>
+                                                <div className="text-xs">Seek short-term funding</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-center mt-3">
+                                            <div className="w-2/3 text-center bg-green-900 bg-opacity-30 p-2 rounded-lg">
+                                                <div className="text-sm font-semibold mb-1">Regulators</div>
+                                                <div className="text-xs">Maintain stability, oversight, and market function</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Money Market Rates Tab */}
+                            {activeTab === 'rates' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Money Market Rates</h3>
+                                    
+                                    <div className="flex mb-4">
+                                        <button
+                                            className={`px-4 py-2 rounded-tl-lg rounded-bl-lg ${!showingExample ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingExample(false)}
+                                        >
+                                            Yield Curve
+                                        </button>
+                                        <button
+                                            className={`px-4 py-2 rounded-tr-lg rounded-br-lg ${showingExample ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingExample(true)}
+                                        >
+                                            Historical Rates
+                                        </button>
+                                    </div>
+                                    
+                                    {!showingExample && (
+                                        <div className="flex mb-2 justify-center text-sm">
+                                            <button
+                                                className={`px-3 py-1 rounded-l-lg ${yieldCurveInfo === 'normal' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                                onClick={() => setYieldCurveInfo('normal')}
+                                            >
+                                                Normal
+                                            </button>
+                                            <button
+                                                className={`px-3 py-1 ${yieldCurveInfo === 'flat' ? 'bg-yellow-700 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                                onClick={() => setYieldCurveInfo('flat')}
+                                            >
+                                                Flat
+                                            </button>
+                                            <button
+                                                className={`px-3 py-1 rounded-r-lg ${yieldCurveInfo === 'inverted' ? 'bg-red-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                                onClick={() => setYieldCurveInfo('inverted')}
+                                            >
+                                                Inverted
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    <div className="h-64 mb-4">
+                                        <canvas ref={chartRef}></canvas>
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-md mb-2 text-green-400">
+                                            {showingExample ? "Understanding Money Market Rate Relationships" : `Understanding the ${yieldCurveInfo.charAt(0).toUpperCase() + yieldCurveInfo.slice(1)} Yield Curve`}
+                                        </h4>
+                                        
+                                        {showingExample ? (
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Risk Premium:</span> Commercial paper rates exceed Treasury rates due to credit risk differences. Higher-rated issuers enjoy lower borrowing costs.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Policy Influence:</span> Fed Funds Rate sets the foundation for other money market rates, with changes quickly transmitting through the entire money market.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Rate Movement:</span> Money market rates tend to move together, though spreads between instruments can widen during periods of financial stress.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Rate Cycles:</span> The chart shows a typical monetary policy cycle with rates rising as central banks combat inflation, then falling as economic conditions warrant easing.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Spread Analysis:</span> Changes in the spread between different money market rates can signal changing risk perceptions, liquidity conditions, or policy expectations.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {yieldCurveInfo === 'normal' && (
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200 text-sm">
+                                                                <span className="font-semibold">What It Is:</span> The yield curve plots interest rates across different maturities. A normal curve slopes upward, with longer maturities yielding higher rates to compensate for increased risk.
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200 text-sm">
+                                                                <span className="font-semibold">Economic Indication:</span> Indicates healthy economic conditions with expectations of continued growth. Typically seen during economic expansions.
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200 text-sm">
+                                                                <span className="font-semibold">Risk Premiums:</span> The upward slope reflects term premiums (compensation for longer commitment), inflation expectations, and liquidity preferences.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {yieldCurveInfo === 'flat' && (
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-yellow-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200 text-sm">
+                                                                <span className="font-semibold">What It Is:</span> A flat yield curve shows similar interest rates across different maturities. Short-term and long-term investments offer approximately the same yield.
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-yellow-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200 text-sm">
+                                                                <span className="font-semibold">Economic Indication:</span> Often occurs during transitional periods where the economy is shifting from expansion to contraction, or when inflation expectations are stable.
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-yellow-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200 text-sm">
+                                                                <span className="font-semibold">Market Significance:</span> A warning sign that the yield curve may invert, potentially signaling an approaching economic slowdown. Often occurs during monetary policy transitions.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {yieldCurveInfo === 'inverted' && (
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200 text-sm">
+                                                                <span className="font-semibold">What It Is:</span> An inverted yield curve slopes downward, with short-term rates higher than long-term rates. This unusual pattern indicates significant market stress.
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200 text-sm">
+                                                                <span className="font-semibold">Economic Indication:</span> Historically, one of the most reliable predictors of recession. Suggests investors expect interest rates to fall in the future due to economic contraction.
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200 text-sm">
+                                                                <span className="font-semibold">Market Impact:</span> Creates challenging conditions for financial institutions that borrow short-term and lend long-term. May lead to reduced credit availability and economic contraction.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-4 bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-md mb-2 text-green-400">
+                                            Key Money Market Rate Benchmarks
+                                        </h4>
+                                        <div className="space-y-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <p className="text-gray-200 text-sm">
+                                                    <span className="font-semibold">Federal Funds Rate:</span> The interest rate at which banks lend reserve balances to other banks overnight. Primary tool for Fed monetary policy.
+                                                </p>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <p className="text-gray-200 text-sm">
+                                                    <span className="font-semibold">LIBOR/SOFR:</span> Benchmark rates used for pricing many financial products. LIBOR is being phased out in favor of SOFR (Secured Overnight Financing Rate).
+                                                </p>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <p className="text-gray-200 text-sm">
+                                                    <span className="font-semibold">Treasury Bill Rates:</span> Considered the risk-free rate, T-bill yields serve as baseline for other money market instruments.
+                                                </p>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <p className="text-gray-200 text-sm">
+                                                    <span className="font-semibold">Commercial Paper Rates:</span> Reflects short-term corporate borrowing costs, with variations based on issuer credit quality.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Money Market Functions Tab */}
+                            {activeTab === 'functions' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Key Functions of Money Markets</h3>
+                                    
+                                    <div className="grid grid-cols-1 gap-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Liquidity Management</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Corporate Treasury Operations</span>
+                                                        <p className="text-gray-300 text-sm">Companies use money markets to manage cash flow timing mismatches and maintain operating liquidity while earning returns on idle funds.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Bank Reserve Management</span>
+                                                        <p className="text-gray-300 text-sm">Financial institutions use money markets to manage regulatory reserve requirements and balance sheet liquidity on a daily basis.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Investment Parking</span>
+                                                        <p className="text-gray-300 text-sm">Investors use money markets to temporarily park funds between longer-term investment decisions while maintaining principal safety.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Monetary Policy Implementation</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Central Bank Operations</span>
+                                                        <p className="text-gray-300 text-sm">Central banks conduct open market operations in money markets to influence short-term interest rates and implement monetary policy decisions.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Interest Rate Transmission</span>
+                                                        <p className="text-gray-300 text-sm">Changes in money market rates transmit through the financial system, affecting borrowing costs throughout the economy.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Liquidity Provision</span>
+                                                        <p className="text-gray-300 text-sm">During financial stress, central banks can inject liquidity into money markets to maintain proper functioning and prevent credit freezes.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-purple-400 mb-2">Short-Term Financing</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Working Capital Management</span>
+                                                        <p className="text-gray-300 text-sm">Corporations access money markets to fund inventory, manage accounts receivable, and support operational needs without long-term debt commitments.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Government Cash Flow</span>
+                                                        <p className="text-gray-300 text-sm">Governments issue short-term securities to manage timing differences between tax receipts and expenditures.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Bridge Financing</span>
+                                                        <p className="text-gray-300 text-sm">Borrowers use money markets for temporary funding while arranging longer-term financing or waiting for favorable market conditions.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Credit & Risk Management</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Risk Pricing</span>
+                                                        <p className="text-gray-300 text-sm">Money markets efficiently price short-term credit risk through yield differentials between instruments of varying credit quality.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Liquidity Buffers</span>
+                                                        <p className="text-gray-300 text-sm">Financial institutions maintain money market investments as buffers against unexpected liquidity needs or market disruptions.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Credit Market Indicators</span>
+                                                        <p className="text-gray-300 text-sm">Spreads between different money market instruments serve as early indicators of changing credit conditions and risk perception.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-green-400">Money Markets vs. Capital Markets</div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                        <div className="text-green-400 font-semibold mb-1">Money Markets</div>
+                                        <div className="text-sm text-gray-300">Short-term maturities (&lt;1 year)</div>
+                                        <div className="text-sm text-gray-300">High liquidity</div>
+                                        <div className="text-sm text-gray-300">Low risk, low returns</div>
+                                        <div className="text-sm text-gray-300">Cash management focus</div>
+                                        <div className="text-sm text-gray-300">Minimal price volatility</div>
+                                    </div>
+                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                        <div className="text-blue-400 font-semibold mb-1">Capital Markets</div>
+                                        <div className="text-sm text-gray-300">Long-term maturities (&gt;1 year)</div>
+                                        <div className="text-sm text-gray-300">Lower liquidity</div>
+                                        <div className="text-sm text-gray-300">Higher risk, higher returns</div>
+                                        <div className="text-sm text-gray-300">Investment focus</div>
+                                        <div className="text-sm text-gray-300">Greater price volatility</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<MoneyMarketsVisual />);
+    </script>
+</body>
+</html>
