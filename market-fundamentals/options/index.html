@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Options Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+        
+        /* Custom scrollbar for better UX */
+        .scrollable-content {
+            overflow-y: auto;
+            max-height: 100%;
+            scrollbar-width: thin;
+            scrollbar-color: #4B5563 #1F2937;
+        }
+        
+        .scrollable-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scrollable-content::-webkit-scrollbar-track {
+            background: #1F2937;
+        }
+        
+        .scrollable-content::-webkit-scrollbar-thumb {
+            background-color: #4B5563;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const OptionsVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('types');
+            const [optionType, setOptionType] = React.useState('call');
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const [moneynessSlider, setMoneynessSlider] = React.useState(100);
+            const [selectedMoneyness, setSelectedMoneyness] = React.useState('atm');
+            const brandColor = "#079A4F"; // Your brand green color
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+            
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 4 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 4);
+            };
+            
+            // Calculate moneyness based on slider value - Fixed the ATM range to be narrower
+            React.useEffect(() => {
+                try {
+                    if (moneynessSlider < 85) {
+                        setSelectedMoneyness('deepOtm');
+                    } else if (moneynessSlider < 97) {
+                        setSelectedMoneyness('otm');
+                    } else if (moneynessSlider >= 97 && moneynessSlider <= 103) {
+                        setSelectedMoneyness('atm');
+                    } else if (moneynessSlider > 103 && moneynessSlider <= 115) {
+                        setSelectedMoneyness('itm');
+                    } else {
+                        setSelectedMoneyness('deepItm');
+                    }
+                } catch (error) {
+                    console.error("Error in moneyness calculation:", error);
+                    // Fallback to atm if there's an error
+                    setSelectedMoneyness('atm');
+                }
+            }, [moneynessSlider]);
+            
+            // Payoff chart for options
+            React.useEffect(() => {
+                try {
+                    if (chartRef.current && activeTab === 'payoff') {
+                        if (chart) {
+                            chart.destroy();
+                        }
+
+                        const ctx = chartRef.current.getContext('2d');
+                        
+                        // Define price points for the x-axis
+                        const strikePriceCall = 100;
+                        const strikePricePut = 100;
+                        const premiumCall = 5;
+                        const premiumPut = 5;
+                        const pricePoints = [70, 80, 90, 100, 110, 120, 130];
+                        
+                        let payoffData;
+                        let backgroundColor;
+                        let borderColor;
+                        let label;
+                        if (optionType === 'call') {
+                            // Calculate call option payoff
+                            payoffData = pricePoints.map(price => {
+                                const payoff = Math.max(0, price - strikePriceCall) - premiumCall;
+                                return payoff;
+                            });
+                            backgroundColor = 'rgba(59, 130, 246, 0.2)'; // Blue
+                            borderColor = '#3B82F6';
+                            label = 'Call Option Payoff (Long)';
+                        } else if (optionType === 'put') {
+                            // Calculate put option payoff
+                            payoffData = pricePoints.map(price => {
+                                const payoff = Math.max(0, strikePricePut - price) - premiumPut;
+                                return payoff;
+                            });
+                            backgroundColor = 'rgba(239, 68, 68, 0.2)'; // Red
+                            borderColor = '#EF4444';
+                            label = 'Put Option Payoff (Long)';
+                        } else if (optionType === 'callWriter') {
+                            // Calculate call option writer payoff
+                            payoffData = pricePoints.map(price => {
+                                const payoff = premiumCall - Math.max(0, price - strikePriceCall);
+                                return payoff;
+                            });
+                            backgroundColor = 'rgba(59, 130, 246, 0.2)'; // Blue but different shade
+                            borderColor = '#60A5FA';
+                            label = 'Call Option Payoff (Short)';
+                        } else if (optionType === 'putWriter') {
+                            // Calculate put option writer payoff
+                            payoffData = pricePoints.map(price => {
+                                const payoff = premiumPut - Math.max(0, strikePricePut - price);
+                                return payoff;
+                            });
+                            backgroundColor = 'rgba(239, 68, 68, 0.2)'; // Red but different shade
+                            borderColor = '#F87171';
+                            label = 'Put Option Payoff (Short)';
+                        }
+                        
+                        const newChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: pricePoints.map(price => '$' + price),
+                                datasets: [{
+                                    label: label,
+                                    data: payoffData,
+                                    backgroundColor: backgroundColor,
+                                    borderColor: borderColor,
+                                    borderWidth: 2,
+                                    fill: true,
+                                    pointRadius: 4,
+                                    tension: 0.1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: {
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        title: {
+                                            display: true,
+                                            text: 'Profit/Loss ($)',
+                                            color: isDarkMode ? '#D1D5DB' : '#1F2937'
+                                        }
+                                    },
+                                    x: {
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        title: {
+                                            display: true,
+                                            text: 'Underlying Asset Price at Expiration',
+                                            color: isDarkMode ? '#D1D5DB' : '#1F2937'
+                                        }
+                                    }
+                                },
+                                plugins: {
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        callbacks: {
+                                            label: function(context) {
+                                                const value = context.parsed.y;
+                                                return value >= 0 ? `Profit: $${value}` : `Loss: $${value}`;
+                                            }
+                                        }
+                                    },
+                                    legend: {
+                                        labels: {
+                                            color: isDarkMode ? '#D1D5DB' : '#1F2937'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        
+                        setChart(newChart);
+                    }
+                } catch (error) {
+                    console.error("Error in payoff chart:", error);
+                    // If chart creation fails, make sure we don't keep the old chart reference
+                    setChart(null);
+                }
+            }, [optionType, activeTab, isDarkMode]);
+            // Interactive Moneyness Chart
+            React.useEffect(() => {
+                try {
+                    if (chartRef.current && activeTab === 'moneyness') {
+                        if (chart) {
+                            chart.destroy();
+                        }
+                        
+                        const ctx = chartRef.current.getContext('2d');
+                        
+                        // Create data for stock price vs strike price
+                        const strikePrice = 100;
+                        const stockPrices = [70, 80, 90, 95, 100, 105, 110, 120, 130];
+                        const stockLabels = stockPrices.map(price => `$${price}`);
+                        
+                        // Calculate current position based on slider
+                        const currentPrice = moneynessSlider;
+                        // Create datasets for visualization
+                        const newChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: stockLabels,
+                                datasets: [
+                                    {
+                                        label: 'Strike Price',
+                                        data: Array(stockPrices.length).fill(strikePrice),
+                                        borderColor: '#9CA3AF',
+                                        borderWidth: 2,
+                                        borderDash: [5, 5],
+                                        pointRadius: 0,
+                                        fill: false
+                                    },
+                                    {
+                                        label: 'Current Stock Price',
+                                        data: [null, null, null, null, null, null, null, null, null],
+                                        pointBackgroundColor: '#079A4F',
+                                        pointBorderColor: '#fff',
+                                        pointRadius: 8,
+                                        pointHoverRadius: 10,
+                                        fill: false,
+                                        showLine: false
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: {
+                                        min: 60,
+                                        max: 140,
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        title: {
+                                            display: true,
+                                            text: 'Price ($)',
+                                            color: isDarkMode ? '#D1D5DB' : '#1F2937'
+                                        }
+                                    },
+                                    x: {
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        title: {
+                                            display: true,
+                                            text: 'Stock Price',
+                                            color: isDarkMode ? '#D1D5DB' : '#1F2937'
+                                        }
+                                    }
+                                },
+                                plugins: {
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000'
+                                    },
+                                    legend: {
+                                        labels: {
+                                            color: isDarkMode ? '#D1D5DB' : '#1F2937'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        
+                        // Find closest index to current price
+                        let closestIndex = 0;
+                        let minDiff = Math.abs(stockPrices[0] - currentPrice);
+                        
+                        for (let i = 1; i < stockPrices.length; i++) {
+                            const diff = Math.abs(stockPrices[i] - currentPrice);
+                            if (diff < minDiff) {
+                                minDiff = diff;
+                                closestIndex = i;
+                            }
+                        }
+                        // Update the current price point
+                        let newDataArray = Array(stockPrices.length).fill(null);
+                        newDataArray[closestIndex] = currentPrice;
+                        newChart.data.datasets[1].data = newDataArray;
+                        newChart.update();
+                        
+                        setChart(newChart);
+                    }
+                } catch (error) {
+                    console.error("Error in moneyness chart:", error);
+                    // If chart creation fails, make sure we don't keep the old chart reference
+                    setChart(null);
+                }
+            }, [moneynessSlider, activeTab, isDarkMode]);
+            
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Options
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    Financial contracts that give the buyer the right, but not the obligation, to buy (call option) or sell (put option) an underlying asset at a specified price (strike price) before or at a specific expiration date. Option sellers receive a premium for taking on the obligation to fulfill the contract if exercised.
+                                </p>
+                            </div>
+
+                            <div className="mb-4 flex flex-wrap">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'types' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg ${activeTab === 'types' ? '' : 'hover:bg-gray-600'}`}
+                                    onClick={() => setActiveTab('types')}
+                                >
+                                    Types
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'structure' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'} ${activeTab === 'structure' ? '' : 'hover:bg-gray-600'}`}
+                                    onClick={() => setActiveTab('structure')}
+                                >
+                                    Structure
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'moneyness' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'} ${activeTab === 'moneyness' ? '' : 'hover:bg-gray-600'}`}
+                                    onClick={() => setActiveTab('moneyness')}
+                                >
+                                    Moneyness
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'greeks' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'} ${activeTab === 'greeks' ? '' : 'hover:bg-gray-600'}`}
+                                    onClick={() => setActiveTab('greeks')}
+                                >
+                                    The Greeks
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'payoff' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'} ${activeTab === 'payoff' ? '' : 'hover:bg-gray-600'}`}
+                                    onClick={() => setActiveTab('payoff')}
+                                >
+                                    Payoff
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'strategies' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg ${activeTab === 'strategies' ? '' : 'hover:bg-gray-600'}`}
+                                    onClick={() => setActiveTab('strategies')}
+                                >
+                                    Strategies
+                                </button>
+                            </div>
+                            {/* Types of Options */}
+                            {activeTab === 'types' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Types of Options</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Call Options</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Right to Buy:</span> Allows the holder to purchase the underlying asset at the strike price.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Bullish Strategy:</span> Typically used when expecting the price to rise above the strike price plus premium.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Limited Risk:</span> Maximum loss is the premium paid for the option.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Unlimited Potential:</span> Profit potential is theoretically unlimited as the underlying asset price rises.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-red-400 mb-2">Put Options</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Right to Sell:</span> Allows the holder to sell the underlying asset at the strike price.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Bearish Strategy:</span> Typically used when expecting the price to fall below the strike price minus premium.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Limited Risk:</span> Maximum loss is the premium paid for the option.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Limited Potential:</span> Maximum profit is the strike price minus premium (as price can't go below zero).
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-purple-400 mb-2">Exercise Styles</h4>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold text-green-400 mb-1">American Options</div>
+                                                    <p className="text-sm text-gray-300">Can be exercised at any time before the expiration date, offering greater flexibility to the holder.</p>
+                                                </div>
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold text-amber-400 mb-1">European Options</div>
+                                                    <p className="text-sm text-gray-300">Can only be exercised on the expiration date itself, typically resulting in lower premiums than American options.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-green-400 mb-2">Options Market Participants</h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <div className="font-semibold text-blue-400 mb-1">Buyers (Long Position)</div>
+                                                <ul className="text-sm text-gray-300 list-disc pl-5 space-y-1">
+                                                    <li>Pay premium for the right to exercise</li>
+                                                    <li>Have limited risk (premium paid)</li>
+                                                    <li>No obligation to exercise</li>
+                                                    <li>Looking for directional moves or hedging</li>
+                                                </ul>
+                                            </div>
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <div className="font-semibold text-red-400 mb-1">Sellers (Short Position)</div>
+                                                <ul className="text-sm text-gray-300 list-disc pl-5 space-y-1">
+                                                    <li>Collect premium for taking obligation</li>
+                                                    <li>Have potentially unlimited risk</li>
+                                                    <li>Must fulfill contract if exercised</li>
+                                                    <li>Looking for income or premium decay</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {/* Option Structure */}
+                            {activeTab === 'structure' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Option Structure & Components</h3>
+                                    
+                                    <div className="relative h-96 mb-4 bg-gray-700 rounded-lg overflow-hidden">
+                                        {/* Step 1: Components */}
+                                        {currentStep === 1 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <div className="scrollable-content h-full">
+                                                    <h3 className="text-lg font-semibold mb-3 text-center text-blue-400">Key Components of an Option</h3>
+                                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <div className="font-semibold text-blue-400 mb-1">Strike Price</div>
+                                                            <p className="text-sm text-gray-300 mb-2">The predetermined price at which the underlying asset can be bought (call) or sold (put).</p>
+                                                            <div className="bg-blue-900 bg-opacity-20 p-2 rounded text-xs">
+                                                                <span className="font-semibold">Examples:</span>
+                                                                <ul className="list-disc pl-4 space-y-1 mt-1">
+                                                                    <li>$50 strike AAPL call</li>
+                                                                    <li>$400 strike SPY put</li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <div className="font-semibold text-green-400 mb-1">Premium</div>
+                                                            <p className="text-sm text-gray-300 mb-2">The price paid by the buyer to the seller for the option contract.</p>
+                                                            <div className="bg-green-900 bg-opacity-20 p-2 rounded text-xs">
+                                                                <span className="font-semibold">Influenced by:</span>
+                                                                <ul className="list-disc pl-4 space-y-1 mt-1">
+                                                                    <li>Intrinsic value</li>
+                                                                    <li>Time value (time to expiration)</li>
+                                                                    <li>Implied volatility</li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <div className="font-semibold text-purple-400 mb-1">Expiration Date</div>
+                                                            <p className="text-sm text-gray-300 mb-2">The date when the option contract ends and becomes void if not exercised.</p>
+                                                            <div className="bg-purple-900 bg-opacity-20 p-2 rounded text-xs">
+                                                                <span className="font-semibold">Common Expirations:</span>
+                                                                <ul className="list-disc pl-4 space-y-1 mt-1">
+                                                                    <li>Weekly options</li>
+                                                                    <li>Monthly options</li>
+                                                                    <li>LEAPS (Long-term options)</li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <div className="font-semibold text-amber-400 mb-1">Contract Multiplier</div>
+                                                            <p className="text-sm text-gray-300 mb-2">Each standard equity option contract represents 100 shares of the underlying asset.</p>
+                                                            <div className="bg-amber-900 bg-opacity-20 p-2 rounded text-xs">
+                                                                <span className="font-semibold">Example:</span>
+                                                                <p className="mt-1">A premium of $1.50 per contract costs $150 total (1.50 × 100 shares)</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <div className="font-semibold text-red-400 mb-1">Option Moneyness</div>
+                                                        <div className="grid grid-cols-3 gap-2 mt-2">
+                                                            <div className="bg-green-900 bg-opacity-30 p-2 rounded text-center">
+                                                                <div className="text-xs font-semibold text-green-400">In-the-Money (ITM)</div>
+                                                                <div className="text-xs mt-1">Call: Market &gt; Strike</div>
+                                                                <div className="text-xs">Put: Market &lt; Strike</div>
+                                                                <div className="text-xs mt-1 text-gray-400">Has intrinsic value</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded text-center">
+                                                                <div className="text-xs font-semibold text-gray-300">At-the-Money (ATM)</div>
+                                                                <div className="text-xs mt-1">Market price ≈ Strike price</div>
+                                                                <div className="text-xs mt-1 text-gray-400">No intrinsic value</div>
+                                                            </div>
+                                                            <div className="bg-red-900 bg-opacity-30 p-2 rounded text-center">
+                                                                <div className="text-xs font-semibold text-red-400">Out-of-the-Money (OTM)</div>
+                                                                <div className="text-xs mt-1">Call: Market &lt; Strike</div>
+                                                                <div className="text-xs">Put: Market &gt; Strike</div>
+                                                                <div className="text-xs mt-1 text-gray-400">No intrinsic value</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {/* Step 2: Pricing Factors */}
+                                        {currentStep === 2 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <div className="scrollable-content h-full">
+                                                    <h3 className="text-lg font-semibold mb-3 text-center text-blue-400">Option Pricing Factors</h3>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <div className="font-semibold text-green-400 mb-1">Intrinsic Value</div>
+                                                            <p className="text-sm text-gray-300 mb-2">The value an option would have if exercised immediately.</p>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="text-xs">
+                                                                    <span className="font-semibold">Call Intrinsic Value:</span>
+                                                                    <p>Max(0, Market Price - Strike Price)</p>
+                                                                </div>
+                                                                <div className="text-xs mt-2">
+                                                                    <span className="font-semibold">Put Intrinsic Value:</span>
+                                                                    <p>Max(0, Strike Price - Market Price)</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <div className="font-semibold text-blue-400 mb-1">Time Value</div>
+                                                            <p className="text-sm text-gray-300 mb-2">The extra premium beyond intrinsic value reflecting the chance of favorable price movement before expiration.</p>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="text-xs">
+                                                                    <span className="font-semibold">Time Value:</span>
+                                                                    <p>Premium - Intrinsic Value</p>
+                                                                </div>
+                                                                <div className="text-xs mt-2">
+                                                                    <span className="font-semibold">Time Decay (Theta):</span>
+                                                                    <p>Accelerates as expiration approaches</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="mt-4 space-y-3">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <div className="font-semibold text-purple-400 mb-1">Key Pricing Variables (The Greeks)</div>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="text-sm font-semibold">Delta (Δ)</span>
+                                                                        <p className="text-xs text-gray-300">Rate of change in option price relative to underlying asset price. Call deltas range from 0 to 1, put deltas from -1 to 0.</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="text-sm font-semibold">Gamma (Γ)</span>
+                                                                        <p className="text-xs text-gray-300">Rate of change in delta relative to underlying asset price. Higher near strike price and close to expiration.</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="text-sm font-semibold">Theta (Θ)</span>
+                                                                        <p className="text-xs text-gray-300">Rate of time decay in option value. Typically negative, as options lose value as time passes.</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="text-sm font-semibold">Vega (ν)</span>
+                                                                        <p className="text-xs text-gray-300">Sensitivity to volatility changes. Higher vega means greater sensitivity to changes in implied volatility.</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <div className="font-semibold text-amber-400 mb-1">Implied Volatility (IV)</div>
+                                                            <p className="text-sm text-gray-300">The market's forecast of a likely movement in the underlying asset's price, derived from option prices themselves.</p>
+                                                            <div className="grid grid-cols-2 gap-2 mt-2">
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <span className="font-semibold">High IV:</span>
+                                                                    <ul className="list-disc pl-4 mt-1 space-y-1">
+                                                                        <li>More expensive options</li>
+                                                                        <li>Greater expected price movement</li>
+                                                                        <li>Often increases before events (earnings, etc.)</li>
+                                                                    </ul>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <span className="font-semibold">Low IV:</span>
+                                                                    <ul className="list-disc pl-4 mt-1 space-y-1">
+                                                                        <li>Less expensive options</li>
+                                                                        <li>Lower expected price movement</li>
+                                                                        <li>Typically returns to mean over time</li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {/* Step 3: Option Chain - UPDATED with Open Interest and Breakeven */}
+                                        {currentStep === 3 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <div className="scrollable-content h-full">
+                                                    <h3 className="text-lg font-semibold mb-2 text-center text-blue-400">Reading an Option Chain</h3>
+                                                    <div className="flex flex-col">
+                                                        <div className="bg-gray-800 rounded-lg mb-4">
+                                                            <div className="flex items-center justify-between bg-gray-700 p-2 rounded-t-lg">
+                                                                <div className="text-sm font-semibold">AAPL - Current Price: $175.89</div>
+                                                                <div className="text-xs text-gray-300">Expiration: April 19, 2025</div>
+                                                            </div>
+                                                            
+                                                            <div className="overflow-x-auto">
+                                                                <div style={{ minWidth: "900px" }}>
+                                                                    <div className="grid grid-cols-11 gap-1 p-2 text-xs font-semibold border-b border-gray-700">
+                                                                        <div className="col-span-5 text-center">CALLS</div>
+                                                                        <div className="text-center">STRIKE</div>
+                                                                        <div className="col-span-5 text-center">PUTS</div>
+                                                                    </div>
+                                                                    
+                                                                    <div className="grid grid-cols-11 gap-1 p-2 text-xs font-semibold text-gray-400 border-b border-gray-700">
+                                                                        <div className="text-center">Bid</div>
+                                                                        <div className="text-center">Ask</div>
+                                                                        <div className="text-center">Vol</div>
+                                                                        <div className="text-center">OI</div>
+                                                                        <div className="text-center">BE</div>
+                                                                        <div className="text-center">Price</div>
+                                                                        <div className="text-center">Bid</div>
+                                                                        <div className="text-center">Ask</div>
+                                                                        <div className="text-center">Vol</div>
+                                                                        <div className="text-center">OI</div>
+                                                                        <div className="text-center">BE</div>
+                                                                    </div>
+                                                                    
+                                                                    {/* Out of the money calls, In the money puts */}
+                                                                    <div className="grid grid-cols-11 gap-1 p-2 text-xs border-b border-gray-700 bg-red-900 bg-opacity-10">
+                                                                        <div className="text-center">0.75</div>
+                                                                        <div className="text-center">0.95</div>
+                                                                        <div className="text-center">142</div>
+                                                                        <div className="text-center">326</div>
+                                                                        <div className="text-center">185.95</div>
+                                                                        <div className="text-center font-semibold">185.00</div>
+                                                                        <div className="text-center">9.25</div>
+                                                                        <div className="text-center">9.65</div>
+                                                                        <div className="text-center">87</div>
+                                                                        <div className="text-center">154</div>
+                                                                        <div className="text-center">175.35</div>
+                                                                    </div>
+                                                                    
+                                                                    <div className="grid grid-cols-11 gap-1 p-2 text-xs border-b border-gray-700 bg-red-900 bg-opacity-10">
+                                                                        <div className="text-center">1.65</div>
+                                                                        <div className="text-center">1.95</div>
+                                                                        <div className="text-center">256</div>
+                                                                        <div className="text-center">518</div>
+                                                                        <div className="text-center">181.95</div>
+                                                                        <div className="text-center font-semibold">180.00</div>
+                                                                        <div className="text-center">5.15</div>
+                                                                        <div className="text-center">5.45</div>
+                                                                        <div className="text-center">124</div>
+                                                                        <div className="text-center">287</div>
+                                                                        <div className="text-center">174.55</div>
+                                                                    </div>
+                                                                    
+                                                                    {/* At the money */}
+                                                                    <div className="grid grid-cols-11 gap-1 p-2 text-xs border-b border-gray-700 bg-gray-700">
+                                                                        <div className="text-center">3.35</div>
+                                                                        <div className="text-center">3.65</div>
+                                                                        <div className="text-center">487</div>
+                                                                        <div className="text-center">845</div>
+                                                                        <div className="text-center">178.65</div>
+                                                                        <div className="text-center font-semibold">175.00</div>
+                                                                        <div className="text-center">2.85</div>
+                                                                        <div className="text-center">3.15</div>
+                                                                        <div className="text-center">352</div>
+                                                                        <div className="text-center">623</div>
+                                                                        <div className="text-center">171.85</div>
+                                                                    </div>
+                                                                    
+                                                                    {/* In the money calls, Out of the money puts */}
+                                                                    <div className="grid grid-cols-11 gap-1 p-2 text-xs border-b border-gray-700 bg-green-900 bg-opacity-10">
+                                                                        <div className="text-center">5.75</div>
+                                                                        <div className="text-center">6.05</div>
+                                                                        <div className="text-center">189</div>
+                                                                        <div className="text-center">412</div>
+                                                                        <div className="text-center">176.05</div>
+                                                                        <div className="text-center font-semibold">170.00</div>
+                                                                        <div className="text-center">1.25</div>
+                                                                        <div className="text-center">1.45</div>
+                                                                        <div className="text-center">163</div>
+                                                                        <div className="text-center">296</div>
+                                                                        <div className="text-center">168.55</div>
+                                                                    </div>
+                                                                    
+                                                                    <div className="grid grid-cols-11 gap-1 p-2 text-xs border-b border-gray-700 bg-green-900 bg-opacity-10">
+                                                                        <div className="text-center">8.85</div>
+                                                                        <div className="text-center">9.15</div>
+                                                                        <div className="text-center">97</div>
+                                                                        <div className="text-center">245</div>
+                                                                        <div className="text-center">174.15</div>
+                                                                        <div className="text-center font-semibold">165.00</div>
+                                                                        <div className="text-center">0.55</div>
+                                                                        <div className="text-center">0.75</div>
+                                                                        <div className="text-center">85</div>
+                                                                        <div className="text-center">178</div>
+                                                                        <div className="text-center">164.25</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <div className="font-semibold text-blue-400 mb-2">How to Read the Option Chain</div>
+                                                            <div className="space-y-2 text-sm">
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Strike Price:</span>
+                                                                        <p className="text-xs text-gray-300">The center column shows available strike prices.</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Bid/Ask:</span>
+                                                                        <p className="text-xs text-gray-300">The price at which you can sell (bid) or buy (ask) the option.</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Volume (Vol):</span>
+                                                                        <p className="text-xs text-gray-300">The number of contracts traded that day.</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Open Interest (OI):</span>
+                                                                        <p className="text-xs text-gray-300">The total number of outstanding contracts that have not been settled. Higher OI indicates more liquidity and market activity.</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-pink-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Break-Even (BE):</span>
+                                                                        <p className="text-xs text-gray-300">For calls: Strike Price + Premium. For puts: Strike Price - Premium. The price the underlying must reach for the option to break even at expiration.</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Color Coding:</span>
+                                                                        <p className="text-xs text-gray-300">Green background = In-the-money options, Red background = Out-of-the-money options, Gray = At-the-money options.</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {/* Step 4: Advanced Concepts */}
+                                        {currentStep === 4 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <div className="scrollable-content h-full">
+                                                    <h3 className="text-lg font-semibold mb-2 text-center text-blue-400">Advanced Option Concepts</h3>
+                                                    
+                                                    <div className="grid grid-cols-1 gap-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="font-semibold text-green-400 mb-2">Option Pricing Models</h4>
+                                                            <p className="text-sm text-gray-300 mb-2">Mathematical models used to calculate theoretical option prices.</p>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-gray-700 p-2 rounded">
+                                                                    <div className="text-sm font-semibold text-blue-400">Black-Scholes Model</div>
+                                                                    <p className="text-xs text-gray-300 mt-1">The most widely used model for European options, considering factors like strike price, current price, time to expiration, interest rates, and volatility.</p>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded">
+                                                                    <div className="text-sm font-semibold text-purple-400">Binomial Model</div>
+                                                                    <p className="text-xs text-gray-300 mt-1">Uses a "tree" approach that models different possible price paths, particularly useful for American options that can be exercised early.</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="font-semibold text-amber-400 mb-2">Volatility Smile</h4>
+                                                            <p className="text-sm text-gray-300 mb-2">The pattern where implied volatility varies across different strike prices for the same expiration date.</p>
+                                                            <div className="text-xs text-gray-300">
+                                                                <p>The "smile" shape occurs because out-of-the-money puts and calls often have higher implied volatility than at-the-money options, reflecting market concern about extreme moves and tail risk.</p>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="font-semibold text-red-400 mb-2">Pin Risk</h4>
+                                                            <p className="text-sm text-gray-300 mb-2">The uncertainty option sellers face when the underlying asset's price is near the strike price at expiration.</p>
+                                                            <div className="text-xs text-gray-300">
+                                                                <p>When the price is very close to the strike at expiration ("pinned"), it becomes difficult to predict whether options will be exercised, creating potential exposure to unwanted positions.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3, 4].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-blue-500' : 'bg-gray-500'} cursor-pointer`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            {/* The Greeks Section - Fixed Step 3 and 4 */}
+                            {activeTab === 'greeks' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">The Greeks: Option Sensitivity Measures</h3>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg mb-4">
+                                        <p className="text-gray-200 mb-3">
+                                            "The Greeks" are a set of risk measures that describe how option prices change in response to different factors. They're essential for understanding option behavior and managing risk.
+                                        </p>
+                                        
+                                        {currentStep === 1 && (
+                                            <div className="scrollable-content max-h-96 pr-2">
+                                                <h4 className="font-semibold text-lg mb-3 text-purple-400 text-center">Real-World Example: NVDA $102 Call expiring 5/30</h4>
+                                                
+                                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h5 className="text-blue-400 text-sm font-semibold mb-2">Option Details</h5>
+                                                        <div className="space-y-1 text-sm">
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Underlying:</span>
+                                                                <span className="text-gray-200">NVDA</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Strike Price:</span>
+                                                                <span className="text-gray-200">$102.00</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Option Type:</span>
+                                                                <span className="text-gray-200">Call</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Expiration:</span>
+                                                                <span className="text-gray-200">5/30</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h5 className="text-green-400 text-sm font-semibold mb-2">Market Data</h5>
+                                                        <div className="space-y-1 text-sm">
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Bid:</span>
+                                                                <span className="text-gray-200">$7.90 × 1</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Ask:</span>
+                                                                <span className="text-gray-200">$8.00 × 4</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Mark:</span>
+                                                                <span className="text-gray-200">$7.95</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Last Trade:</span>
+                                                                <span className="text-gray-200">$8.10</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h5 className="text-amber-400 text-sm font-semibold mb-2">Trading Statistics</h5>
+                                                        <div className="space-y-1 text-sm">
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Volume:</span>
+                                                                <span className="text-gray-200">388</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Open Interest:</span>
+                                                                <span className="text-gray-200">514</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Previous Close:</span>
+                                                                <span className="text-gray-200">$6.45</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Implied Volatility:</span>
+                                                                <span className="text-gray-200">57.99%</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h5 className="text-purple-400 text-sm font-semibold mb-2">The Greeks</h5>
+                                                        <div className="space-y-1 text-sm">
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Delta:</span>
+                                                                <span className="text-gray-200">0.5567</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Gamma:</span>
+                                                                <span className="text-gray-200">0.0210</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Theta:</span>
+                                                                <span className="text-gray-200">-0.1074</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Vega:</span>
+                                                                <span className="text-gray-200">0.1282</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Rho:</span>
+                                                                <span className="text-gray-200">0.0493</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-3 rounded-lg mb-4">
+                                    <h5 className="text-blue-400 text-sm font-semibold mb-2">Bid-Ask Spread Explained</h5>
+                                    <p className="text-sm text-gray-300 mb-2">
+                                        The bid-ask spread is the difference between the highest price a buyer is willing to pay (bid) and the lowest price a seller is willing to accept (ask).
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="bg-gray-700 p-2 rounded">
+                                            <div className="text-sm mb-1"><span className="font-semibold text-green-400">Bid:</span> $7.90 × 1</div>
+                                            <p className="text-xs text-gray-300">The highest price a buyer will pay for the option. The "× 1" means there is 1 contract at this price level.</p>
+                                        </div>
+                                        <div className="bg-gray-700 p-2 rounded">
+                                            <div className="text-sm mb-1"><span className="font-semibold text-red-400">Ask:</span> $8.00 × 4</div>
+                                            <p className="text-xs text-gray-300">The lowest price a seller will accept for the option. The "× 4" means there are 4 contracts available at this price.</p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-2 text-xs text-gray-300">
+                                        <span className="font-semibold">Bid-Ask Spread:</span> $0.10 ($8.00 - $7.90)
+                                    </div>
+                                    <div className="mt-1 text-xs text-gray-300">
+                                        <span className="font-semibold">Implications:</span> A tighter spread (smaller difference) indicates a more liquid option with better price discovery. Wider spreads mean higher transaction costs when buying and selling.
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-blue-900 bg-opacity-20 p-3 rounded-lg">
+                                    <h5 className="font-semibold text-blue-400 mb-2">Understanding This Example</h5>
+                                    <p className="text-sm text-gray-200 mb-2">
+                                        This NVDA $102 Call has a delta of 0.5567, meaning it's approximately at-the-money. With a price of about $7.95 (the mark), each contract would cost $795 (since each option represents 100 shares).
+                                    </p>
+                                    <p className="text-sm text-gray-200">
+                                        The option has moderate time decay (theta of -0.1074) and is somewhat sensitive to volatility changes (vega of 0.1282). The trading volume of 388 contracts shows reasonable liquidity compared to the open interest of 514.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {currentStep === 2 && (
+                            <div className="scrollable-content max-h-96 pr-2">
+                                <h4 className="font-semibold text-lg mb-3 text-green-400">Delta (Δ)</h4>
+                                <div className="bg-gray-800 p-4 rounded-lg mb-4">
+                                    <div className="flex items-start mb-3">
+                                        <div className="w-10 h-10 rounded-full bg-green-800 flex items-center justify-center mr-3 flex-shrink-0">
+                                            <span className="text-2xl font-bold text-green-400">Δ</span>
+                                        </div>
+                                        <div>
+                                            <h5 className="font-semibold text-green-400">Delta: Price Movement Sensitivity</h5>
+                                            <p className="text-sm text-gray-300">Delta measures how much an option's price will change for a $1 change in the underlying asset's price.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-3">
+                                        <div className="bg-blue-900 bg-opacity-20 p-3 rounded-lg">
+                                            <h6 className="text-blue-400 font-semibold mb-1">Call Option Delta</h6>
+                                            <p className="text-xs text-gray-300">Ranges from 0 to 1</p>
+                                            <ul className="list-disc pl-4 text-xs text-gray-300 space-y-1 mt-1">
+                                                <li>Deep OTM: Near 0</li>
+                                                <li>ATM: ~0.50</li>
+                                                <li>Deep ITM: Near 1</li>
+                                            </ul>
+                                        </div>
+                                        <div className="bg-red-900 bg-opacity-20 p-3 rounded-lg">
+                                            <h6 className="text-red-400 font-semibold mb-1">Put Option Delta</h6>
+                                            <p className="text-xs text-gray-300">Ranges from -1 to 0</p>
+                                            <ul className="list-disc pl-4 text-xs text-gray-300 space-y-1 mt-1">
+                                                <li>Deep OTM: Near 0</li>
+                                                <li>ATM: ~-0.50</li>
+                                                <li>Deep ITM: Near -1</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-3 rounded-lg mb-3">
+                                        <h6 className="font-semibold mb-1">Example Calculation</h6>
+                                        <p className="text-sm mb-2">For our NVDA $102 Call with Delta = 0.5567:</p>
+                                        <div className="text-sm">
+                                            <p className="mb-1">• If NVDA stock price increases by $1, the option price would increase by approximately $0.56</p>
+                                            <p className="mb-1">• If NVDA stock price decreases by $1, the option price would decrease by approximately $0.56</p>
+                                            <p>• Since each contract controls 100 shares, a $1 stock move would change the contract value by ~$55.67</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-gray-300">
+                                        <span className="font-semibold">Key Insight:</span> Delta can also be roughly interpreted as the probability of the option expiring in-the-money. A delta of 0.5567 suggests this option has about a 55.67% chance of finishing above the strike price.
+                                    </div>
+                                </div>
+                                
+                                <h4 className="font-semibold text-lg mb-3 text-red-400">Theta (Θ)</h4>
+                                <div className="bg-gray-800 p-4 rounded-lg mb-4">
+                                    <div className="flex items-start mb-3">
+                                        <div className="w-10 h-10 rounded-full bg-red-900 flex items-center justify-center mr-3 flex-shrink-0">
+                                            <span className="text-2xl font-bold text-red-400">Θ</span>
+                                        </div>
+                                        <div>
+                                            <h5 className="font-semibold text-red-400">Theta: Time Decay</h5>
+                                            <p className="text-sm text-gray-300">Theta measures how much an option's price will decrease as time passes, specifically the daily decay in option value.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-3 rounded-lg mb-3">
+                                        <h6 className="font-semibold mb-1">Important Characteristics</h6>
+                                        <ul className="list-disc pl-4 text-sm text-gray-300 space-y-1">
+                                            <li>Theta is almost always negative for long options (both calls and puts)</li>
+                                            <li>Theta accelerates as expiration approaches</li>
+                                            <li>At-the-money options generally have the highest theta (fastest time decay)</li>
+                                            <li>Options with higher implied volatility have higher theta</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-3 rounded-lg mb-3">
+                                        <h6 className="font-semibold mb-1">Example Calculation</h6>
+                                        <p className="text-sm mb-2">For our NVDA $102 Call with Theta = -0.1074:</p>
+                                        <div className="text-sm">
+                                            <p className="mb-1">• The option will lose approximately $0.11 in value each day, all else being equal</p>
+                                            <p>• For one contract (100 shares), that's about $10.74 per day in time decay</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="text-xs text-gray-300">
+                                        <span className="font-semibold">Key Insight:</span> Theta is the "silent killer" of option buyers and the friend of option sellers. Long-term options have lower daily theta, which is why they're more expensive but decay more slowly.
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Fixed Step 3: Gamma (Γ) */}
+                        {currentStep === 3 && (
+                            <div className="scrollable-content max-h-96 pr-2">
+                                <h4 className="font-semibold text-lg mb-3 text-blue-400">Gamma (Γ)</h4>
+                                <div className="bg-gray-800 p-4 rounded-lg mb-4">
+                                    <div className="flex items-start mb-3">
+                                        <div className="w-10 h-10 rounded-full bg-blue-800 flex items-center justify-center mr-3 flex-shrink-0">
+                                            <span className="text-2xl font-bold text-blue-400">Γ</span>
+                                        </div>
+                                        <div>
+                                            <h5 className="font-semibold text-blue-400">Gamma: Delta's Rate of Change</h5>
+                                            <p className="text-sm text-gray-300">Gamma measures how much an option's delta changes when the underlying asset price moves by $1.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-3 rounded-lg mb-3">
+                                        <h6 className="font-semibold mb-1">Important Characteristics</h6>
+                                        <ul className="list-disc pl-4 text-sm text-gray-300 space-y-1">
+                                            <li>Gamma is highest for at-the-money options</li>
+                                            <li>Gamma increases as expiration approaches</li>
+                                            <li>Higher gamma means the option's delta (and price) will change more rapidly</li>
+                                            <li>Same value for both calls and puts at the same strike and expiration</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-3 rounded-lg mb-3">
+                                        <h6 className="font-semibold mb-1">Example Calculation</h6>
+                                        <p className="text-sm mb-2">For our NVDA $102 Call with Gamma = 0.0210:</p>
+                                        <div className="text-sm">
+                                            <p className="mb-1">• If NVDA stock increases by $1, the delta would increase by 0.0210 (from 0.5567 to ~0.5777)</p>
+                                            <p className="mb-1">• If NVDA stock decreases by $1, the delta would decrease by 0.0210 (from 0.5567 to ~0.5357)</p>
+                                            <p>• Higher gamma means faster acceleration in option price movement</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="text-xs text-gray-300">
+                                        <span className="font-semibold">Key Insight:</span> Gamma is a measure of convexity or exponential movement in options. High gamma positions can experience dramatic price swings as the underlying asset moves through the strike price.
+                                    </div>
+                                </div>
+                                <h4 className="font-semibold text-lg mb-3 text-purple-400">Vega (v)</h4>
+                                <div className="bg-gray-800 p-4 rounded-lg mb-4">
+                                    <div className="flex items-start mb-3">
+                                        <div className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center mr-3 flex-shrink-0">
+                                            <span className="text-2xl font-bold text-purple-400">v</span>
+                                        </div>
+                                        <div>
+                                            <h5 className="font-semibold text-purple-400">Vega: Volatility Sensitivity</h5>
+                                            <p className="text-sm text-gray-300">Vega measures how much an option's price changes when implied volatility changes by 1 percentage point.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-3 rounded-lg mb-3">
+                                        <h6 className="font-semibold mb-1">Important Characteristics</h6>
+                                        <ul className="list-disc pl-4 text-sm text-gray-300 space-y-1">
+                                            <li>Vega is highest for at-the-money options</li>
+                                            <li>Longer-term options have higher vega</li>
+                                            <li>Vega decreases as expiration approaches</li>
+                                            <li>Same value for both calls and puts at the same strike and expiration</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-3 rounded-lg mb-3">
+                                        <h6 className="font-semibold mb-1">Example Calculation</h6>
+                                        <p className="text-sm mb-2">For our NVDA $102 Call with Vega = 0.1282:</p>
+                                        <div className="text-sm">
+                                            <p className="mb-1">• If implied volatility increases by 1 percentage point (e.g., from 57.99% to 58.99%), the option price would increase by approximately $0.13</p>
+                                            <p className="mb-1">• If implied volatility decreases by 1 percentage point, the option price would decrease by approximately $0.13</p>
+                                            <p>• For one contract (100 shares), a 1% volatility change impacts value by ~$12.82</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="text-xs text-gray-300">
+                                        <span className="font-semibold">Key Insight:</span> Vega exposure is important during earnings announcements or major news events when implied volatility can change dramatically, causing significant price movements even without changes in the underlying stock price.
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Fixed Step 4: Rho (ρ) */}
+                        {currentStep === 4 && (
+                            <div className="scrollable-content max-h-96 pr-2">
+                                <h4 className="font-semibold text-lg mb-3 text-amber-400">Rho (ρ)</h4>
+                                <div className="bg-gray-800 p-4 rounded-lg mb-4">
+                                    <div className="flex items-start mb-3">
+                                        <div className="w-10 h-10 rounded-full bg-amber-900 flex items-center justify-center mr-3 flex-shrink-0">
+                                            <span className="text-2xl font-bold text-amber-400">ρ</span>
+                                        </div>
+                                        <div>
+                                            <h5 className="font-semibold text-amber-400">Rho: Interest Rate Sensitivity</h5>
+                                            <p className="text-sm text-gray-300">Rho measures how much an option's price changes when interest rates change by 1 percentage point.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-3 rounded-lg mb-3">
+                                        <h6 className="font-semibold mb-1">Important Characteristics</h6>
+                                        <ul className="list-disc pl-4 text-sm text-gray-300 space-y-1">
+                                            <li>Call options have positive rho (increase with interest rates)</li>
+                                            <li>Put options have negative rho (decrease with interest rates)</li>
+                                            <li>Longer-term options have higher rho</li>
+                                            <li>In-the-money options have higher rho</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-3 rounded-lg mb-3">
+                                        <h6 className="font-semibold mb-1">Example Calculation</h6>
+                                        <p className="text-sm mb-2">For our NVDA $102 Call with Rho = 0.0493:</p>
+                                        <div className="text-sm">
+                                            <p className="mb-1">• If interest rates increase by 1 percentage point, the option price would increase by approximately $0.05</p>
+                                            <p className="mb-1">• If interest rates decrease by 1 percentage point, the option price would decrease by approximately $0.05</p>
+                                            <p>• For one contract (100 shares), a 1% interest rate change impacts value by ~$4.93</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-gray-300">
+                                        <span className="font-semibold">Key Insight:</span> Rho is typically the least impactful Greek for short-term options but becomes significant for LEAPS (long-term options) during periods of interest rate volatility.
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-gray-800 p-4 rounded-lg">
+                                    <h4 className="font-semibold text-lg mb-3 text-blue-400">How The Greeks Work Together</h4>
+                                    <p className="text-sm text-gray-300 mb-3">
+                                        All Greeks interact to determine the total change in an option's price. Here's a simplified calculation for how our NVDA $102 Call might change in a single day:
+                                    </p>
+                                    
+                                    <div className="bg-gray-700 p-3 rounded-lg mb-3">
+                                        <h6 className="font-semibold mb-2">Example Scenario</h6>
+                                        <p className="text-sm mb-2">Starting premium: $7.95 per share ($795 per contract)</p>
+                                        <div className="space-y-2 text-sm">
+                                            <p>• Stock moves up $2: <span className="text-green-400">+$1.11</span> (Delta: 0.5567 × 2)</p>
+                                            <p>• One day passes: <span className="text-red-400">-$0.11</span> (Theta: -0.1074)</p>
+                                            <p>• Implied volatility increases by 2%: <span className="text-green-400">+$0.26</span> (Vega: 0.1282 × 2)</p>
+                                            <p>• Delta change due to stock move: <span className="text-blue-400">+0.042</span> (Gamma: 0.0210 × 2)</p>
+                                            <p>• New delta: 0.5987 (0.5567 + 0.042)</p>
+                                            <p className="font-semibold">• New premium: ~$9.21 ($7.95 + $1.11 - $0.11 + $0.26)</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <p className="text-sm text-gray-300">
+                                        This is a simplified example. In reality, the Greeks themselves also change as conditions change. Delta and gamma will shift as the stock moves, theta increases as expiration approaches, and vega decreases over time.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                        
+                        <div className="flex justify-between mt-4">
+                            <button
+                                onClick={prevStep}
+                                className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded text-sm"
+                            >
+                                Previous
+                            </button>
+                            <div className="flex space-x-2">
+                                {[1, 2, 3, 4].map(i => (
+                                    <div
+                                        key={i}
+                                        className={`w-3 h-3 rounded-full ${currentStep === i ? 'bg-blue-500' : 'bg-gray-500'} cursor-pointer`}
+                                        onClick={() => setCurrentStep(i)}
+                                    ></div>
+                                ))}
+                            </div>
+                            <button
+                                onClick={nextStep}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Moneyness Interactive */}
+            {activeTab === 'moneyness' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Option Moneyness</h3>
+                                    
+                                    <div className="mb-4 bg-gray-700 p-4 rounded-lg">
+                                        <p className="text-gray-200 mb-3">
+                                            Moneyness refers to the relationship between an option's strike price and the current market price of the underlying asset. This determines whether an option has intrinsic value.
+                                        </p>
+                                        
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-medium text-gray-300 mb-1">
+                                                Adjust stock price relative to $100 strike price:
+                                            </label>
+                                            <input 
+                                                type="range" 
+                                                min="70" 
+                                                max="130" 
+                                                step="1"
+                                                value={moneynessSlider}
+                                                onChange={(e) => setMoneynessSlider(parseInt(e.target.value))}
+                                                className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+                                            />
+                                            <div className="flex justify-between mt-1 text-xs text-gray-400">
+                                                <span>$70</span>
+                                                <span>$100</span>
+                                                <span>$130</span>
+                                            </div>
+                                            <div className="text-center mt-2">
+                                                <span className="font-bold text-green-400">Current Price: ${moneynessSlider}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="h-64 mb-4">
+                                            <canvas ref={chartRef}></canvas>
+                                        </div>
+                                        
+                                        <div className={`p-3 rounded-lg mt-4 ${
+                                            selectedMoneyness === 'deepOtm' ? 'bg-red-900 bg-opacity-30' :
+                                            selectedMoneyness === 'otm' ? 'bg-red-900 bg-opacity-20' :
+                                            selectedMoneyness === 'atm' ? 'bg-gray-600' :
+                                            selectedMoneyness === 'itm' ? 'bg-green-900 bg-opacity-20' :
+                                            'bg-green-900 bg-opacity-30'
+                                        }`}>
+                                            <div className="font-semibold text-lg mb-1">
+                                                {selectedMoneyness === 'deepOtm' && 'Deep Out-of-the-Money (Deep OTM)'}
+                                                {selectedMoneyness === 'otm' && 'Out-of-the-Money (OTM)'}
+                                                {selectedMoneyness === 'atm' && 'At-the-Money (ATM)'}
+                                                {selectedMoneyness === 'itm' && 'In-the-Money (ITM)'}
+                                                {selectedMoneyness === 'deepItm' && 'Deep In-the-Money (Deep ITM)'}
+                                            </div>
+                                            <p className="text-sm text-gray-200">
+                                                {selectedMoneyness === 'deepOtm' && 'For calls: Stock price is far below strike price. For puts: Stock price is far above strike price. These options have no intrinsic value and minimal time value, making them highly speculative but low-cost.'}
+                                                {selectedMoneyness === 'otm' && 'For calls: Stock price is below strike price. For puts: Stock price is above strike price. These options have no intrinsic value but still retain some time value.'}
+                                                {selectedMoneyness === 'atm' && 'Stock price is approximately equal to the strike price. These options have maximum time value and are at the inflection point between ITM and OTM.'}
+                                                {selectedMoneyness === 'itm' && 'For calls: Stock price is above strike price. For puts: Stock price is below strike price. These options have intrinsic value and would be profitable to exercise immediately.'}
+                                                {selectedMoneyness === 'deepItm' && 'For calls: Stock price is far above strike price. For puts: Stock price is far below strike price. These options have significant intrinsic value and behave more like the underlying asset with less leverage.'}
+                                            </p>
+                                            <div className="mt-2 grid grid-cols-2 gap-2">
+                                                <div className="bg-gray-800 p-2 rounded">
+                                                    <div className="text-sm font-semibold text-blue-400">Call Option</div>
+                                                    <div className="text-xs text-gray-300 mt-1">
+                                                        {selectedMoneyness === 'deepOtm' && 'Far out-of-the-money, very low probability of profit, cheapest premium'}
+                                                        {selectedMoneyness === 'otm' && 'Out-of-the-money, lower probability of profit, lower premium'}
+                                                        {selectedMoneyness === 'atm' && 'At-the-money, ~50% probability of profit, moderate premium'}
+                                                        {selectedMoneyness === 'itm' && 'In-the-money, higher probability of profit, higher premium'}
+                                                        {selectedMoneyness === 'deepItm' && 'Deep in-the-money, very high probability of profit, highest premium'}
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded">
+                                                    <div className="text-sm font-semibold text-red-400">Put Option</div>
+                                                    <div className="text-xs text-gray-300 mt-1">
+                                                        {selectedMoneyness === 'deepOtm' && 'Far out-of-the-money, very low probability of profit, cheapest premium'}
+                                                        {selectedMoneyness === 'otm' && 'Out-of-the-money, lower probability of profit, lower premium'}
+                                                        {selectedMoneyness === 'atm' && 'At-the-money, ~50% probability of profit, moderate premium'}
+                                                        {selectedMoneyness === 'itm' && 'In-the-money, higher probability of profit, higher premium'}
+                                                        {selectedMoneyness === 'deepItm' && 'Deep in-the-money, very high probability of profit, highest premium'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {/* Payoff Diagrams */}
+                            {activeTab === 'payoff' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Option Payoff Diagrams</h3>
+                                    
+                                    <div className="flex mb-4">
+                                        <button
+                                            className={`px-4 py-2 rounded-tl-lg ${optionType === 'call' ? 'bg-gray-700 text-blue-400' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setOptionType('call')}
+                                        >
+                                            Long Call
+                                        </button>
+                                        <button
+                                            className={`px-4 py-2 ${optionType === 'put' ? 'bg-gray-700 text-red-400' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setOptionType('put')}
+                                        >
+                                            Long Put
+                                        </button>
+                                        <button
+                                            className={`px-4 py-2 ${optionType === 'callWriter' ? 'bg-gray-700 text-blue-300' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setOptionType('callWriter')}
+                                        >
+                                            Short Call
+                                        </button>
+                                        <button
+                                            className={`px-4 py-2 rounded-tr-lg ${optionType === 'putWriter' ? 'bg-gray-700 text-red-300' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setOptionType('putWriter')}
+                                        >
+                                            Short Put
+                                        </button>
+                                    </div>
+
+                                    <div className="h-64 mb-6 bg-gray-700 p-4 rounded-lg">
+                                        <canvas ref={chartRef}></canvas>
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-blue-400 mb-2">Understanding Option Payoffs</h4>
+                                        
+                                        {optionType === 'call' && (
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Maximum Loss (Risk):</span> Limited to the premium paid for the option ($5 per share in this example).
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Break-Even Point:</span> Strike price plus premium paid ($100 + $5 = $105 in this example).
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Maximum Profit:</span> Unlimited as the underlying asset price rises. For every $1 increase above the break-even point, you gain $1 per share.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Strategy Use:</span> Use when you expect a significant upward move in the stock. Provides leveraged exposure with defined risk.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {optionType === 'put' && (
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Maximum Loss (Risk):</span> Limited to the premium paid for the option ($5 per share in this example).
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Break-Even Point:</span> Strike price minus premium paid ($100 - $5 = $95 in this example).
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Maximum Profit:</span> Limited to the strike price minus premium (theoretically $95 per share if the stock price goes to zero).
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Strategy Use:</span> Use when you expect a significant downward move or as portfolio insurance against market declines.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {optionType === 'callWriter' && (
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Maximum Gain:</span> Limited to the premium received from selling the option ($5 per share in this example).
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Break-Even Point:</span> Strike price plus premium received ($100 + $5 = $105 in this example).
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Maximum Loss (Risk):</span> Theoretically unlimited as the stock price rises. For every $1 increase above the break-even point, you lose $1 per share.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Strategy Use:</span> Use when you expect the stock to stay flat or decline. Often used to generate income on existing stock positions (covered calls).
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {optionType === 'putWriter' && (
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Maximum Gain:</span> Limited to the premium received from selling the option ($5 per share in this example).
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Break-Even Point:</span> Strike price minus premium received ($100 - $5 = $95 in this example).
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Maximum Loss (Risk):</span> Substantial but limited to the strike price minus premium received (theoretically $95 per share if the stock price goes to zero).
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Strategy Use:</span> Use when you expect the stock to stay flat or rise. Often used as a strategy to acquire stocks at a discount (the strike price minus premium).
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            {/* Option Strategies tab */}
+                            {activeTab === 'strategies' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Common Option Strategies</h3>
+                                    <div className="scrollable-content max-h-96 pr-2">
+                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                            <div className="bg-gray-700 p-4 rounded-lg">
+                                                <h4 className="font-semibold text-blue-400 mb-2">Covered Call</h4>
+                                                <div className="mb-2 text-sm text-gray-300">
+                                                    Holding the underlying asset and selling call options against it.
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div className="text-xs text-gray-300">
+                                                            <span className="font-semibold">Components:</span> Long stock + Short call option
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div className="text-xs text-gray-300">
+                                                            <span className="font-semibold">Goal:</span> Generate income while holding stock
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div className="text-xs text-gray-300">
+                                                            <span className="font-semibold">Outlook:</span> Neutral to slightly bullish
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div className="text-xs text-gray-300">
+                                                            <span className="font-semibold">Risk:</span> Limited upside potential, downside risk still present
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="bg-gray-700 p-4 rounded-lg">
+                                                <h4 className="font-semibold text-red-400 mb-2">Protective Put</h4>
+                                                <div className="mb-2 text-sm text-gray-300">
+                                                    Buying put options to protect a long position in the underlying asset.
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-red-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div className="text-xs text-gray-300">
+                                                            <span className="font-semibold">Components:</span> Long stock + Long put option
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-red-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div className="text-xs text-gray-300">
+                                                            <span className="font-semibold">Goal:</span> Insure against significant downside risk
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-red-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div className="text-xs text-gray-300">
+                                                            <span className="font-semibold">Outlook:</span> Bullish but cautious
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-red-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div className="text-xs text-gray-300">
+                                                            <span className="font-semibold">Risk:</span> Cost of protection (premium paid)
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                            <div className="bg-gray-700 p-4 rounded-lg">
+                                                <h4 className="font-semibold text-purple-400 mb-2">Bull Call Spread</h4>
+                                                <div className="mb-2 text-sm text-gray-300">
+                                                    Buying a call option at a lower strike price and selling another at a higher strike price.
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-purple-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div className="text-xs text-gray-300">
+                                                            <span className="font-semibold">Components:</span> Long lower-strike call + Short higher-strike call
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-purple-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div className="text-xs text-gray-300">
+                                                            <span className="font-semibold">Goal:</span> Profit from moderate price increase with reduced cost
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-purple-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div className="text-xs text-gray-300">
+                                                            <span className="font-semibold">Outlook:</span> Moderately bullish
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-purple-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div className="text-xs text-gray-300">
+                                                            <span className="font-semibold">Risk/Reward:</span> Limited risk, limited profit potential
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="bg-gray-700 p-4 rounded-lg">
+                                                <h4 className="font-semibold text-green-400 mb-2">Bear Put Spread</h4>
+                                                <div className="mb-2 text-sm text-gray-300">
+                                                    Buying a put option at a higher strike price and selling another at a lower strike price.
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div className="text-xs text-gray-300">
+                                                            <span className="font-semibold">Components:</span> Long higher-strike put + Short lower-strike put
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div className="text-xs text-gray-300">
+                                                            <span className="font-semibold">Goal:</span> Profit from moderate price decrease with reduced cost
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div className="text-xs text-gray-300">
+                                                            <span className="font-semibold">Outlook:</span> Moderately bearish
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div className="text-xs text-gray-300">
+                                                            <span className="font-semibold">Risk/Reward:</span> Limited risk, limited profit potential
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-blue-400">Key Considerations</div>
+                                <div className="space-y-3">
+                                    <div className="flex items-start">
+                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                        <p className="text-gray-200 text-sm">
+                                            <span className="font-semibold">Time Decay (Theta):</span> Options lose value as time passes, which benefits sellers and works against buyers.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-start">
+                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                        <p className="text-gray-200 text-sm">
+                                            <span className="font-semibold">Implied Volatility:</span> Higher volatility increases option prices, which is favorable for sellers and costlier for buyers.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-start">
+                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                        <p className="text-gray-200 text-sm">
+                                            <span className="font-semibold">Liquidity:</span> Options with higher trading volumes generally have tighter bid-ask spreads, reducing transaction costs.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-start">
+                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                        <p className="text-gray-200 text-sm">
+                                            <span className="font-semibold">Risk Management:</span> Options can provide leverage, but proper position sizing and risk assessment are crucial.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-lg font-bold mb-2 text-green-400">Did You Know? The Origin of Options</div>
+                                <p className="text-gray-200 text-sm mb-3">
+                                    Options contracts have ancient roots dating back to olive farmers in Ancient Greece. According to Aristotle's writings, the philosopher Thales used an early form of call options around 600 BCE by making deposits on olive presses before harvest time.
+                                </p>
+                                <p className="text-gray-200 text-sm">
+                                    Based on his meteorological knowledge, Thales predicted a bountiful olive harvest and secured rights to the presses at a fixed price. When the harvest indeed proved abundant, demand for olive presses soared, and Thales profited by renting them out at premium rates or selling his rights to others - demonstrating the fundamental option principle of securing future rights without obligation.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<OptionsVisual />);
+    </script>
+</body>
+</html>
