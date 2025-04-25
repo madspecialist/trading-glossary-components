@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Price Discovery Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const PriceDiscoveryVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('process');
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const [showingExample, setShowingExample] = React.useState(false);
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const brandColor = "#079A4F"; // Brand green color
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+            
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 4 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 4);
+            };
+
+            // Price discovery example data
+            const marketData = {
+                orderBook: {
+                    bids: [
+                        {price: 98.50, volume: 1500},
+                        {price: 98.75, volume: 1200},
+                        {price: 99.00, volume: 2000},
+                        {price: 99.25, volume: 1800},
+                        {price: 99.50, volume: 1000}
+                    ],
+                    asks: [
+                        {price: 100.50, volume: 1100},
+                        {price: 100.25, volume: 1400},
+                        {price: 100.00, volume: 2200},
+                        {price: 99.75, volume: 1900},
+                        {price: 99.60, volume: 800}
+                    ]
+                },
+                priceHistory: [
+                    {date: 'Jan', price: 95.0, volume: 12500, events: [{type: 'news', description: 'Positive earnings report'}]},
+                    {date: 'Feb', price: 98.5, volume: 14800, events: []},
+                    {date: 'Mar', price: 97.0, volume: 13200, events: [{type: 'market', description: 'Industry downturn'}]},
+                    {date: 'Apr', price: 99.5, volume: 15500, events: [{type: 'news', description: 'New product announcement'}]},
+                    {date: 'May', price: 101.0, volume: 18200, events: []},
+                    {date: 'Jun', price: 103.5, volume: 20100, events: [{type: 'news', description: 'Analyst upgrade'}]},
+                    {date: 'Jul', price: 102.0, volume: 17800, events: [{type: 'market', description: 'Interest rate increase'}]},
+                    {date: 'Aug', price: 100.0, volume: 16400, events: []}
+                ]
+            };
+            // OrderBook chart
+            React.useEffect(() => {
+                if (chartRef.current && activeTab === 'process' && !showingExample) {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    const bids = marketData.orderBook.bids;
+                    const asks = marketData.orderBook.asks;
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: [...bids.map(b => `$${b.price}`), ...asks.map(a => `$${a.price}`)],
+                            datasets: [{
+                                label: 'Buy Orders (Bids)',
+                                data: [...bids.map(b => b.volume), ...Array(asks.length).fill(0)],
+                                backgroundColor: '#3B82F6',
+                                borderColor: '#2563EB',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Sell Orders (Asks)',
+                                data: [...Array(bids.length).fill(0), ...asks.map(a => a.volume)],
+                                backgroundColor: '#EF4444',
+                                borderColor: '#DC2626',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    labels: {
+                                        color: isDarkMode ? '#E5E7EB' : '#111827'
+                                    }
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    displayColors: true
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Price',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Volume',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    
+                    setChart(newChart);
+                }
+            }, [activeTab, showingExample, isDarkMode]);
+
+            // Price history chart for Process tab
+            React.useEffect(() => {
+                if (chartRef.current && activeTab === 'process' && showingExample) {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    const data = marketData.priceHistory;
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.map(d => d.date),
+                            datasets: [{
+                                label: 'Price',
+                                data: data.map(d => d.price),
+                                borderColor: brandColor,
+                                backgroundColor: `${brandColor}20`,
+                                tension: 0.4,
+                                fill: true,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'Volume',
+                                data: data.map(d => d.volume / 100),
+                                borderColor: '#8B5CF6',
+                                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                borderDash: [5, 5],
+                                tension: 0.2,
+                                yAxisID: 'y1'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    labels: {
+                                        color: isDarkMode ? '#E5E7EB' : '#111827'
+                                    }
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    callbacks: {
+                                        afterLabel: function(context) {
+                                            const index = context.dataIndex;
+                                            const events = data[index].events;
+                                            if (events.length > 0) {
+                                                return events.map(e => `Event: ${e.description}`);
+                                            }
+                                            return '';
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                y: {
+                                    type: 'linear',
+                                    display: true,
+                                    position: 'left',
+                                    title: {
+                                        display: true,
+                                        text: 'Price ($)',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                y1: {
+                                    type: 'linear',
+                                    display: true,
+                                    position: 'right',
+                                    title: {
+                                        display: true,
+                                        text: 'Volume (x100)',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        drawOnChartArea: false,
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    
+                    setChart(newChart);
+                }
+            }, [activeTab, showingExample, isDarkMode]);
+
+            // Different chart for Factors tab - Price/Volume with events highlighted
+            React.useEffect(() => {
+                if (chartRef.current && activeTab === 'factors') {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    const data = marketData.priceHistory;
+                    
+                    // Find dates with events
+                    const eventsIndices = data.map((d, index) => d.events.length > 0 ? index : null).filter(i => i !== null);
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.map(d => d.date),
+                            datasets: [{
+                                label: 'Price',
+                                data: data.map(d => d.price),
+                                borderColor: brandColor,
+                                backgroundColor: `${brandColor}20`,
+                                tension: 0.4,
+                                fill: true,
+                                pointRadius: (ctx) => {
+                                    const index = ctx.dataIndex;
+                                    return eventsIndices.includes(index) ? 6 : 3;
+                                },
+                                pointBackgroundColor: (ctx) => {
+                                    const index = ctx.dataIndex;
+                                    return eventsIndices.includes(index) ? '#EF4444' : brandColor;
+                                },
+                                pointBorderColor: (ctx) => {
+                                    const index = ctx.dataIndex;
+                                    return eventsIndices.includes(index) ? 'white' : brandColor;
+                                },
+                                pointBorderWidth: (ctx) => {
+                                    const index = ctx.dataIndex;
+                                    return eventsIndices.includes(index) ? 2 : 1;
+                                }
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    labels: {
+                                        color: isDarkMode ? '#E5E7EB' : '#111827'
+                                    }
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    callbacks: {
+                                        afterLabel: function(context) {
+                                            const index = context.dataIndex;
+                                            const events = data[index].events;
+                                            if (events.length > 0) {
+                                                return events.map(e => `Event: ${e.description}`);
+                                            }
+                                            return '';
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Time Period',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Price ($)',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    
+                    setChart(newChart);
+                }
+            }, [activeTab, isDarkMode]);
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Price Discovery
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    The process by which the market determines the price of an asset through the interactions between buyers and sellers. It incorporates all available information including economic data, company performance, market sentiment, and global events to establish a fair market value.
+                                </p>
+                            </div>
+
+                            <div className="mb-4 flex">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'process' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('process')}
+                                >
+                                    Process
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'factors' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('factors')}
+                                >
+                                    Factors
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'methods' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('methods')}
+                                >
+                                    Methods
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'importance' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('importance')}
+                                >
+                                    Importance
+                                </button>
+                            </div>
+
+                            {/* Price Discovery Process */}
+                            {activeTab === 'process' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">The Price Discovery Process</h3>
+                                    
+                                    <div className="flex mb-4">
+                                        <button
+                                            className={`px-4 py-2 rounded-tl-lg rounded-bl-lg ${!showingExample ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingExample(false)}
+                                        >
+                                            Order Book
+                                        </button>
+                                        <button
+                                            className={`px-4 py-2 rounded-tr-lg rounded-br-lg ${showingExample ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingExample(true)}
+                                        >
+                                            Price History
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="relative h-64 mb-4 bg-gray-700 rounded-lg overflow-hidden">
+                                        <canvas ref={chartRef}></canvas>
+                                    </div>
+
+                                    {/* Chart explanation section - NEW */}
+                                    <div className="mb-4 bg-gray-800 p-3 rounded-lg text-sm">
+                                        <div className="font-semibold mb-1 text-center">
+                                            {!showingExample ? "Order Book Visualization" : "Price & Volume History"}
+                                        </div>
+                                        <p className="text-gray-300 text-center">
+                                            {!showingExample ? 
+                                                "This chart shows buy orders (blue) and sell orders (red) at different price levels. The gap between highest bid ($99.50) and lowest ask ($99.60) forms the 'spread' where price discovery occurs." : 
+                                                "This chart tracks asset price (green) and trading volume (purple) over time. Notice how significant news events (visible on hover) correspond with price movements and volume spikes."
+                                            }
+                                        </p>
+                                    </div>
+
+                                    <div className="relative h-72 mb-4 bg-gray-700 rounded-lg overflow-hidden">
+                                        {/* Step 1: Information Aggregation */}
+                                        {currentStep === 1 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-green-400">Step 1: Information Aggregation</h3>
+                                                <div className="flex flex-col h-56 overflow-y-auto">
+                                                    <div className="grid grid-cols-3 gap-3 mb-3">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2 text-sm">Market Data</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <span className="font-semibold">Trading Volume</span>
+                                                                    <div className="text-gray-300 mt-1">Order flow patterns</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <span className="font-semibold">Price History</span>
+                                                                    <div className="text-gray-300 mt-1">Recent transactions</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2 text-sm">Fundamental Factors</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <span className="font-semibold">Financial Data</span>
+                                                                    <div className="text-gray-300 mt-1">Earnings, growth rates</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <span className="font-semibold">Economic Indicators</span>
+                                                                    <div className="text-gray-300 mt-1">GDP, employment</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-purple-400 font-semibold text-center mb-2 text-sm">External Events</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <span className="font-semibold">News & Events</span>
+                                                                    <div className="text-gray-300 mt-1">Announcements, regulatory changes</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-xs">
+                                                                    <span className="font-semibold">Global Developments</span>
+                                                                    <div className="text-gray-300 mt-1">Geopolitical events</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="text-center font-semibold mb-2 text-sm">Market Participant Analysis</h4>
+                                                        <div className="grid grid-cols-3 gap-2 text-xs">
+                                                            <div className="bg-blue-900 bg-opacity-40 p-2 rounded-lg text-center">
+                                                                <div className="font-semibold">Institutional Investors</div>
+                                                                <div className="text-gray-300 mt-1">Advanced analysis models</div>
+                                                            </div>
+                                                            <div className="bg-green-900 bg-opacity-40 p-2 rounded-lg text-center">
+                                                                <div className="font-semibold">Retail Traders</div>
+                                                                <div className="text-gray-300 mt-1">Sentiment & trends</div>
+                                                            </div>
+                                                            <div className="bg-amber-900 bg-opacity-40 p-2 rounded-lg text-center">
+                                                                <div className="font-semibold">Market Makers</div>
+                                                                <div className="text-gray-300 mt-1">Liquidity provision</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="mt-3 text-center bg-gray-700 p-2 rounded-lg">
+                                                        <div className="text-sm font-semibold text-white">Information Synthesis</div>
+                                                        <div className="text-xs text-gray-300">All data points are assessed to form price expectations</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 2: Order Placement */}
+                                        {currentStep === 2 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-green-400">Step 2: Order Placement</h3>
+                                                <div className="flex flex-col h-56 overflow-y-auto">
+                                                    <div className="grid grid-cols-2 gap-4 mb-3">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Buy Orders (Bids)</h4>
+                                                            <div className="space-y-2 mb-3">
+                                                                <div className="flex justify-between items-center bg-blue-900 bg-opacity-40 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Price</span>
+                                                                    <span className="font-semibold">Volume</span>
+                                                                </div>
+                                                                {marketData.orderBook.bids.map((bid, index) => (
+                                                                    <div key={index} className="flex justify-between items-center bg-gray-700 p-2 rounded text-xs">
+                                                                        <span>${bid.price.toFixed(2)}</span>
+                                                                        <span>{bid.volume}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            <div className="text-center text-xs text-gray-300">
+                                                                Willing to buy at or below these prices
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-red-400 font-semibold text-center mb-2">Sell Orders (Asks)</h4>
+                                                            <div className="space-y-2 mb-3">
+                                                                <div className="flex justify-between items-center bg-red-900 bg-opacity-40 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Price</span>
+                                                                    <span className="font-semibold">Volume</span>
+                                                                </div>
+                                                                {marketData.orderBook.asks.map((ask, index) => (
+                                                                    <div key={index} className="flex justify-between items-center bg-gray-700 p-2 rounded text-xs">
+                                                                        <span>${ask.price.toFixed(2)}</span>
+                                                                        <span>{ask.volume}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            <div className="text-center text-xs text-gray-300">
+                                                                Willing to sell at or above these prices
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-700 p-3 rounded-lg">
+                                                        <div className="text-center font-semibold mb-1">Order Types</div>
+                                                        <div className="grid grid-cols-3 gap-2 text-xs">
+                                                            <div className="bg-gray-800 p-2 rounded-lg">
+                                                                <div className="font-semibold text-center">Market Orders</div>
+                                                                <div className="text-gray-300 mt-1 text-center">Execute immediately at current market price</div>
+                                                            </div>
+                                                            <div className="bg-gray-800 p-2 rounded-lg">
+                                                                <div className="font-semibold text-center">Limit Orders</div>
+                                                                <div className="text-gray-300 mt-1 text-center">Execute only at specified price or better</div>
+                                                            </div>
+                                                            <div className="bg-gray-800 p-2 rounded-lg">
+                                                                <div className="font-semibold text-center">Conditional Orders</div>
+                                                                <div className="text-gray-300 mt-1 text-center">Execute when specific conditions are met</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 3: Order Matching */}
+                                        {currentStep === 3 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-green-400">Step 3: Order Matching</h3>
+                                                <div className="flex flex-col h-56 overflow-y-auto">
+                                                    <div className="bg-gray-800 p-3 rounded-lg mb-3">
+                                                        <h4 className="text-center font-semibold mb-3">The Matching Engine</h4>
+                                                        <div className="flex justify-center items-center">
+                                                            <div className="bg-blue-900 bg-opacity-40 p-2 rounded-lg w-1/3 text-center">
+                                                                <div className="font-semibold text-blue-400 text-sm">Buy Orders</div>
+                                                                <div className="text-xs text-gray-300 mt-1">Highest bid: $99.50</div>
+                                                            </div>
+                                                            
+                                                            <div className="mx-3 flex flex-col items-center">
+                                                                <div className="h-1 w-12 bg-gray-500 mb-1"></div>
+                                                                <div className="bg-gray-700 rounded-full p-2">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                                                        <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                </div>
+                                                                <div className="h-1 w-12 bg-gray-500 mt-1"></div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-red-900 bg-opacity-40 p-2 rounded-lg w-1/3 text-center">
+                                                                <div className="font-semibold text-red-400 text-sm">Sell Orders</div>
+                                                                <div className="text-xs text-gray-300 mt-1">Lowest ask: $99.60</div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="mt-3 text-center">
+                                                            <div className="text-xs text-gray-300">Current Spread: $0.10</div>
+                                                            <div className="text-xs text-gray-300">(Difference between lowest ask and highest bid)</div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="text-center font-semibold mb-2">Match Examples</h4>
+                                                        <div className="space-y-3">
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold text-center text-sm">New Market Buy Order</div>
+                                                                <div className="text-xs text-gray-300 mt-1 text-center">
+                                                                    Executes immediately at $99.60 (lowest available sell price)
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold text-center text-sm">New Limit Buy Order at $99.75</div>
+                                                                <div className="text-xs text-gray-300 mt-1 text-center">
+                                                                    Executes immediately at $99.60 (better than requested price)
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold text-center text-sm">New Limit Buy Order at $99.55</div>
+                                                                <div className="text-xs text-gray-300 mt-1 text-center">
+                                                                    Placed in order book (no matching sell orders at this price)
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 4: Price Equilibrium */}
+                                        {currentStep === 4 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-green-400">Step 4: Price Equilibrium & Feedback</h3>
+                                                <div className="flex flex-col h-56 overflow-y-auto">
+                                                    <div className="bg-gray-800 p-3 rounded-lg mb-3">
+                                                        <h4 className="text-center font-semibold mb-2">Market-Clearing Price</h4>
+                                                        <div className="flex justify-center items-center mb-3">
+                                                            <div className="flex flex-col items-center">
+                                                                <div className="text-sm font-semibold text-white">$99.75</div>
+                                                                <div className="h-20 w-24 mt-2 relative">
+                                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                                        <div className="bg-green-900 bg-opacity-30 h-12 w-12 rounded-full flex items-center justify-center">
+                                                                            <div className="text-sm font-bold text-green-400">$99.75</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="absolute top-0 left-0 right-0 border-t-2 border-blue-500"></div>
+                                                                    <div className="absolute bottom-0 left-0 right-0 border-t-2 border-red-500"></div>
+                                                                </div>
+                                                                <div className="text-xs text-gray-300 mt-2">Equilibrium Price</div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-3 text-center text-xs">
+                                                            <div className="bg-blue-900 bg-opacity-20 p-2 rounded-lg">
+                                                                <div className="font-semibold">Buy Pressure</div>
+                                                                <div className="text-gray-300 mt-1">
+                                                                    If demand exceeds supply, price rises
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-red-900 bg-opacity-20 p-2 rounded-lg">
+                                                                <div className="font-semibold">Sell Pressure</div>
+                                                                <div className="text-gray-300 mt-1">
+                                                                    If supply exceeds demand, price falls
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-700 p-3 rounded-lg">
+                                                        <h4 className="text-center font-semibold mb-2">Price Information Feedback Loop</h4>
+                                                        <div className="flex items-center justify-center">
+                                                            <div className="relative h-28 w-full">
+                                                                {/* Center circle */}
+                                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-gray-800 flex items-center justify-center">
+                                                                    <div className="text-center text-xs">
+                                                                        <div className="font-semibold text-green-400">Market</div>
+                                                                        <div className="font-semibold text-green-400">Price</div>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                {/* Outer elements */}
+                                                                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-0 bg-blue-900 bg-opacity-40 p-2 rounded-lg">
+                                                                    <div className="text-center text-xs font-semibold">New Information</div>
+                                                                </div>
+                                                                
+                                                                <div className="absolute top-1/2 right-0 transform translate-y-0 bg-amber-900 bg-opacity-40 p-2 rounded-lg">
+                                                                    <div className="text-center text-xs font-semibold">Trading Activity</div>
+                                                                </div>
+                                                                
+                                                                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-0 bg-purple-900 bg-opacity-40 p-2 rounded-lg">
+                                                                    <div className="text-center text-xs font-semibold">Market Adjustment</div>
+                                                                </div>
+                                                                
+                                                                <div className="absolute top-1/2 left-0 transform translate-y-0 bg-green-900 bg-opacity-40 p-2 rounded-lg">
+                                                                    <div className="text-center text-xs font-semibold">Price Signals</div>
+                                                                </div>
+                                                                
+                                                                {/* Connecting arrows */}
+                                                                <div className="absolute top-8 left-1/2 w-1 h-10 bg-gray-600 transform -translate-x-1/2 rotate-90 origin-top"></div>
+                                                                <div className="absolute top-1/2 right-8 h-1 w-10 bg-gray-600 transform -translate-y-1/2"></div>
+                                                                <div className="absolute bottom-8 left-1/2 w-1 h-10 bg-gray-600 transform -translate-x-1/2 rotate-90 origin-bottom"></div>
+                                                                <div className="absolute top-1/2 left-8 h-1 w-10 bg-gray-600 transform -translate-y-1/2"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3, 4].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-green-500' : 'bg-gray-500'}`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Factors Affecting Price Discovery */}
+                            {activeTab === 'factors' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Factors Affecting Price Discovery</h3>
+                                    
+                                    <div className="relative h-64 mb-4 bg-gray-700 rounded-lg overflow-hidden">
+                                        <canvas ref={chartRef}></canvas>
+                                    </div>
+                                    
+                                    {/* Chart explanation section for Factors tab - NEW */}
+                                    <div className="mb-4 bg-gray-800 p-3 rounded-lg text-sm">
+                                        <div className="font-semibold mb-1 text-center">
+                                            Price Impact of Information & Events
+                                        </div>
+                                        <p className="text-gray-300 text-center">
+                                            This chart shows how external events affect asset prices. Red highlighted points indicate important news or market events that triggered price reactions. Hover over points to see specific events that influenced price discovery.
+                                        </p>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Supply & Demand Factors</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold text-sm">Liquidity</span>
+                                                        <p className="text-gray-300 text-xs">The volume of assets available for trading; higher liquidity typically leads to more efficient price discovery</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold text-sm">Order Flow</span>
+                                                        <p className="text-gray-300 text-xs">The pattern and volume of incoming buy and sell orders, which signals market sentiment</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold text-sm">Market Depth</span>
+                                                        <p className="text-gray-300 text-xs">The volume of orders at each price level, indicating market resilience to large trades</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-purple-400 mb-2">Information Factors</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold text-sm">Information Asymmetry</span>
+                                                        <p className="text-gray-300 text-xs">Imbalances in access to information across market participants can distort price discovery</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold text-sm">News & Announcements</span>
+                                                        <p className="text-gray-300 text-xs">Relevant information releases that influence market participants' valuation models</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold text-sm">Analyst Coverage</span>
+                                                        <p className="text-gray-300 text-xs">Expert opinions and research that influence market perception and valuations</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Market Structure Factors</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold text-sm">Trading Mechanisms</span>
+                                                        <p className="text-gray-300 text-xs">Different market models (auction, continuous trading, dark pools) affect price formation</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold text-sm">Market Fragmentation</span>
+                                                        <p className="text-gray-300 text-xs">Trading across multiple venues can impact unified price discovery</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold text-sm">Algorithmic Trading</span>
+                                                        <p className="text-gray-300 text-xs">Automated systems that can both enhance and disrupt price discovery processes</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Regulatory Factors</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold text-sm">Disclosure Requirements</span>
+                                                        <p className="text-gray-300 text-xs">Mandatory information sharing that creates transparency for investors</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold text-sm">Trading Halts & Limits</span>
+                                                        <p className="text-gray-300 text-xs">Circuit breakers and other mechanisms that pause price discovery during volatility</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold text-sm">Market Surveillance</span>
+                                                        <p className="text-gray-300 text-xs">Monitoring for manipulation that could distort the price discovery process</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Rest of the tabs and content */}
+                            {/* Price Discovery Methods */}
+                            {activeTab === 'methods' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Price Discovery Methods</h3>
+                                    
+                                    <div className="grid grid-cols-1 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Continuous Trading</h4>
+                                            <div className="flex flex-col">
+                                                <div className="mb-3">
+                                                    <div className="text-sm text-gray-200 mb-1">
+                                                        The most common form of price discovery in public markets, where buy and sell orders are matched continuously during market hours.
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                                    <div className="bg-gray-800 p-2 rounded-lg">
+                                                        <div className="font-semibold mb-1">Characteristics</div>
+                                                        <ul className="list-disc pl-4 text-gray-300 space-y-1">
+                                                            <li>Continuous matching of orders</li>
+                                                            <li>Real-time price updates</li>
+                                                            <li>Transparent order book</li>
+                                                            <li>Immediate execution</li>
+                                                        </ul>
+                                                    </div>
+                                                    <div className="bg-gray-800 p-2 rounded-lg">
+                                                        <div className="font-semibold mb-1">Examples</div>
+                                                        <ul className="list-disc pl-4 text-gray-300 space-y-1">
+                                                            <li>Stock exchanges (NYSE, Nasdaq)</li>
+                                                            <li>Foreign exchange markets</li>
+                                                            <li>Cryptocurrency exchanges</li>
+                                                            <li>Futures markets</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-purple-400 mb-2">Auction Methods</h4>
+                                            <div className="grid grid-cols-3 gap-3 mb-3">
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold text-xs text-center mb-1">Opening/Closing Auctions</div>
+                                                    <div className="text-xs text-gray-300">
+                                                        Collects orders before market open/close to find a single clearing price that maximizes trading volume.
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold text-xs text-center mb-1">Dutch Auctions</div>
+                                                    <div className="text-xs text-gray-300">
+                                                        Starts with a high price that gradually lowers until buyers accept the price and all shares are sold.
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold text-xs text-center mb-1">Call Auctions</div>
+                                                    <div className="text-xs text-gray-300">
+                                                        Periodic batching of orders to determine a single clearing price at specific intervals.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="text-xs text-gray-200">
+                                                Auction methods are particularly useful for illiquid securities, market openings and closings, and special situations like IPOs where finding a fair equilibrium price is essential.
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Broker-Dealer Market Making</h4>
+                                            <div className="flex flex-col">
+                                                <div className="text-sm text-gray-200 mb-3">
+                                                    Specialized intermediaries (market makers) provide continuous bid and ask quotes, facilitating price discovery by offering liquidity and narrowing spreads.
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                                    <div className="bg-gray-800 p-2 rounded-lg">
+                                                        <div className="font-semibold mb-1">Role in Price Discovery</div>
+                                                        <ul className="list-disc pl-4 text-gray-300 space-y-1">
+                                                            <li>Quotes prices based on supply/demand</li>
+                                                            <li>Maintains liquidity during volatility</li>
+                                                            <li>Absorbs short-term imbalances</li>
+                                                            <li>Facilitates price efficiency</li>
+                                                        </ul>
+                                                    </div>
+                                                    <div className="bg-gray-800 p-2 rounded-lg">
+                                                        <div className="font-semibold mb-1">Market Making Evolution</div>
+                                                        <ul className="list-disc pl-4 text-gray-300 space-y-1">
+                                                            <li>Traditional floor specialists</li>
+                                                            <li>OTC market dealers</li>
+                                                            <li>Electronic market makers</li>
+                                                            <li>High-frequency trading firms</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Specialized Price Discovery Methods</h4>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold text-sm mb-1">Dark Pools</div>
+                                                    <div className="text-xs text-gray-300 mb-2">
+                                                        Private trading venues where orders are matched without displaying bids and offers publicly, often used for large block trades.
+                                                    </div>
+                                                    <div className="text-xs text-gray-300">
+                                                        <span className="font-semibold">Impact:</span> While prices from dark pool transactions eventually become public, the private matching can delay information dissemination.
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-3 rounded-lg">
+                                                    <div className="font-semibold text-sm mb-1">Request for Quote (RFQ)</div>
+                                                    <div className="text-xs text-gray-300 mb-2">
+                                                        Buyers request pricing from multiple dealers, who respond with competitive quotes. Common in bond and derivatives markets.
+                                                    </div>
+                                                    <div className="text-xs text-gray-300">
+                                                        <span className="font-semibold">Impact:</span> Creates price discovery through competitive quotes rather than an open order book, often in less transparent markets.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Importance of Price Discovery */}
+                            {activeTab === 'importance' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Importance of Price Discovery</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Market Efficiency</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Information Incorporation</span>
+                                                        <p className="text-gray-300 text-xs">Enables markets to rapidly reflect all available information in asset prices</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Reduced Mispricing</span>
+                                                        <p className="text-gray-300 text-xs">Minimizes the gap between an asset's market price and its intrinsic value</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Price Signals</span>
+                                                        <p className="text-gray-300 text-xs">Communicates market expectations and sentiment to all participants</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-purple-400 mb-2">Capital Allocation</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Resource Direction</span>
+                                                        <p className="text-gray-300 text-xs">Helps direct investment capital toward its most productive uses</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Valuation Framework</span>
+                                                        <p className="text-gray-300 text-xs">Provides benchmarks for valuing similar assets and making investment decisions</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Fund Raising</span>
+                                                        <p className="text-gray-300 text-xs">Enables companies to raise capital at fair prices based on market assessment</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Risk Management</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Price Transparency</span>
+                                                        <p className="text-gray-300 text-xs">Enables accurate valuation of portfolios and risk exposures</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Hedging Mechanisms</span>
+                                                        <p className="text-gray-300 text-xs">Facilitates development of derivatives and other instruments for risk transfer</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Volatility Assessment</span>
+                                                        <p className="text-gray-300 text-xs">Helps quantify market uncertainty and price potential future scenarios</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Market Integrity</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Fair Participation</span>
+                                                        <p className="text-gray-300 text-xs">Enables diverse market participants to trade at transparent prices</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Investor Confidence</span>
+                                                        <p className="text-gray-300 text-xs">Builds trust that market prices are legitimate and manipulation-free</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Market Liquidity</span>
+                                                        <p className="text-gray-300 text-xs">Enhances trading volume by ensuring participants can enter/exit positions efficiently</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-green-400">Price Discovery vs. Price Determination</div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                        <div className="text-green-400 font-semibold mb-1">Price Discovery</div>
+                                        <div className="text-sm text-gray-300">The dynamic process of finding equilibrium price through interaction of market participants</div>
+                                        <div className="text-sm text-gray-300 mt-2">Incorporates constantly changing information flows</div>
+                                        <div className="text-sm text-gray-300 mt-2">Reflects both current conditions and future expectations</div>
+                                    </div>
+                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                        <div className="text-blue-400 font-semibold mb-1">Price Determination</div>
+                                        <div className="text-sm text-gray-300">The theoretical mechanisms that establish prices (supply/demand intersection)</div>
+                                        <div className="text-sm text-gray-300 mt-2">Focuses on fundamental economic forces</div>
+                                        <div className="text-sm text-gray-300 mt-2">Abstract principle rather than real-time market action</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<PriceDiscoveryVisual />);
+    </script>
+</body>
+</html>
