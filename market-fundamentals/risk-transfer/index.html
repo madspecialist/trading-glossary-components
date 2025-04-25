@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risk Transfer Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const RiskTransferVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('mechanisms');
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const [selectedInstrument, setSelectedInstrument] = React.useState('options');
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const brandColor = "#079A4F"; // Brand green color
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+            
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 4 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 4);
+            };
+            // Chart for comparing risk levels with different instruments
+            React.useEffect(() => {
+                if (chartRef.current && activeTab === 'comparison') {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    const riskData = {
+                        labels: ['Options', 'Futures', 'Swaps', 'Insurance', 'Diversification'],
+                        datasets: [
+                            {
+                                label: 'Risk Reduction Potential',
+                                data: [85, 75, 80, 90, 50],
+                                backgroundColor: [
+                                    '#3B82F6', // Blue
+                                    '#F59E0B', // Amber
+                                    '#8B5CF6', // Purple
+                                    '#079A4F', // Green
+                                    '#EF4444'  // Red
+                                ],
+                                borderColor: 'rgba(255, 255, 255, 0.3)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Implementation Complexity',
+                                data: [70, 60, 85, 30, 20],
+                                backgroundColor: [
+                                    'rgba(59, 130, 246, 0.5)',
+                                    'rgba(245, 158, 11, 0.5)',
+                                    'rgba(139, 92, 246, 0.5)',
+                                    'rgba(7, 154, 79, 0.5)',
+                                    'rgba(239, 68, 68, 0.5)'
+                                ],
+                                borderColor: 'rgba(255, 255, 255, 0.3)',
+                                borderWidth: 1
+                            }
+                        ]
+                    };
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: riskData,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 100,
+                                    title: {
+                                        display: true,
+                                        text: 'Score (0-100)',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        color: isDarkMode ? '#E5E7EB' : '#1F2937'
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#E5E7EB' : '#1F2937',
+                                    bodyColor: isDarkMode ? '#E5E7EB' : '#1F2937',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1
+                                }
+                            }
+                        }
+                    });
+                    
+                    setChart(newChart);
+                }
+            }, [activeTab, isDarkMode]);
+
+            // Data for financial instruments
+            const instruments = {
+                options: {
+                    name: "Options",
+                    description: "Contracts giving the right (but not obligation) to buy or sell an asset at a predetermined price within a specific timeframe.",
+                    transfersTo: "Option writer (seller)",
+                    protection: "Against adverse price movements while maintaining upside potential",
+                    example: "Purchasing put options on stock holdings to protect against price declines",
+                    color: "#3B82F6" // Blue
+                },
+                futures: {
+                    name: "Futures Contracts",
+                    description: "Agreements to buy or sell an asset at a future date for a price established today.",
+                    transfersTo: "Counterparty in futures market",
+                    protection: "Against price fluctuations in commodities, currencies, or financial instruments",
+                    example: "A wheat farmer sells futures contracts to lock in crop prices before harvest",
+                    color: "#F59E0B" // Amber
+                },
+                swaps: {
+                    name: "Swaps",
+                    description: "Agreements between parties to exchange cash flows or liabilities from different financial instruments.",
+                    transfersTo: "Swap counterparty (typically a financial institution)",
+                    protection: "Against interest rate, currency, or credit risk exposures",
+                    example: "A company swaps variable-rate loan payments for fixed-rate payments",
+                    color: "#8B5CF6" // Purple
+                },
+                insurance: {
+                    name: "Insurance",
+                    description: "Contracts where one party (insurer) guarantees compensation for specific potential future losses in exchange for payment (premium).",
+                    transfersTo: "Insurance company",
+                    protection: "Against specified events that could cause financial loss",
+                    example: "Credit default swaps to protect against bond default risk",
+                    color: "#079A4F" // Green
+                },
+                securitization: {
+                    name: "Securitization",
+                    description: "The process of transforming illiquid assets into tradable securities by pooling various financial assets and repackaging them.",
+                    transfersTo: "Investors who purchase the securities",
+                    protection: "Against default risk, interest rate risk, and liquidity constraints",
+                    example: "Mortgage-backed securities that transfer default risk from originators to investors",
+                    color: "#EF4444" // Red
+                }
+            };
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Risk Transfer
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    The process of shifting financial risk from one party to another through financial instruments or contracts. This allows market participants to manage exposure to price movements, interest rate changes, or other financial uncertainties.
+                                </p>
+                            </div>
+
+                            <div className="mb-4 flex">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'mechanisms' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('mechanisms')}
+                                >
+                                    Process
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'instruments' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('instruments')}
+                                >
+                                    Instruments
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'comparison' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('comparison')}
+                                >
+                                    Comparison
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'strategies' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('strategies')}
+                                >
+                                    Strategies
+                                </button>
+                            </div>
+
+                            {/* Risk Transfer Process */}
+                            {activeTab === 'mechanisms' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">The Risk Transfer Process</h3>
+                                    
+                                    <div className="relative h-96 mb-4 bg-gray-700 rounded-lg overflow-hidden">
+                                        {/* Step 1: Risk Identification */}
+                                        {currentStep === 1 && (
+                                            <div className="absolute inset-0 p-4 overflow-y-auto">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 1: Risk Identification</h3>
+                                                <div className="flex flex-col items-center h-72">
+                                                    <div className="grid grid-cols-2 gap-4 w-full mb-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Market Risks</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Price Risk</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Potential for asset values to decline</div>
+                                                                </div>
+                                                                <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Interest Rate Risk</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Exposure to changing interest rates</div>
+                                                                </div>
+                                                                <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Currency Risk</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Fluctuations in exchange rates</div>
+                                                                </div>
+                                                                <div className="bg-blue-900 bg-opacity-30 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Volatility Risk</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Uncertainty in price movements</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Credit & Other Risks</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-amber-900 bg-opacity-30 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Default Risk</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Possibility of counterparty failure</div>
+                                                                </div>
+                                                                <div className="bg-amber-900 bg-opacity-30 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Liquidity Risk</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Inability to exit positions easily</div>
+                                                                </div>
+                                                                <div className="bg-amber-900 bg-opacity-30 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Operational Risk</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Failures in processes or systems</div>
+                                                                </div>
+                                                                <div className="bg-amber-900 bg-opacity-30 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Event Risk</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Unexpected external occurrences</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg w-full">
+                                                        <h4 className="text-green-400 font-semibold text-center mb-2">Risk Assessment Process</h4>
+                                                        <div className="flex items-center justify-around">
+                                                            <div className="text-center">
+                                                                <div className="h-16 w-16 rounded-full bg-purple-900 bg-opacity-40 flex items-center justify-center mb-2">
+                                                                    <div className="text-sm">Identify</div>
+                                                                </div>
+                                                                <div className="text-xs text-gray-300">Recognize exposures</div>
+                                                            </div>
+                                                            <div className="text-xl">→</div>
+                                                            <div className="text-center">
+                                                                <div className="h-16 w-16 rounded-full bg-purple-900 bg-opacity-40 flex items-center justify-center mb-2">
+                                                                    <div className="text-sm">Measure</div>
+                                                                </div>
+                                                                <div className="text-xs text-gray-300">Quantify impact</div>
+                                                            </div>
+                                                            <div className="text-xl">→</div>
+                                                            <div className="text-center">
+                                                                <div className="h-16 w-16 rounded-full bg-purple-900 bg-opacity-40 flex items-center justify-center mb-2">
+                                                                    <div className="text-sm">Evaluate</div>
+                                                                </div>
+                                                                <div className="text-xs text-gray-300">Assess tolerance</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 2: Instrument Selection */}
+                                        {currentStep === 2 && (
+                                            <div className="absolute inset-0 p-4 overflow-y-auto">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-green-400">Step 2: Instrument Selection</h3>
+                                                <div className="flex flex-col h-72">
+                                                    <div className="bg-gray-800 p-3 rounded-lg mb-4">
+                                                        <h4 className="text-green-400 font-semibold text-center mb-2">Matching Risks to Instruments</h4>
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold mb-1 text-sm text-blue-400">Price Risk</div>
+                                                                <div className="flex space-x-2 mb-1">
+                                                                    <div className="bg-blue-900 bg-opacity-20 text-xs p-1 rounded flex-1 text-center">Options</div>
+                                                                    <div className="bg-blue-900 bg-opacity-20 text-xs p-1 rounded flex-1 text-center">Futures</div>
+                                                                </div>
+                                                                <div className="text-xs text-gray-300 italic">Protect against adverse price movements</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold mb-1 text-sm text-purple-400">Interest Rate Risk</div>
+                                                                <div className="flex space-x-2 mb-1">
+                                                                    <div className="bg-purple-900 bg-opacity-20 text-xs p-1 rounded flex-1 text-center">Swaps</div>
+                                                                    <div className="bg-purple-900 bg-opacity-20 text-xs p-1 rounded flex-1 text-center">Futures</div>
+                                                                </div>
+                                                                <div className="text-xs text-gray-300 italic">Lock in rates or convert fixed to floating</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold mb-1 text-sm text-amber-400">Currency Risk</div>
+                                                                <div className="flex space-x-2 mb-1">
+                                                                    <div className="bg-amber-900 bg-opacity-20 text-xs p-1 rounded flex-1 text-center">Forwards</div>
+                                                                    <div className="bg-amber-900 bg-opacity-20 text-xs p-1 rounded flex-1 text-center">Options</div>
+                                                                </div>
+                                                                <div className="text-xs text-gray-300 italic">Hedge against exchange rate fluctuations</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold mb-1 text-sm text-red-400">Credit Risk</div>
+                                                                <div className="flex space-x-2 mb-1">
+                                                                    <div className="bg-red-900 bg-opacity-20 text-xs p-1 rounded flex-1 text-center">CDS</div>
+                                                                    <div className="bg-red-900 bg-opacity-20 text-xs p-1 rounded flex-1 text-center">Insurance</div>
+                                                                </div>
+                                                                <div className="text-xs text-gray-300 italic">Protection against defaults and downgrades</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="text-blue-400 font-semibold text-center mb-2">Selection Criteria</h4>
+                                                        <div className="grid grid-cols-3 gap-3">
+                                                            <div className="bg-gray-700 p-2 rounded text-sm text-center">
+                                                                <div className="font-semibold mb-1">Cost</div>
+                                                                <div className="text-xs text-gray-300">Premium vs. protection value</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded text-sm text-center">
+                                                                <div className="font-semibold mb-1">Liquidity</div>
+                                                                <div className="text-xs text-gray-300">Ease of entry and exit</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded text-sm text-center">
+                                                                <div className="font-semibold mb-1">Counterparty</div>
+                                                                <div className="text-xs text-gray-300">Reliability of the other party</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded text-sm text-center">
+                                                                <div className="font-semibold mb-1">Basis Risk</div>
+                                                                <div className="text-xs text-gray-300">Hedge alignment with exposure</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded text-sm text-center">
+                                                                <div className="font-semibold mb-1">Complexity</div>
+                                                                <div className="text-xs text-gray-300">Ease of implementation</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded text-sm text-center">
+                                                                <div className="font-semibold mb-1">Regulatory</div>
+                                                                <div className="text-xs text-gray-300">Compliance requirements</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 3: Implementation */}
+                                        {currentStep === 3 && (
+                                            <div className="absolute inset-0 p-4 overflow-y-auto">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-green-400">Step 3: Implementation & Execution</h3>
+                                                <div className="flex flex-col h-72">
+                                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-green-400 font-semibold text-center mb-2">Transaction Process</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="flex items-center">
+                                                                    <div className="h-8 w-8 rounded-full bg-blue-900 bg-opacity-40 flex items-center justify-center mr-2 flex-shrink-0">
+                                                                        <div className="text-sm">1</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded text-sm flex-1">
+                                                                        <span className="font-semibold">Counterparty Selection</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">Find suitable risk transfer partner</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center">
+                                                                    <div className="h-8 w-8 rounded-full bg-blue-900 bg-opacity-40 flex items-center justify-center mr-2 flex-shrink-0">
+                                                                        <div className="text-sm">2</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded text-sm flex-1">
+                                                                        <span className="font-semibold">Terms Negotiation</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">Agree on price, terms, and conditions</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center">
+                                                                    <div className="h-8 w-8 rounded-full bg-blue-900 bg-opacity-40 flex items-center justify-center mr-2 flex-shrink-0">
+                                                                        <div className="text-sm">3</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded text-sm flex-1">
+                                                                        <span className="font-semibold">Documentation</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">Legal agreements and contracts</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center">
+                                                                    <div className="h-8 w-8 rounded-full bg-blue-900 bg-opacity-40 flex items-center justify-center mr-2 flex-shrink-0">
+                                                                        <div className="text-sm">4</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded text-sm flex-1">
+                                                                        <span className="font-semibold">Execution</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">Transaction finalization and payment</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Key Implementation Roles</h4>
+                                                            <div className="space-y-3">
+                                                                <div className="bg-gray-700 p-2 rounded-lg">
+                                                                    <div className="font-semibold mb-1 text-sm">Risk Transferor</div>
+                                                                    <div className="text-xs text-gray-300">
+                                                                        <div>• Original risk holder</div>
+                                                                        <div>• Seeks protection against specific risk</div>
+                                                                        <div>• Pays premium or accepts opportunity cost</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded-lg">
+                                                                    <div className="font-semibold mb-1 text-sm">Risk Transferee</div>
+                                                                    <div className="text-xs text-gray-300">
+                                                                        <div>• Accepts risk exposure</div>
+                                                                        <div>• Receives compensation for risk assumption</div>
+                                                                        <div>• May have natural hedging position</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded-lg">
+                                                                    <div className="font-semibold mb-1 text-sm">Intermediaries</div>
+                                                                    <div className="text-xs text-gray-300">
+                                                                        <div>• Brokers and exchanges</div>
+                                                                        <div>• Clearing houses and settlement agents</div>
+                                                                        <div>• Facilitate and ensure proper execution</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="text-green-400 font-semibold text-center mb-2">Market Participants & Their Motivations</h4>
+                                                        <div className="grid grid-cols-3 gap-3">
+                                                            <div className="bg-gray-700 p-2 rounded text-center">
+                                                                <div className="font-semibold mb-1 text-sm">Hedgers</div>
+                                                                <div className="text-xs text-gray-300">
+                                                                    Reduce existing risk exposure
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded text-center">
+                                                                <div className="font-semibold mb-1 text-sm">Speculators</div>
+                                                                <div className="text-xs text-gray-300">
+                                                                    Profit from price movements
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded text-center">
+                                                                <div className="font-semibold mb-1 text-sm">Arbitrageurs</div>
+                                                                <div className="text-xs text-gray-300">
+                                                                    Exploit price inefficiencies
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {/* Step 4: Monitoring & Adjustment */}
+                                        {currentStep === 4 && (
+                                            <div className="absolute inset-0 p-4 overflow-y-auto">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-green-400">Step 4: Monitoring & Adjustment</h3>
+                                                <div className="flex flex-col h-72">
+                                                    <div className="bg-gray-800 p-3 rounded-lg mb-4">
+                                                        <h4 className="text-green-400 font-semibold text-center mb-2">Ongoing Risk Management Cycle</h4>
+                                                        <div className="relative h-36 mb-2">
+                                                            {/* Center circle */}
+                                                            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center">
+                                                                <div className="text-center text-xs">
+                                                                    <div className="font-semibold text-green-400">Effective</div>
+                                                                    <div className="font-semibold text-green-400">Risk</div>
+                                                                    <div className="font-semibold text-green-400">Transfer</div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            {/* Outer elements */}
+                                                            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-0 bg-blue-900 bg-opacity-40 p-2 rounded-lg">
+                                                                <div className="text-center text-xs font-semibold">Monitor</div>
+                                                            </div>
+                                                            
+                                                            <div className="absolute top-1/3 right-10 transform translate-y-0 bg-purple-900 bg-opacity-40 p-2 rounded-lg">
+                                                                <div className="text-center text-xs font-semibold">Evaluate</div>
+                                                            </div>
+                                                            
+                                                            <div className="absolute bottom-1/3 right-10 transform translate-y-0 bg-amber-900 bg-opacity-40 p-2 rounded-lg">
+                                                                <div className="text-center text-xs font-semibold">Adjust</div>
+                                                            </div>
+                                                            
+                                                            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-0 bg-green-900 bg-opacity-40 p-2 rounded-lg">
+                                                                <div className="text-center text-xs font-semibold">Rebalance</div>
+                                                            </div>
+                                                            
+                                                            <div className="absolute bottom-1/3 left-10 transform translate-y-0 bg-red-900 bg-opacity-40 p-2 rounded-lg">
+                                                                <div className="text-center text-xs font-semibold">Report</div>
+                                                            </div>
+                                                            
+                                                            <div className="absolute top-1/3 left-10 transform translate-y-0 bg-pink-900 bg-opacity-40 p-2 rounded-lg">
+                                                                <div className="text-center text-xs font-semibold">Review</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">Performance Metrics</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Hedge Effectiveness</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">How well the risk transfer instrument mitigates the target risk</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Cost vs. Benefit</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Comparing premium costs to protection value</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Risk-Adjusted Returns</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Portfolio performance accounting for reduced risk</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-amber-400 font-semibold text-center mb-2">Adjustment Strategies</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Dynamic Hedging</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Continuously updating position as market conditions change</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Overlay Adjustments</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Adding complementary instruments to improve coverage</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded text-sm">
+                                                                    <span className="font-semibold">Exit Strategies</span>
+                                                                    <div className="text-xs text-gray-300 mt-1">Unwinding positions when risk profile changes</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3, 4].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-green-500' : 'bg-gray-500'}`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Risk Transfer Instruments */}
+                            {activeTab === 'instruments' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Risk Transfer Instruments</h3>
+                                    
+                                    <div className="grid grid-cols-3 gap-2 mb-4">
+                                        {Object.keys(instruments).map(type => (
+                                            <button
+                                                key={type}
+                                                className={`p-2 rounded-lg border-2 transition-colors ${selectedInstrument === type ? 'border-white bg-gray-700' : 'border-gray-600 bg-gray-800'}`}
+                                                style={{ borderLeftColor: instruments[type].color }}
+                                                onClick={() => setSelectedInstrument(type)}
+                                            >
+                                                <div className="font-semibold text-sm" style={{ color: instruments[type].color }}>
+                                                    {instruments[type].name}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg mb-4">
+                                        <h4 className="font-semibold text-lg mb-2" style={{ color: instruments[selectedInstrument].color }}>
+                                            {instruments[selectedInstrument].name}
+                                        </h4>
+                                        <div className="space-y-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: instruments[selectedInstrument].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Description:</span>
+                                                    <p className="text-gray-200 text-sm">{instruments[selectedInstrument].description}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: instruments[selectedInstrument].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Risk Transfers To:</span>
+                                                    <p className="text-gray-200 text-sm">{instruments[selectedInstrument].transfersTo}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: instruments[selectedInstrument].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Protection Against:</span>
+                                                    <p className="text-gray-200 text-sm">{instruments[selectedInstrument].protection}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: instruments[selectedInstrument].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Example:</span>
+                                                    <p className="text-gray-200 text-sm">{instruments[selectedInstrument].example}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-green-400 mb-2">Common Characteristics</h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <p className="text-gray-200 text-sm">
+                                                    <span className="font-semibold">Counterparty Relationship:</span> All risk transfer instruments involve a relationship between at least two parties.
+                                                </p>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <p className="text-gray-200 text-sm">
+                                                    <span className="font-semibold">Cost Structure:</span> Risk transfer typically requires either a direct premium payment or opportunity cost.
+                                                </p>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <p className="text-gray-200 text-sm">
+                                                    <span className="font-semibold">Legal Agreement:</span> Formal contracts define the terms, conditions, and obligations of all parties.
+                                                </p>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <p className="text-gray-200 text-sm">
+                                                    <span className="font-semibold">Time-Limited:</span> Most instruments have defined time periods for coverage or performance.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Risk Transfer Comparison */}
+                            {activeTab === 'comparison' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Comparing Risk Transfer Methods</h3>
+                                    
+                                    <div className="h-64 mb-4">
+                                        <canvas ref={chartRef}></canvas>
+                                    </div>
+                                    <div className="text-xs text-gray-400 mb-4 text-center italic">
+                                        This chart compares the risk reduction potential versus implementation complexity for common risk transfer methods. Options and insurance provide the highest risk reduction potential, while diversification is the simplest to implement.
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-green-400 mb-2">Advantages and Disadvantages</h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <div className="font-semibold mb-1 text-blue-400">Options</div>
+                                                <div className="bg-gray-800 p-2 rounded-lg mb-2">
+                                                    <div className="text-xs font-semibold text-gray-300 mb-1">Advantages</div>
+                                                    <div className="text-xs text-gray-400">• Limited downside risk</div>
+                                                    <div className="text-xs text-gray-400">• Maintains upside potential</div>
+                                                    <div className="text-xs text-gray-400">• Highly customizable</div>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded-lg">
+                                                    <div className="text-xs font-semibold text-gray-300 mb-1">Disadvantages</div>
+                                                    <div className="text-xs text-gray-400">• Premium cost</div>
+                                                    <div className="text-xs text-gray-400">• Complexity</div>
+                                                    <div className="text-xs text-gray-400">• Time decay</div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold mb-1 text-amber-400">Futures</div>
+                                                <div className="bg-gray-800 p-2 rounded-lg mb-2">
+                                                    <div className="text-xs font-semibold text-gray-300 mb-1">Advantages</div>
+                                                    <div className="text-xs text-gray-400">• Low transaction costs</div>
+                                                    <div className="text-xs text-gray-400">• Liquidity</div>
+                                                    <div className="text-xs text-gray-400">• Standardization</div>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded-lg">
+                                                    <div className="text-xs font-semibold text-gray-300 mb-1">Disadvantages</div>
+                                                    <div className="text-xs text-gray-400">• Unlimited downside risk</div>
+                                                    <div className="text-xs text-gray-400">• No upside potential</div>
+                                                    <div className="text-xs text-gray-400">• Basis risk</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Risk Transfer Strategies */}
+                            {activeTab === 'strategies' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Risk Transfer Strategies</h3>
+                                    
+                                    <div className="grid grid-cols-1 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Common Strategic Approaches</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Complete Hedging</span>
+                                                        <p className="text-gray-300 text-sm">Transferring the entire risk exposure to eliminate all potential for loss, typically at the cost of also eliminating upside potential.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Partial Hedging</span>
+                                                        <p className="text-gray-300 text-sm">Transferring only a portion of the risk exposure, balancing protection against cost considerations and maintaining some market participation.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Tactical Risk Transfer</span>
+                                                        <p className="text-gray-300 text-sm">Temporarily transferring risk during periods of anticipated high volatility or uncertainty, then unwinding the hedge when conditions normalize.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Layered Protection</span>
+                                                        <p className="text-gray-300 text-sm">Using multiple risk transfer instruments to address different aspects or layers of risk exposure, creating a comprehensive protection structure.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Corporate Applications</h4>
+                                            <div className="space-y-2">
+                                                <div className="bg-gray-800 p-2 rounded-lg">
+                                                    <div className="font-semibold mb-1 text-sm">Currency Risk Management</div>
+                                                    <div className="text-xs text-gray-300">
+                                                        Multinational companies using forwards and options to hedge foreign exchange exposure on international operations and sales.
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded-lg">
+                                                    <div className="font-semibold mb-1 text-sm">Interest Rate Hedging</div>
+                                                    <div className="text-xs text-gray-300">
+                                                        Companies using swaps to convert variable-rate debt to fixed rates, protecting against rising interest expenses.
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded-lg">
+                                                    <div className="font-semibold mb-1 text-sm">Commodity Price Protection</div>
+                                                    <div className="text-xs text-gray-300">
+                                                        Manufacturers hedging inputs like oil, metals, or agricultural products using futures to stabilize production costs.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-purple-400 mb-2">Investment Applications</h4>
+                                            <div className="space-y-2">
+                                                <div className="bg-gray-800 p-2 rounded-lg">
+                                                    <div className="font-semibold mb-1 text-sm">Portfolio Protection</div>
+                                                    <div className="text-xs text-gray-300">
+                                                        Investment managers using index options or futures to hedge against broad market declines while maintaining individual positions.
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded-lg">
+                                                    <div className="font-semibold mb-1 text-sm">Risk Parity Strategies</div>
+                                                    <div className="text-xs text-gray-300">
+                                                        Allocating portfolio risk equally across asset classes, using derivatives to adjust effective exposure without selling underlying assets.
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gray-800 p-2 rounded-lg">
+                                                    <div className="font-semibold mb-1 text-sm">Tail Risk Hedging</div>
+                                                    <div className="text-xs text-gray-300">
+                                                        Using out-of-the-money options to protect against extreme market events at relatively low ongoing cost.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-green-400 mb-2">Strategy Selection Factors</h4>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div className="bg-gray-800 p-2 rounded-lg text-center">
+                                                <div className="font-semibold mb-1 text-sm">Risk Tolerance</div>
+                                                <div className="text-xs text-gray-300">
+                                                    Appetite for potential losses vs. cost of protection
+                                                </div>
+                                            </div>
+                                            <div className="bg-gray-800 p-2 rounded-lg text-center">
+                                                <div className="font-semibold mb-1 text-sm">Time Horizon</div>
+                                                <div className="text-xs text-gray-300">
+                                                    Duration of exposure requiring protection
+                                                </div>
+                                            </div>
+                                            <div className="bg-gray-800 p-2 rounded-lg text-center">
+                                                <div className="font-semibold mb-1 text-sm">Market View</div>
+                                                <div className="text-xs text-gray-300">
+                                                    Outlook on potential price movements
+                                                </div>
+                                            </div>
+                                            <div className="bg-gray-800 p-2 rounded-lg text-center">
+                                                <div className="font-semibold mb-1 text-sm">Liquidity Needs</div>
+                                                <div className="text-xs text-gray-300">
+                                                    Access to funds during hedge period
+                                                </div>
+                                            </div>
+                                            <div className="bg-gray-800 p-2 rounded-lg text-center">
+                                                <div className="font-semibold mb-1 text-sm">Accounting Impact</div>
+                                                <div className="text-xs text-gray-300">
+                                                    Financial statement treatment
+                                                </div>
+                                            </div>
+                                            <div className="bg-gray-800 p-2 rounded-lg text-center">
+                                                <div className="font-semibold mb-1 text-sm">Regulatory Constraints</div>
+                                                <div className="text-xs text-gray-300">
+                                                    Legal and compliance requirements
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-green-400">Risk Transfer vs. Risk Retention</div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                        <div className="text-blue-400 font-semibold mb-1">Transfer When:</div>
+                                        <div className="text-sm text-gray-300">• Risk could threaten financial viability</div>
+                                        <div className="text-sm text-gray-300">• Exposure exceeds risk tolerance</div>
+                                        <div className="text-sm text-gray-300">• Cost of transfer is reasonable</div>
+                                        <div className="text-sm text-gray-300">• No competitive advantage in keeping risk</div>
+                                    </div>
+                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                        <div className="text-red-400 font-semibold mb-1">Retain When:</div>
+                                        <div className="text-sm text-gray-300">• Cost of transfer exceeds potential loss</div>
+                                        <div className="text-sm text-gray-300">• Organization can absorb potential losses</div>
+                                        <div className="text-sm text-gray-300">• Risk is well-understood and manageable</div>
+                                        <div className="text-sm text-gray-300">• Risk provides competitive advantage</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<RiskTransferVisual />);
+    </script>
+</body>
+</html>
