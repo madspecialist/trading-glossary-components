@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supply and Demand Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const SupplyDemandVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('model');
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const [showingInteractive, setShowingInteractive] = React.useState(false);
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const [priceLevel, setPriceLevel] = React.useState(5); // Default price level (1-10)
+            const [equilibriumShift, setEquilibriumShift] = React.useState(null);
+            const totalSteps = 5;
+            const brandColor = "#079A4F"; // Brand green color
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+            
+            const nextStep = () => {
+                setCurrentStep(prev => prev < totalSteps ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : totalSteps);
+            };
+
+            // Supply and Demand chart
+            React.useEffect(() => {
+                if (chartRef.current) {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    if (showingInteractive) {
+                        // Interactive supply and demand chart
+                        const quantity = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+                        
+                        // Price points depending on the price level slider (1-10)
+                        const demandPrices = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map(p => p * priceLevel/5);
+                        const supplyPrices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(p => p * priceLevel/5);
+                        
+                        // Find equilibrium point (where supply = demand)
+                        const eqIndex = 5; // In this model, equilibrium is at index 5 (quantity 5)
+                        const eqPrice = supplyPrices[eqIndex];
+                        const eqQuantity = quantity[eqIndex];
+                        
+                        // Visual data for equilibrium shifts based on selection
+                        let shiftedDemandPrices = [...demandPrices];
+                        let shiftedSupplyPrices = [...supplyPrices];
+                        let shiftDescription = "";
+                        
+                        if (equilibriumShift === 'demand-increase') {
+                            shiftedDemandPrices = demandPrices.map(p => p + 2);
+                            shiftDescription = "Increased Demand: Higher prices and quantities";
+                        } else if (equilibriumShift === 'demand-decrease') {
+                            shiftedDemandPrices = demandPrices.map(p => Math.max(p - 2, 0));
+                            shiftDescription = "Decreased Demand: Lower prices and quantities";
+                        } else if (equilibriumShift === 'supply-increase') {
+                            shiftedSupplyPrices = supplyPrices.map(p => Math.max(p - 1, 0));
+                            shiftDescription = "Increased Supply: Lower prices, higher quantities";
+                        } else if (equilibriumShift === 'supply-decrease') {
+                            shiftedSupplyPrices = supplyPrices.map(p => p + 1);
+                            shiftDescription = "Decreased Supply: Higher prices, lower quantities";
+                        }
+                        
+                        const newChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: quantity,
+                                datasets: [
+                                    {
+                                        label: 'Demand',
+                                        data: demandPrices,
+                                        borderColor: '#3B82F6', // Blue
+                                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                        borderWidth: 3,
+                                        tension: 0.1,
+                                        fill: false,
+                                        pointRadius: quantity.map(q => q === eqQuantity ? 6 : 0)
+                                    },
+                                    {
+                                        label: 'Supply',
+                                        data: supplyPrices,
+                                        borderColor: '#F59E0B', // Amber
+                                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                        borderWidth: 3,
+                                        tension: 0.1,
+                                        fill: false,
+                                        pointRadius: quantity.map(q => q === eqQuantity ? 6 : 0)
+                                    },
+                                    // Conditionally add shifted curves
+                                    ...(equilibriumShift && equilibriumShift.startsWith('demand') ? [{
+                                        label: 'New Demand',
+                                        data: shiftedDemandPrices,
+                                        borderColor: '#3B82F6', // Blue
+                                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                        borderWidth: 3,
+                                        tension: 0.1,
+                                        borderDash: [5, 5],
+                                        fill: false,
+                                        pointRadius: 0
+                                    }] : []),
+                                    ...(equilibriumShift && equilibriumShift.startsWith('supply') ? [{
+                                        label: 'New Supply',
+                                        data: shiftedSupplyPrices,
+                                        borderColor: '#F59E0B', // Amber
+                                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                        borderWidth: 3,
+                                        tension: 0.1,
+                                        borderDash: [5, 5],
+                                        fill: false,
+                                        pointRadius: 0
+                                    }] : [])
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: {
+                                    intersect: false,
+                                    mode: 'index'
+                                },
+                                plugins: {
+                                    legend: {
+                                        position: 'top',
+                                        labels: {
+                                            color: isDarkMode ? '#E5E7EB' : '#374151',
+                                            padding: 10,
+                                            font: {
+                                                size: 12
+                                            }
+                                        }
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        displayColors: true,
+                                        callbacks: {
+                                            label: function(context) {
+                                                const label = context.dataset.label || '';
+                                                const value = context.parsed.y;
+                                                return `${label}: Price $${value.toFixed(2)}`;
+                                            },
+                                            title: function(context) {
+                                                return `Quantity: ${context[0].label} units`;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        title: {
+                                            display: true,
+                                            text: 'Price ($)',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    },
+                                    x: {
+                                        title: {
+                                            display: true,
+                                            text: 'Quantity',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    }
+                                },
+                                // Add annotation for equilibrium point
+                                plugins: {
+                                    annotation: {
+                                        annotations: {
+                                            point1: {
+                                                type: 'point',
+                                                xValue: eqQuantity,
+                                                yValue: eqPrice,
+                                                backgroundColor: '#10B981', // Emerald
+                                                radius: 6,
+                                                borderWidth: 2,
+                                                borderColor: 'white'
+                                            },
+                                            label1: {
+                                                type: 'label',
+                                                xValue: eqQuantity,
+                                                yValue: eqPrice,
+                                                content: 'Equilibrium',
+                                                backgroundColor: '#10B981',
+                                                color: 'white',
+                                                position: 'top'
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        
+                        setChart(newChart);
+                    } else {
+                        // Basic supply and demand chart
+                        const quantity = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+                        const demandPrices = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
+                        const supplyPrices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+                        
+                        // Find equilibrium point (where supply = demand)
+                        const eqIndex = 5; // In this model, equilibrium is at index 5 (quantity 5)
+                        const eqPrice = supplyPrices[eqIndex];
+                        const eqQuantity = quantity[eqIndex];
+                        
+                        const newChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: quantity,
+                                datasets: [
+                                    {
+                                        label: 'Demand',
+                                        data: demandPrices,
+                                        borderColor: '#3B82F6', // Blue
+                                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                        borderWidth: 3,
+                                        tension: 0.1,
+                                        fill: false,
+                                        pointRadius: quantity.map(q => q === eqQuantity ? 6 : 0)
+                                    },
+                                    {
+                                        label: 'Supply',
+                                        data: supplyPrices,
+                                        borderColor: '#F59E0B', // Amber
+                                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                        borderWidth: 3,
+                                        tension: 0.1,
+                                        fill: false,
+                                        pointRadius: quantity.map(q => q === eqQuantity ? 6 : 0)
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: {
+                                    intersect: false,
+                                    mode: 'index'
+                                },
+                                plugins: {
+                                    legend: {
+                                        position: 'top',
+                                        labels: {
+                                            color: isDarkMode ? '#E5E7EB' : '#374151',
+                                            padding: 10,
+                                            font: {
+                                                size: 12
+                                            }
+                                        }
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        displayColors: true,
+                                        callbacks: {
+                                            label: function(context) {
+                                                const label = context.dataset.label || '';
+                                                const value = context.parsed.y;
+                                                return `${label}: Price $${value}`;
+                                            },
+                                            title: function(context) {
+                                                return `Quantity: ${context[0].label} units`;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        title: {
+                                            display: true,
+                                            text: 'Price ($)',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    },
+                                    x: {
+                                        title: {
+                                            display: true,
+                                            text: 'Quantity',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        
+                        setChart(newChart);
+                    }
+                }
+            }, [showingInteractive, isDarkMode, priceLevel, equilibriumShift]);
+
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Supply and Demand
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    The economic model describing the interaction between buyers and sellers that determines price and quantity in a market. Price equilibrium occurs at the point where quantity supplied equals quantity demanded, with prices adjusting to balance these forces.
+                                </p>
+                            </div>
+
+                            <div className="flex mb-4">
+                                <button
+                                    className={`px-4 py-2 rounded-tl-lg rounded-bl-lg ${!showingInteractive ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                    onClick={() => setShowingInteractive(false)}
+                                >
+                                    Basic Model
+                                </button>
+                                <button
+                                    className={`px-4 py-2 rounded-tr-lg rounded-br-lg ${showingInteractive ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                    onClick={() => setShowingInteractive(true)}
+                                >
+                                    Interactive Model
+                                </button>
+                            </div>
+
+                            <div className="h-64 mb-3">
+                                <canvas ref={chartRef}></canvas>
+                            </div>
+                            
+                            <div className="mb-6 text-sm text-gray-300 text-center">
+                                {showingInteractive ? 
+                                    "Adjust the price level or simulate shifts in supply and demand to see how market equilibrium changes." :
+                                    "The supply curve (amber) slopes upward as higher prices incentivize producers to offer more. The demand curve (blue) slopes downward as buyers purchase less at higher prices. The equilibrium occurs where these curves intersect."
+                                }
+                            </div>
+
+                            {showingInteractive && (
+                                <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Interactive Controls</h3>
+                                    
+                                    <div className="mb-4">
+                                        <label className="block text-sm text-gray-300 mb-2">Price Level</label>
+                                        <input 
+                                            type="range" 
+                                            min="1" 
+                                            max="10" 
+                                            value={priceLevel} 
+                                            onChange={(e) => setPriceLevel(parseInt(e.target.value))}
+                                            className="w-full h-2 rounded-lg appearance-none bg-gray-600 outline-none"
+                                        />
+                                        <div className="flex justify-between text-xs text-gray-400 mt-1">
+                                            <span>Low</span>
+                                            <span>High</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-2">
+                                        <label className="block text-sm text-gray-300 mb-2">Simulate Market Shifts</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                className={`px-3 py-2 text-sm rounded-lg border ${equilibriumShift === 'demand-increase' ? 'bg-blue-900 border-blue-500' : 'bg-gray-800 border-gray-600'}`}
+                                                onClick={() => setEquilibriumShift('demand-increase')}
+                                            >
+                                                Demand Increase ↑
+                                            </button>
+                                            <button
+                                                className={`px-3 py-2 text-sm rounded-lg border ${equilibriumShift === 'demand-decrease' ? 'bg-blue-900 border-blue-500' : 'bg-gray-800 border-gray-600'}`}
+                                                onClick={() => setEquilibriumShift('demand-decrease')}
+                                            >
+                                                Demand Decrease ↓
+                                            </button>
+                                            <button
+                                                className={`px-3 py-2 text-sm rounded-lg border ${equilibriumShift === 'supply-increase' ? 'bg-amber-900 border-amber-500' : 'bg-gray-800 border-gray-600'}`}
+                                                onClick={() => setEquilibriumShift('supply-increase')}
+                                            >
+                                                Supply Increase ↑
+                                            </button>
+                                            <button
+                                                className={`px-3 py-2 text-sm rounded-lg border ${equilibriumShift === 'supply-decrease' ? 'bg-amber-900 border-amber-500' : 'bg-gray-800 border-gray-600'}`}
+                                                onClick={() => setEquilibriumShift('supply-decrease')}
+                                            >
+                                                Supply Decrease ↓
+                                            </button>
+                                        </div>
+                                        <button
+                                            className="mt-2 px-3 py-2 text-sm rounded-lg border bg-gray-800 border-gray-600 w-full"
+                                            onClick={() => setEquilibriumShift(null)}
+                                        >
+                                            Reset Shifts
+                                        </button>
+                                    </div>
+                                    
+                                    {equilibriumShift && (
+                                        <div className="mt-3 bg-gray-800 p-3 rounded-lg text-sm">
+                                            <span className="font-semibold">Market Effect: </span>
+                                            {equilibriumShift === 'demand-increase' && 'Increased demand leads to higher equilibrium price and quantity.'}
+                                            {equilibriumShift === 'demand-decrease' && 'Decreased demand leads to lower equilibrium price and quantity.'}
+                                            {equilibriumShift === 'supply-increase' && 'Increased supply leads to lower equilibrium price and higher quantity.'}
+                                            {equilibriumShift === 'supply-decrease' && 'Decreased supply leads to higher equilibrium price and lower quantity.'}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="mb-4 flex">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'model' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('model')}
+                                >
+                                    The Model
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'process' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('process')}
+                                >
+                                    Market Process
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'factors' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('factors')}
+                                >
+                                    Factors
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'applications' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('applications')}
+                                >
+                                    Applications
+                                </button>
+                            </div>
+
+                            {/* Model Components */}
+                            {activeTab === 'model' && (
+                                <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Components of the Model</h3>
+                                    
+                                    <div className="space-y-4">
+                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Demand Curve</h4>
+                                            <div className="space-y-2 text-sm text-gray-300">
+                                                <p>The demand curve represents the quantity of a good or service that buyers are willing and able to purchase at various prices, assuming all other factors remain constant.</p>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p><span className="font-semibold">Law of Demand:</span> As price increases, quantity demanded decreases (downward sloping curve).</p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p><span className="font-semibold">Determinants:</span> Consumer preferences, income, prices of related goods, expectations, number of buyers.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Supply Curve</h4>
+                                            <div className="space-y-2 text-sm text-gray-300">
+                                                <p>The supply curve represents the quantity of a good or service that producers are willing and able to sell at various prices, assuming all other factors remain constant.</p>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p><span className="font-semibold">Law of Supply:</span> As price increases, quantity supplied increases (upward sloping curve).</p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p><span className="font-semibold">Determinants:</span> Production costs, technology, prices of related goods, expectations, number of sellers.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Market Equilibrium</h4>
+                                            <div className="space-y-2 text-sm text-gray-300">
+                                                <p>The market equilibrium is the point where the quantity demanded equals the quantity supplied, establishing the equilibrium price and quantity.</p>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p><span className="font-semibold">Equilibrium Price:</span> The price at which quantity demanded equals quantity supplied.</p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p><span className="font-semibold">Equilibrium Quantity:</span> The amount of the good or service bought and sold at the equilibrium price.</p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p><span className="font-semibold">Market Clearing:</span> At equilibrium, there is neither surplus nor shortage in the market.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Market Process */}
+                            {activeTab === 'process' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Market Process & Dynamics</h3>
+                                    
+                                    <div className="relative h-96 mb-4 bg-gray-700 rounded-lg overflow-hidden">
+                                        {/* Step 1: Disequilibrium - Price Too High */}
+                                        {currentStep === 1 && (
+                                            <div className="absolute inset-0 p-4 overflow-y-auto">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-red-400">Step 1: Disequilibrium - Price Too High</h3>
+                                                <div className="flex flex-col h-64">
+                                                    <div className="bg-gray-800 p-3 rounded-lg mb-3">
+                                                        <div className="flex items-center justify-center mb-3">
+                                                            <div className="w-1/3 text-center">
+                                                                <div className="font-semibold text-blue-400">Demand</div>
+                                                                <div className="text-3xl font-bold mt-1">3</div>
+                                                                <div className="text-sm text-gray-400">units</div>
+                                                            </div>
+                                                            <div className="w-1/3 text-center">
+                                                                <div className="font-semibold text-red-400">Price</div>
+                                                                <div className="text-3xl font-bold mt-1">$8</div>
+                                                                <div className="text-sm text-gray-400">per unit</div>
+                                                            </div>
+                                                            <div className="w-1/3 text-center">
+                                                                <div className="font-semibold text-amber-400">Supply</div>
+                                                                <div className="text-3xl font-bold mt-1">8</div>
+                                                                <div className="text-sm text-gray-400">units</div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-red-900 bg-opacity-40 p-3 rounded-lg text-center">
+                                                            <div className="font-semibold mb-1">SURPLUS of 5 units</div>
+                                                            <div className="text-sm text-gray-300">Suppliers produce more than consumers want to buy</div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="space-y-3 text-sm">
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200">
+                                                                At a price of $8, producers are willing to supply 8 units, but consumers only demand 3 units.
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200">
+                                                                This creates a surplus of 5 units (excess supply) in the market.
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200">
+                                                                Competition among sellers forces prices downward as they attempt to sell unsold inventory.
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200">
+                                                                As price falls, quantity demanded increases and quantity supplied decreases, moving toward equilibrium.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 2: Disequilibrium - Price Too Low */}
+                                        {currentStep === 2 && (
+                                            <div className="absolute inset-0 p-4 overflow-y-auto">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-red-400">Step 2: Disequilibrium - Price Too Low</h3>
+                                                <div className="flex flex-col h-64">
+                                                    <div className="bg-gray-800 p-3 rounded-lg mb-3">
+                                                        <div className="flex items-center justify-center mb-3">
+                                                            <div className="w-1/3 text-center">
+                                                                <div className="font-semibold text-blue-400">Demand</div>
+                                                                <div className="text-3xl font-bold mt-1">8</div>
+                                                                <div className="text-sm text-gray-400">units</div>
+                                                            </div>
+                                                            <div className="w-1/3 text-center">
+                                                                <div className="font-semibold text-red-400">Price</div>
+                                                                <div className="text-3xl font-bold mt-1">$2</div>
+                                                                <div className="text-sm text-gray-400">per unit</div>
+                                                            </div>
+                                                            <div className="w-1/3 text-center">
+                                                                <div className="font-semibold text-amber-400">Supply</div>
+                                                                <div className="text-3xl font-bold mt-1">2</div>
+                                                                <div className="text-sm text-gray-400">units</div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-red-900 bg-opacity-40 p-3 rounded-lg text-center">
+                                                            <div className="font-semibold mb-1">SHORTAGE of 6 units</div>
+                                                            <div className="text-sm text-gray-300">Consumers want to buy more than suppliers produce</div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="space-y-3 text-sm">
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200">
+                                                                At a price of $2, consumers demand 8 units, but producers are only willing to supply 2 units.
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200">
+                                                                This creates a shortage of 6 units (excess demand) in the market.
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200">
+                                                                Competition among buyers bids prices upward as they compete for limited supply.
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200">
+                                                                As price rises, quantity demanded decreases and quantity supplied increases, moving toward equilibrium.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 3: Approaching Equilibrium */}
+                                        {currentStep === 3 && (
+                                            <div className="absolute inset-0 p-4 overflow-y-auto">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-yellow-400">Step 3: Approaching Equilibrium</h3>
+                                                <div className="flex flex-col h-72">
+                                                    <div className="text-sm mb-3 text-gray-300 text-center">
+                                                        Market forces progressively adjust price until equilibrium is reached
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-3 gap-3 mb-3">
+                                                        <div className="bg-gray-800 p-3 rounded-lg text-center">
+                                                            <div className="font-semibold text-red-400 mb-1">Price Too High ($8)</div>
+                                                            <div className="text-xs mb-2">Supply: 8 | Demand: 3</div>
+                                                            <div className="text-xs mb-2">Surplus of 5 units</div>
+                                                            <div className="h-4 bg-gray-700 rounded-full overflow-hidden">
+                                                                <div className="h-full w-3/4 bg-red-500"></div>
+                                                            </div>
+                                                            <div className="text-xs mt-1">Price pressure: Down</div>
+                                                            <div className="text-3xl mt-1">↓</div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg text-center">
+                                                            <div className="font-semibold text-green-400 mb-1">Equilibrium ($5)</div>
+                                                            <div className="text-xs mb-2">Supply: 5 | Demand: 5</div>
+                                                            <div className="text-xs mb-2">Market clears</div>
+                                                            <div className="h-4 bg-gray-700 rounded-full overflow-hidden">
+                                                                <div className="h-full w-1/2 bg-green-500"></div>
+                                                            </div>
+                                                            <div className="text-xs mt-1">Price pressure: None</div>
+                                                            <div className="text-3xl mt-1">=</div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg text-center">
+                                                            <div className="font-semibold text-red-400 mb-1">Price Too Low ($2)</div>
+                                                            <div className="text-xs mb-2">Supply: 2 | Demand: 8</div>
+                                                            <div className="text-xs mb-2">Shortage of 6 units</div>
+                                                            <div className="h-4 bg-gray-700 rounded-full overflow-hidden">
+                                                                <div className="h-full w-1/4 bg-red-500"></div>
+                                                            </div>
+                                                            <div className="text-xs mt-1">Price pressure: Up</div>
+                                                            <div className="text-3xl mt-1">↑</div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="font-semibold text-center mb-2">Price Adjustment Mechanism</h4>
+                                                        <div className="space-y-3 text-sm">
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-200">
+                                                                    <span className="font-semibold">Self-Correcting Process:</span> Market imbalances create pressure that moves prices toward equilibrium.
+                                                                </p>
+                                                            </div>
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-200">
+                                                                    <span className="font-semibold">Price Signals:</span> Prices communicate information to both buyers and sellers about relative scarcity and value.
+                                                                </p>
+                                                            </div>
+                                                            <div className="flex items-start">
+                                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                                <p className="text-gray-200">
+                                                                    <span className="font-semibold">Incentive Alignment:</span> Price adjustments create incentives that bring quantity supplied and demanded into balance.
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 4: Equilibrium Achieved */}
+                                        {currentStep === 4 && (
+                                            <div className="absolute inset-0 p-4 overflow-y-auto">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-green-400">Step 4: Equilibrium Achieved</h3>
+                                                <div className="flex flex-col h-64">
+                                                    <div className="bg-gray-800 p-3 rounded-lg mb-3">
+                                                        <div className="flex items-center justify-center mb-3">
+                                                            <div className="w-1/3 text-center">
+                                                                <div className="font-semibold text-blue-400">Demand</div>
+                                                                <div className="text-3xl font-bold mt-1">5</div>
+                                                                <div className="text-sm text-gray-400">units</div>
+                                                            </div>
+                                                            <div className="w-1/3 text-center">
+                                                                <div className="font-semibold text-green-400">Price</div>
+                                                                <div className="text-3xl font-bold mt-1">$5</div>
+                                                                <div className="text-sm text-gray-400">per unit</div>
+                                                            </div>
+                                                            <div className="w-1/3 text-center">
+                                                                <div className="font-semibold text-amber-400">Supply</div>
+                                                                <div className="text-3xl font-bold mt-1">5</div>
+                                                                <div className="text-sm text-gray-400">units</div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-green-900 bg-opacity-40 p-3 rounded-lg text-center">
+                                                            <div className="font-semibold mb-1">MARKET CLEARING</div>
+                                                            <div className="text-sm text-gray-300">Quantity supplied exactly equals quantity demanded</div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="space-y-3 text-sm">
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200">
+                                                                At the equilibrium price of $5, the quantity demanded (5 units) exactly equals the quantity supplied (5 units).
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200">
+                                                                There is no surplus or shortage in the market; it "clears" efficiently.
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200">
+                                                                At this price, there is no pressure for prices to change in either direction.
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-start">
+                                                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                            <p className="text-gray-200">
+                                                                The market will remain at this equilibrium until an external factor shifts either supply or demand.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 5: Shifts in Equilibrium */}
+                                        {currentStep === 5 && (
+                                            <div className="absolute inset-0 p-4 overflow-y-auto">
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-purple-400">Step 5: Shifts in Equilibrium</h3>
+                                                <div className="flex flex-col h-72">
+                                                    <div className="grid grid-cols-2 gap-3 mb-3">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="font-semibold text-blue-400 text-center mb-2">Demand Shifts</h4>
+                                                            <div className="space-y-2 text-xs">
+                                                                <div className="bg-blue-900 bg-opacity-30 p-2 rounded-lg flex items-start">
+                                                                    <div className="w-5 text-center mr-1">↑</div>
+                                                                    <div>
+                                                                        <div className="font-semibold">Increased Demand</div>
+                                                                        <div className="text-gray-300">Curve shifts right; higher equilibrium price and quantity</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-blue-900 bg-opacity-30 p-2 rounded-lg flex items-start">
+                                                                    <div className="w-5 text-center mr-1">↓</div>
+                                                                    <div>
+                                                                        <div className="font-semibold">Decreased Demand</div>
+                                                                        <div className="text-gray-300">Curve shifts left; lower equilibrium price and quantity</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="font-semibold mt-1">Caused by:</div>
+                                                                <ul className="list-disc pl-4 text-gray-300 space-y-1">
+                                                                    <li>Changes in consumer income</li>
+                                                                    <li>Changing preferences</li>
+                                                                    <li>Prices of related goods</li>
+                                                                    <li>Consumer expectations</li>
+                                                                    <li>Number of buyers</li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="font-semibold text-amber-400 text-center mb-2">Supply Shifts</h4>
+                                                            <div className="space-y-2 text-xs">
+                                                                <div className="bg-amber-900 bg-opacity-30 p-2 rounded-lg flex items-start">
+                                                                    <div className="w-5 text-center mr-1">↑</div>
+                                                                    <div>
+                                                                        <div className="font-semibold">Increased Supply</div>
+                                                                        <div className="text-gray-300">Curve shifts right; lower equilibrium price, higher quantity</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-amber-900 bg-opacity-30 p-2 rounded-lg flex items-start">
+                                                                    <div className="w-5 text-center mr-1">↓</div>
+                                                                    <div>
+                                                                        <div className="font-semibold">Decreased Supply</div>
+                                                                        <div className="text-gray-300">Curve shifts left; higher equilibrium price, lower quantity</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="font-semibold mt-1">Caused by:</div>
+                                                                <ul className="list-disc pl-4 text-gray-300 space-y-1">
+                                                                    <li>Changes in production costs</li>
+                                                                    <li>Technological advancements</li>
+                                                                    <li>Natural disasters/weather</li>
+                                                                    <li>Producer expectations</li>
+                                                                    <li>Government regulations</li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="font-semibold text-center mb-2">Combined Effects</h4>
+                                                        <div className="grid grid-cols-2 gap-3 text-xs">
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">Both Supply & Demand Increase</div>
+                                                                <div className="text-gray-300">Higher quantity, price effect depends on relative magnitude of shifts</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">Both Supply & Demand Decrease</div>
+                                                                <div className="text-gray-300">Lower quantity, price effect depends on relative magnitude of shifts</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">Supply ↑, Demand ↓</div>
+                                                                <div className="text-gray-300">Lower price, quantity effect uncertain</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">Supply ↓, Demand ↑</div>
+                                                                <div className="text-gray-300">Higher price, quantity effect uncertain</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3, 4, 5].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-green-500' : 'bg-gray-500'}`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Factors Affecting Supply and Demand */}
+                            {activeTab === 'factors' && (
+                                <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Factors Affecting Supply & Demand</h3>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-800 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Demand Shifters</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Consumer Income</span>
+                                                        <p className="text-gray-300 text-xs">For normal goods, higher income increases demand; for inferior goods, higher income decreases demand.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Consumer Preferences</span>
+                                                        <p className="text-gray-300 text-xs">Changes in taste, fashion, trends, or health considerations affect demand.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Prices of Related Goods</span>
+                                                        <p className="text-gray-300 text-xs">Substitutes: When price of a substitute rises, demand for this good increases. Complements: When price of a complement rises, demand for this good decreases.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Consumer Expectations</span>
+                                                        <p className="text-gray-300 text-xs">Anticipated future price increases or decreases affect current demand.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Number of Buyers</span>
+                                                        <p className="text-gray-300 text-xs">Population growth, demographic changes, or market expansion increases demand.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-800 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Supply Shifters</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Input Costs</span>
+                                                        <p className="text-gray-300 text-xs">Changes in the costs of labor, raw materials, energy, or capital affect supply.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Technology</span>
+                                                        <p className="text-gray-300 text-xs">Improvements in production technology typically increase supply by reducing costs.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Prices of Related Products</span>
+                                                        <p className="text-gray-300 text-xs">Changes in prices of goods that can be produced with the same resources.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Producer Expectations</span>
+                                                        <p className="text-gray-300 text-xs">Anticipated changes in market conditions affect current production decisions.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Number of Sellers</span>
+                                                        <p className="text-gray-300 text-xs">Entry or exit of producers in the market affects total supply.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Government Policies</span>
+                                                        <p className="text-gray-300 text-xs">Taxes, subsidies, and regulations affect costs and production decisions.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-gray-800 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-purple-400 mb-2">External Market Factors</h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold">Seasonality</span>
+                                                    <p className="text-gray-300 text-xs">Seasonal changes affect both supply and demand for many products.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold">Economic Conditions</span>
+                                                    <p className="text-gray-300 text-xs">Inflation, recession, or economic growth affect purchasing power and production decisions.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold">Natural Events</span>
+                                                    <p className="text-gray-300 text-xs">Weather, natural disasters, or resource availability impact supply chains.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold">Global Trade</span>
+                                                    <p className="text-gray-300 text-xs">International markets, trade policies, and exchange rates influence domestic supply and demand.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Applications */}
+                            {activeTab === 'applications' && (
+                                <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Market Applications</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-800 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Trading Applications</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Price Forecasting</span>
+                                                        <p className="text-gray-300 text-xs">Traders analyze supply and demand factors to predict price movements in financial markets.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Support & Resistance</span>
+                                                        <p className="text-gray-300 text-xs">Price levels where market forces have historically created buying (support) or selling (resistance) pressure.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Liquidity Analysis</span>
+                                                        <p className="text-gray-300 text-xs">Identifying market depth and potential price impact of large orders based on order book supply/demand.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Market Sentiment</span>
+                                                        <p className="text-gray-300 text-xs">Gauging buyer and seller enthusiasm as an indicator of potential supply/demand imbalances.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-800 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Economic Policy</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Price Controls</span>
+                                                        <p className="text-gray-300 text-xs">Government-imposed price ceilings or floors that prevent market-clearing prices.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Subsidies & Taxes</span>
+                                                        <p className="text-gray-300 text-xs">Policy tools that shift supply or demand curves to influence market outcomes.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Trade Policies</span>
+                                                        <p className="text-gray-300 text-xs">Tariffs, quotas, and trade agreements that affect international supply and demand.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Monetary Policy</span>
+                                                        <p className="text-gray-300 text-xs">Interest rate adjustments that influence demand for goods, services, and investments.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-gray-800 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Business Strategy</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Pricing Strategies</span>
+                                                        <p className="text-gray-300 text-xs">Setting optimal prices based on demand elasticity and competitive supply.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Production Planning</span>
+                                                        <p className="text-gray-300 text-xs">Adjusting output based on anticipated market demand and competitor supply.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Market Entry</span>
+                                                        <p className="text-gray-300 text-xs">Assessing supply gaps and unmet demand when entering new markets.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Product Development</span>
+                                                        <p className="text-gray-300 text-xs">Creating products that address emerging demand or supply constraints.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-800 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-purple-400 mb-2">Market Distortions</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Market Power</span>
+                                                        <p className="text-gray-300 text-xs">Monopolies or oligopolies that can influence prices by controlling supply.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Externalities</span>
+                                                        <p className="text-gray-300 text-xs">Costs or benefits not reflected in market prices, leading to inefficient outcomes.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Information Asymmetry</span>
+                                                        <p className="text-gray-300 text-xs">Uneven access to information between buyers and sellers distorting market efficiency.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Public Goods</span>
+                                                        <p className="text-gray-300 text-xs">Non-excludable, non-rivalrous goods that markets often underprovide.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-gray-300">Supply & Demand Elasticity</div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-blue-900 bg-opacity-30 p-3 rounded-lg">
+                                        <div className="text-blue-400 font-semibold mb-1">Demand Elasticity</div>
+                                        <div className="text-sm text-gray-300">Measures how responsive quantity demanded is to price changes.</div>
+                                        <div className="mt-2 space-y-1 text-sm">
+                                            <div className="flex justify-between">
+                                                <span>Elastic (&gt;1)</span>
+                                                <span>Large quantity response</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Inelastic (&lt;1)</span>
+                                                <span>Small quantity response</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Unit Elastic (=1)</span>
+                                                <span>Proportional response</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-amber-900 bg-opacity-30 p-3 rounded-lg">
+                                        <div className="text-amber-400 font-semibold mb-1">Supply Elasticity</div>
+                                        <div className="text-sm text-gray-300">Measures how responsive quantity supplied is to price changes.</div>
+                                        <div className="mt-2 space-y-1 text-sm">
+                                            <div className="flex justify-between">
+                                                <span>Elastic (&gt;1)</span>
+                                                <span>Flexible production</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Inelastic (&lt;1)</span>
+                                                <span>Constrained production</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Unit Elastic (=1)</span>
+                                                <span>Proportional response</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<SupplyDemandVisual />);
+    </script>
+</body>
+</html>
