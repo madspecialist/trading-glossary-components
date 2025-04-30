@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volatility Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const VolatilityVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('concept');
+            const [chartType, setChartType] = React.useState('price');
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const chartRef = React.useRef(null);
+            const volatilityChartRef = React.useRef(null);
+            const comparisonChartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const [volatilityChart, setVolatilityChart] = React.useState(null);
+            const [comparisonChart, setComparisonChart] = React.useState(null);
+            
+            // Brand color from your setup
+            const brandColor = "#079A4F";
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+            
+            // Navigation for steps
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 4 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 4);
+            };
+
+            // Sample data for price charts with volatility
+            const highVolData = [
+                { day: 1, price: 100 },
+                { day: 2, price: 120 },
+                { day: 3, price: 105 },
+                { day: 4, price: 135 },
+                { day: 5, price: 115 },
+                { day: 6, price: 90 },
+                { day: 7, price: 110 },
+                { day: 8, price: 85 },
+                { day: 9, price: 105 },
+                { day: 10, price: 125 },
+                { day: 11, price: 95 },
+                { day: 12, price: 115 },
+                { day: 13, price: 85 },
+                { day: 14, price: 110 }
+            ];
+
+            const lowVolData = [
+                { day: 1, price: 100 },
+                { day: 2, price: 102 },
+                { day: 3, price: 104 },
+                { day: 4, price: 101 },
+                { day: 5, price: 103 },
+                { day: 6, price: 106 },
+                { day: 7, price: 108 },
+                { day: 8, price: 105 },
+                { day: 9, price: 107 },
+                { day: 10, price: 110 },
+                { day: 11, price: 112 },
+                { day: 12, price: 109 },
+                { day: 13, price: 111 },
+                { day: 14, price: 113 }
+            ];
+            
+            // Historical volatility data for major assets
+            const historicalVolData = [
+                { name: 'Bitcoin', value: 75 },
+                { name: 'Small Cap Stocks', value: 38 },
+                { name: 'Tech Stocks', value: 28 },
+                { name: 'S&P 500', value: 20 },
+                { name: 'Gold', value: 15 },
+                { name: 'Corporate Bonds', value: 8 },
+                { name: 'Treasury Bonds', value: 5 }
+            ];
+            
+            // VIX index sample data (market fear)
+            const vixData = [
+                { date: 'Jan', value: 18 },
+                { date: 'Feb', value: 22 },
+                { date: 'Mar', value: 65 }, // COVID-19 spike
+                { date: 'Apr', value: 40 },
+                { date: 'May', value: 32 },
+                { date: 'Jun', value: 28 },
+                { date: 'Jul', value: 25 },
+                { date: 'Aug', value: 22 },
+                { date: 'Sep', value: 26 },
+                { date: 'Oct', value: 38 },
+                { date: 'Nov', value: 30 },
+                { date: 'Dec', value: 24 }
+            ];
+
+            // Create and update charts based on active tab and chart type
+            React.useEffect(() => {
+                // Clean up previous chart instances
+                if (chart) {
+                    chart.destroy();
+                    setChart(null);
+                }
+                
+                if (volatilityChart) {
+                    volatilityChart.destroy();
+                    setVolatilityChart(null);
+                }
+                
+                if (comparisonChart) {
+                    comparisonChart.destroy();
+                    setComparisonChart(null);
+                }
+                
+                if (activeTab === 'concept' && chartRef.current) {
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    const dataToUse = chartType === 'price' ? highVolData : lowVolData;
+                    const chartColor = chartType === 'price' ? '#FF4444' : '#3B82F6';
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: dataToUse.map(d => `Day ${d.day}`),
+                            datasets: [{
+                                label: chartType === 'price' ? 'High Volatility Asset' : 'Low Volatility Asset',
+                                data: dataToUse.map(d => d.price),
+                                borderColor: chartColor,
+                                backgroundColor: `${chartColor}33`,
+                                tension: 0.3,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    labels: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    displayColors: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Price',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    
+                    setChart(newChart);
+                }
+                
+                // Chart for historical volatility comparison
+                if (activeTab === 'types' && volatilityChartRef.current) {
+                    const ctx = volatilityChartRef.current.getContext('2d');
+                    
+                    // Color gradient for bars based on volatility level
+                    const gradientColors = historicalVolData.map(item => {
+                        if (item.value > 50) return '#EF4444'; // High - red
+                        if (item.value > 25) return '#F59E0B'; // Medium - amber
+                        return '#10B981'; // Low - green
+                    });
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: historicalVolData.map(d => d.name),
+                            datasets: [{
+                                label: 'Annualized Volatility (%)',
+                                data: historicalVolData.map(d => d.value),
+                                backgroundColor: gradientColors,
+                                borderColor: 'rgba(255, 255, 255, 0.3)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    displayColors: true,
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `Volatility: ${context.parsed.x}%`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Annualized Volatility (%)',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    
+                    setVolatilityChart(newChart);
+                }
+                
+                // VIX index chart for market fear
+                if (activeTab === 'indicators' && comparisonChartRef.current) {
+                    const ctx = comparisonChartRef.current.getContext('2d');
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: vixData.map(d => d.date),
+                            datasets: [{
+                                label: 'VIX Index',
+                                data: vixData.map(d => d.value),
+                                borderColor: '#EF4444',
+                                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                                tension: 0.3,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    labels: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    displayColors: false,
+                                    callbacks: {
+                                        afterLabel: function(context) {
+                                            const value = context.parsed.y;
+                                            if (value > 40) return 'Extreme Fear';
+                                            if (value > 30) return 'High Fear';
+                                            if (value > 20) return 'Elevated Anxiety';
+                                            return 'Normal Market Conditions';
+                                        }
+                                    }
+                                },
+                                annotation: {
+                                    annotations: {
+                                        line1: {
+                                            type: 'line',
+                                            yMin: 30,
+                                            yMax: 30,
+                                            borderColor: 'rgba(255, 165, 0, 0.5)',
+                                            borderWidth: 2,
+                                            borderDash: [5, 5],
+                                            label: {
+                                                content: 'High Fear Threshold',
+                                                enabled: true,
+                                                position: 'end'
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'VIX Index Value',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    
+                    setComparisonChart(newChart);
+                }
+            }, [activeTab, chartType, isDarkMode]);
+
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Volatility
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    A statistical measure of the dispersion of returns for a security or market index, indicating the rate at which the price increases or decreases. Higher volatility implies greater risk but also potential for higher returns, while lower volatility suggests more stable and predictable price movement.
+                                </p>
+                            </div>
+
+                            <div className="mb-4 flex">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'concept' ? 'bg-purple-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('concept')}
+                                >
+                                    Concept
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'calculation' ? 'bg-purple-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('calculation')}
+                                >
+                                    Calculation
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'types' ? 'bg-purple-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('types')}
+                                >
+                                    Types
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'indicators' ? 'bg-purple-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('indicators')}
+                                >
+                                    Indicators
+                                </button>
+                            </div>
+
+                            {/* Volatility Concept */}
+                            {activeTab === 'concept' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-purple-400">Understanding Volatility</h3>
+                                    
+                                    <div className="flex mb-4">
+                                        <button
+                                            className={`px-4 py-2 rounded-tl-lg rounded-bl-lg ${chartType === 'price' ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setChartType('price')}
+                                        >
+                                            High Volatility
+                                        </button>
+                                        <button
+                                            className={`px-4 py-2 rounded-tr-lg rounded-br-lg ${chartType === 'stable' ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setChartType('stable')}
+                                        >
+                                            Low Volatility
+                                        </button>
+                                    </div>
+
+                                    <div className="h-64 mb-4 bg-gray-700 p-2 rounded-lg">
+                                        <canvas ref={chartRef}></canvas>
+                                    </div>
+                                    
+                                    <div className="text-sm text-gray-300 mb-4 bg-gray-700 p-3 rounded-lg">
+                                        {chartType === 'price' ? 
+                                            "This chart shows a high volatility asset with significant price swings. Notice how the price fluctuates dramatically, creating both opportunity for profit and risk of loss." : 
+                                            "This chart shows a low volatility asset with stable price movement. While the upside potential may be limited, there's also less downside risk."
+                                        }
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <div className="space-y-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <p className="text-gray-200">
+                                                    <span className="font-semibold">Risk Indicator:</span> Volatility measures how much an asset's price deviates from its average over time, quantifying risk.
+                                                </p>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <p className="text-gray-200">
+                                                    <span className="font-semibold">Price Swings:</span> Higher volatility means larger price movements in either direction, creating both opportunities and risks.
+                                                </p>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <p className="text-gray-200">
+                                                    <span className="font-semibold">Trading Volume:</span> Volatile periods often coincide with higher trading volumes as market participants react to uncertainty.
+                                                </p>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <p className="text-gray-200">
+                                                    <span className="font-semibold">Risk/Reward Tradeoff:</span> Assets with higher volatility typically offer higher potential returns to compensate for increased risk.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Volatility Calculation */}
+                            {activeTab === 'calculation' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-purple-400">How Volatility is Calculated</h3>
+                                    
+                                    <div className="relative h-96 mb-4 bg-gray-700 rounded-lg overflow-y-auto p-4">
+                                        {/* Step 1: Return Calculation */}
+                                        {currentStep === 1 && (
+                                            <div>
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-purple-400">Step 1: Calculate Returns</h3>
+                                                <div className="space-y-4">
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="font-semibold text-blue-400 mb-2">Daily Returns Formula</h4>
+                                                        <div className="bg-gray-700 p-3 rounded text-center mb-2">
+                                                            <span className="font-mono text-lg">R<sub>t</sub> = (P<sub>t</sub> - P<sub>t-1</sub>) / P<sub>t-1</sub></span>
+                                                        </div>
+                                                        <div className="text-sm">
+                                                            <p><span className="font-semibold">Where:</span></p>
+                                                            <ul className="list-disc pl-5 space-y-1 mt-1">
+                                                                <li>R<sub>t</sub> = Return on day t</li>
+                                                                <li>P<sub>t</sub> = Price on day t</li>
+                                                                <li>P<sub>t-1</sub> = Price on previous day</li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="font-semibold text-blue-400 mb-2">Example Calculation</h4>
+                                                        <div className="overflow-x-auto">
+                                                            <table className="min-w-full text-sm">
+                                                                <thead>
+                                                                    <tr className="border-b border-gray-600">
+                                                                        <th className="text-left py-2">Day</th>
+                                                                        <th className="text-left py-2">Price</th>
+                                                                        <th className="text-left py-2">Daily Return</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <tr className="border-b border-gray-700">
+                                                                        <td className="py-2">1</td>
+                                                                        <td className="py-2">$100.00</td>
+                                                                        <td className="py-2">-</td>
+                                                                    </tr>
+                                                                    <tr className="border-b border-gray-700">
+                                                                        <td className="py-2">2</td>
+                                                                        <td className="py-2">$102.00</td>
+                                                                        <td className="py-2 text-green-400">+2.00%</td>
+                                                                    </tr>
+                                                                    <tr className="border-b border-gray-700">
+                                                                        <td className="py-2">3</td>
+                                                                        <td className="py-2">$99.50</td>
+                                                                        <td className="py-2 text-red-400">-2.45%</td>
+                                                                    </tr>
+                                                                    <tr className="border-b border-gray-700">
+                                                                        <td className="py-2">4</td>
+                                                                        <td className="py-2">$101.25</td>
+                                                                        <td className="py-2 text-green-400">+1.76%</td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td className="py-2">5</td>
+                                                                        <td className="py-2">$98.75</td>
+                                                                        <td className="py-2 text-red-400">-2.47%</td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <p className="text-sm">
+                                                            The first step in calculating volatility is to compute the periodic returns (often daily) for the asset. These returns show how much the price changes from one period to the next, expressed as a percentage.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 2: Mean Return */}
+                                        {currentStep === 2 && (
+                                            <div>
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-purple-400">Step 2: Calculate Mean Return</h3>
+                                                <div className="space-y-4">
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="font-semibold text-blue-400 mb-2">Mean Return Formula</h4>
+                                                        <div className="bg-gray-700 p-3 rounded text-center mb-2">
+                                                            <span className="font-mono text-lg">μ = (∑R<sub>i</sub>) / n</span>
+                                                        </div>
+                                                        <div className="text-sm">
+                                                            <p><span className="font-semibold">Where:</span></p>
+                                                            <ul className="list-disc pl-5 space-y-1 mt-1">
+                                                                <li>μ = Mean return</li>
+                                                                <li>∑R<sub>i</sub> = Sum of all returns</li>
+                                                                <li>n = Number of return observations</li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="font-semibold text-blue-400 mb-2">Continuing Our Example</h4>
+                                                        <div className="text-sm space-y-2">
+                                                            <p><span className="font-semibold">Returns from step 1:</span> +2.00%, -2.45%, +1.76%, -2.47%</p>
+                                                            <div className="bg-gray-700 p-2 rounded">
+                                                                <p>Sum of Returns = 2.00% + (-2.45%) + 1.76% + (-2.47%) = -1.16%</p>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded">
+                                                                <p>Number of Observations = 4</p>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded">
+                                                                <p>Mean Return = -1.16% ÷ 4 = -0.29%</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <p className="text-sm">
+                                                            The second step is to calculate the average (mean) of all returns. This serves as a reference point for measuring how much individual returns deviate from the average, which is the essence of volatility.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 3: Variance Calculation */}
+                                        {currentStep === 3 && (
+                                            <div>
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-purple-400">Step 3: Calculate Variance</h3>
+                                                <div className="space-y-4">
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="font-semibold text-blue-400 mb-2">Variance Formula</h4>
+                                                        <div className="bg-gray-700 p-3 rounded text-center mb-2">
+                                                            <span className="font-mono text-lg">σ² = ∑(R<sub>i</sub> - μ)² / (n-1)</span>
+                                                        </div>
+                                                        <div className="text-sm">
+                                                            <p><span className="font-semibold">Where:</span></p>
+                                                            <ul className="list-disc pl-5 space-y-1 mt-1">
+                                                                <li>σ² = Variance</li>
+                                                                <li>R<sub>i</sub> = Individual return</li>
+                                                                <li>μ = Mean return</li>
+                                                                <li>n = Number of observations</li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="font-semibold text-blue-400 mb-2">Calculating Variance</h4>
+                                                        <table className="min-w-full text-sm">
+                                                            <thead>
+                                                                <tr className="border-b border-gray-600">
+                                                                    <th className="text-left py-2">Return</th>
+                                                                    <th className="text-left py-2">Deviation from Mean</th>
+                                                                    <th className="text-left py-2">Squared Deviation</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <tr className="border-b border-gray-700">
+                                                                    <td className="py-2">+2.00%</td>
+                                                                    <td className="py-2">2.00% - (-0.29%) = 2.29%</td>
+                                                                    <td className="py-2">(0.0229)² = 0.000524</td>
+                                                                </tr>
+                                                                <tr className="border-b border-gray-700">
+                                                                    <td className="py-2">-2.45%</td>
+                                                                    <td className="py-2">-2.45% - (-0.29%) = -2.16%</td>
+                                                                    <td className="py-2">(-0.0216)² = 0.000467</td>
+                                                                </tr>
+                                                                <tr className="border-b border-gray-700">
+                                                                    <td className="py-2">+1.76%</td>
+                                                                    <td className="py-2">1.76% - (-0.29%) = 2.05%</td>
+                                                                    <td className="py-2">(0.0205)² = 0.000420</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td className="py-2">-2.47%</td>
+                                                                    <td className="py-2">-2.47% - (-0.29%) = -2.18%</td>
+                                                                    <td className="py-2">(-0.0218)² = 0.000475</td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                        
+                                                        <div className="mt-3 p-2 bg-gray-700 rounded">
+                                                            <p>Sum of Squared Deviations = 0.001886</p>
+                                                        </div>
+                                                        <div className="mt-2 p-2 bg-gray-700 rounded">
+                                                            <p>Variance = 0.001886 ÷ (4-1) = 0.000629</p>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <p className="text-sm">
+                                                            Variance measures the average squared deviation of each return from the mean. We square the deviations to ensure that positive and negative deviations don't cancel each other out. This gives us a measure of overall dispersion.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 4: Standard Deviation */}
+                                        {currentStep === 4 && (
+                                            <div>
+                                                <h3 className="text-lg font-semibold mb-2 text-center text-purple-400">Step 4: Calculate Volatility (Standard Deviation)</h3>
+                                                <div className="space-y-4">
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="font-semibold text-blue-400 mb-2">Standard Deviation Formula</h4>
+                                                        <div className="bg-gray-700 p-3 rounded text-center mb-2">
+                                                            <span className="font-mono text-lg">σ = √σ²</span>
+                                                        </div>
+                                                        <div className="text-sm">
+                                                            <p><span className="font-semibold">Where:</span></p>
+                                                            <ul className="list-disc pl-5 space-y-1 mt-1">
+                                                                <li>σ = Standard Deviation (Volatility)</li>
+                                                                <li>σ² = Variance</li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="font-semibold text-blue-400 mb-2">Completing the Calculation</h4>
+                                                        <div className="p-2 bg-gray-700 rounded mb-3">
+                                                            <p>Standard Deviation = √0.000629 = 0.02508 or 2.51%</p>
+                                                        </div>
+                                                        
+                                                        <h4 className="font-semibold text-blue-400 mb-2">Annualizing Volatility</h4>
+                                                        <div className="p-2 bg-gray-700 rounded mb-2">
+                                                            <p>Daily to Annual: σ<sub>annual</sub> = σ<sub>daily</sub> × √252</p>
+                                                        </div>
+                                                        <div className="p-2 bg-gray-700 rounded">
+                                                            <p>Annualized Volatility = 2.51% × √252 = 39.8%</p>
+                                                        </div>
+                                                        <p className="text-xs mt-2 text-gray-400">* 252 is the typical number of trading days in a year</p>
+                                                    </div>
+                                                    
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <p className="text-sm">
+                                                            The final step is to take the square root of variance to get the standard deviation, which is the most common measure of volatility. This value represents the average deviation of returns from the mean. For comparison purposes, volatility is often annualized by multiplying by the square root of time periods in a year.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3, 4].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-purple-500' : 'bg-gray-500'}`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Types of Volatility */}
+                            {activeTab === 'types' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-purple-400">Types of Volatility</h3>
+                                    
+                                    <div className="h-64 mb-4 bg-gray-700 p-2 rounded-lg">
+                                        <canvas ref={volatilityChartRef}></canvas>
+                                    </div>
+                                    
+                                    <div className="text-sm text-gray-300 mb-4 bg-gray-700 p-3 rounded-lg">
+                                        This chart compares typical annualized volatility across different asset classes. Note how cryptocurrencies and small-cap stocks tend to have higher volatility, while bonds offer more stability but with lower potential returns.
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-green-400 mb-2">Historical Volatility</h4>
+                                            <div className="space-y-2">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        Based on actual past price movements
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        Calculated using standard deviation of returns over a specific time period
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        Used as a benchmark for risk assessment and in quantitative models
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Implied Volatility</h4>
+                                            <div className="space-y-2">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        Derived from options prices, reflecting market's expectation of future volatility
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        Forward-looking rather than based on historical data
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        Key component in options pricing models (e.g., Black-Scholes)
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-amber-400 mb-2">Realized Volatility</h4>
+                                            <div className="space-y-2">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        The actual observed volatility that occurred over a specific time period
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        Calculated after the time period has completed
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        Often compared against implied volatility to identify mispricing
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-red-400 mb-2">Forecasted Volatility</h4>
+                                            <div className="space-y-2">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        Estimated future volatility based on statistical models
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        Uses models like GARCH (Generalized AutoRegressive Conditional Heteroskedasticity)
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        Applied in risk management and portfolio optimization
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Volatility Indicators */}
+                            {activeTab === 'indicators' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-purple-400">Volatility Indicators</h3>
+                                    
+                                    <div className="h-64 mb-4 bg-gray-700 p-2 rounded-lg">
+                                        <canvas ref={comparisonChartRef}></canvas>
+                                    </div>
+                                    
+                                    <div className="text-sm text-gray-300 mb-4 bg-gray-700 p-3 rounded-lg">
+                                        The VIX index (or "fear gauge") measures expected market volatility derived from S&P 500 options. Higher values indicate greater expected volatility and market uncertainty, with readings above 30 generally considered high volatility environments.
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg space-y-4">
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Bollinger Bands</p>
+                                                <p className="text-gray-200 text-sm">Technical analysis tool that plots bands typically two standard deviations away from a simple moving average, widening during high volatility and narrowing during low volatility.</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">Average True Range (ATR)</p>
+                                                <p className="text-gray-200 text-sm">Measures market volatility by decomposing the entire range of an asset price for a specific period, accounting for gaps in price movement.</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">VIX (Volatility Index)</p>
+                                                <p className="text-gray-200 text-sm">Known as the "fear index," it represents the market's expectation of 30-day forward-looking volatility derived from S&P 500 index options prices.</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">CBOE Volatility Indices</p>
+                                                <p className="text-gray-200 text-sm">Family of volatility measures for different markets including equities (VIX), bonds (TYVIX), currencies (EUVIX), and commodities (OVX for oil).</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                            <div>
+                                                <p className="font-semibold">GARCH Models</p>
+                                                <p className="text-gray-200 text-sm">Statistical models that estimate volatility by accounting for variance clustering, where periods of high volatility tend to be followed by similar high volatility.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-purple-400">Trading Implications</div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                        <div className="font-semibold text-red-400 mb-2">High Volatility Environments</div>
+                                        <ul className="list-disc pl-5 text-sm space-y-1 text-gray-300">
+                                            <li>Wider stop losses needed</li>
+                                            <li>Potential for larger profits</li>
+                                            <li>Higher risk of rapid drawdowns</li>
+                                            <li>Options premiums increase</li>
+                                            <li>Technical breakouts may be false</li>
+                                        </ul>
+                                    </div>
+                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                        <div className="font-semibold text-green-400 mb-2">Low Volatility Environments</div>
+                                        <ul className="list-disc pl-5 text-sm space-y-1 text-gray-300">
+                                            <li>Tighter stop losses possible</li>
+                                            <li>Range-bound trading strategies</li>
+                                            <li>Lower options premiums</li>
+                                            <li>Technical patterns more reliable</li>
+                                            <li>May signal complacency risk</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <div className="mt-4 bg-gray-800 p-3 rounded-lg">
+                                    <div className="font-semibold text-blue-400 mb-2">Volatility-Based Strategies</div>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                        <div>
+                                            <span className="font-semibold">Mean Reversion:</span> 
+                                            <p className="text-gray-300">Trading on the assumption that high volatility periods will be followed by lower volatility</p>
+                                        </div>
+                                        <div>
+                                            <span className="font-semibold">Volatility Arbitrage:</span> 
+                                            <p className="text-gray-300">Exploiting differences between implied and realized volatility</p>
+                                        </div>
+                                        <div>
+                                            <span className="font-semibold">Option Straddles/Strangles:</span> 
+                                            <p className="text-gray-300">Profiting from significant price movements in either direction</p>
+                                        </div>
+                                        <div>
+                                            <span className="font-semibold">Volatility ETFs/ETNs:</span> 
+                                            <p className="text-gray-300">Products designed to track or invert volatility indices</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<VolatilityVisual />);
+    </script>
+</body>
+</html>
