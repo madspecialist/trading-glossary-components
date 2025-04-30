@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stocks Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const StocksVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('structure');
+            const [stockType, setStockType] = React.useState('common');
+            const [showingPerformance, setShowingPerformance] = React.useState(false);
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const brandColor = "#079A4F"; // Your brand green color
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+            
+            const stockTypes = {
+                common: {
+                    name: "Common Stock",
+                    description: "The most basic form of corporate ownership, representing a claim on a company's assets and earnings.",
+                    rights: "Voting rights at shareholder meetings, residual claim on assets, variable dividends if declared",
+                    risk: "Higher risk than preferred stock, bonds, or other debt securities",
+                    examples: "Most publicly traded stocks (AAPL, MSFT, AMZN)",
+                    color: "#3B82F6" // Blue
+                },
+                preferred: {
+                    name: "Preferred Stock",
+                    description: "Hybrid security with characteristics of both stocks and bonds, offering higher claim priority.",
+                    rights: "Fixed dividend payments, priority over common stock for dividends and liquidation, typically no voting rights",
+                    risk: "Lower risk than common stock, but higher than bonds",
+                    examples: "Bank of America Preferred Series L (BAC.PL), Public Storage Preferred Series O (PSA.PO)",
+                    color: "#8B5CF6" // Purple
+                },
+                growth: {
+                    name: "Growth Stocks",
+                    description: "Shares in companies expected to grow at an above-average rate compared to the market.",
+                    rights: "Same as common stock, but typically reinvest profits rather than paying dividends",
+                    risk: "Higher volatility, often trading at high P/E ratios",
+                    examples: "Technology companies, emerging industries",
+                    color: "#10B981" // Emerald
+                },
+                value: {
+                    name: "Value Stocks",
+                    description: "Shares in companies that appear to trade for less than their intrinsic or book value.",
+                    rights: "Same as common stock, often with higher dividend yields",
+                    risk: "Lower growth potential but typically less volatile",
+                    examples: "Established companies in mature industries",
+                    color: "#F59E0B" // Amber
+                }
+            };
+
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 4 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 4);
+            };
+
+            // Market performance chart
+            React.useEffect(() => {
+                if (chartRef.current && activeTab === 'performance') {
+                    if (chart) {
+                        chart.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    if (showingPerformance) {
+                        // Stock sectors performance chart
+                        const sectorData = [
+                            { sector: 'Technology', growth: 18.5 },
+                            { sector: 'Healthcare', growth: 12.3 },
+                            { sector: 'Consumer', growth: 8.7 },
+                            { sector: 'Financials', growth: 7.5 },
+                            { sector: 'Industrials', growth: 6.2 },
+                            { sector: 'Energy', growth: 3.8 },
+                            { sector: 'Utilities', growth: 2.9 }
+                        ];
+                        
+                        const newChart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: sectorData.map(d => d.sector),
+                                datasets: [{
+                                    label: 'Annual Growth Rate (%)',
+                                    data: sectorData.map(d => d.growth),
+                                    backgroundColor: [
+                                        '#3B82F6', // Blue
+                                        '#10B981', // Emerald
+                                        '#F59E0B', // Amber
+                                        '#8B5CF6', // Purple
+                                        '#EC4899', // Pink
+                                        '#EF4444', // Red
+                                        '#6366F1'  // Indigo
+                                    ],
+                                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        displayColors: true
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        title: {
+                                            display: true,
+                                            text: 'Annual Growth Rate (%)',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    },
+                                    x: {
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        setChart(newChart);
+                    } else {
+                        // Long-term stock market performance chart
+                        const yearData = [
+                            { year: '1990', value: 100 },
+                            { year: '1995', value: 185 },
+                            { year: '2000', value: 310 },
+                            { year: '2005', value: 280 },
+                            { year: '2010', value: 390 },
+                            { year: '2015', value: 580 },
+                            { year: '2020', value: 790 },
+                            { year: '2024', value: 1150 }
+                        ];
+                        
+                        const newChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: yearData.map(d => d.year),
+                                datasets: [{
+                                    label: 'Stock Market Index',
+                                    data: yearData.map(d => d.value),
+                                    borderColor: brandColor,
+                                    backgroundColor: `${brandColor}33`, // Adding transparency
+                                    tension: 0.3,
+                                    fill: true
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: {
+                                    intersect: false,
+                                    mode: 'index'
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: isDarkMode ? '#374151' : 'white',
+                                        titleColor: isDarkMode ? '#fff' : '#000',
+                                        bodyColor: isDarkMode ? '#fff' : '#000',
+                                        borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        displayColors: false
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        title: {
+                                            display: true,
+                                            text: 'Index Value',
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        },
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    },
+                                    x: {
+                                        grid: {
+                                            color: isDarkMode ? '#374151' : '#e5e7eb'
+                                        },
+                                        ticks: {
+                                            color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        setChart(newChart);
+                    }
+                }
+            }, [showingPerformance, isDarkMode, activeTab]);
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Stocks
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    Financial instruments that represent ownership shares in a corporation. Stockholders have claim to a portion of the company's assets and earnings, and may receive voting rights and dividends proportionate to their ownership percentage.
+                                </p>
+                            </div>
+
+                            <div className="mb-4 flex">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'structure' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('structure')}
+                                >
+                                    Structure
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'types' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('types')}
+                                >
+                                    Types
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'performance' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('performance')}
+                                >
+                                    Performance
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'investing' ? 'bg-green-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('investing')}
+                                >
+                                    Investing
+                                </button>
+                            </div>
+
+                            {/* Stock Structure Life Cycle */}
+                            {activeTab === 'structure' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Stock Structure and Life Cycle</h3>
+                                    
+                                    <div className="relative h-96 mb-4 bg-gray-700 rounded-lg overflow-hidden overflow-y-auto">
+                                        {/* Step 1: IPO */}
+                                        {currentStep === 1 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 1: Initial Public Offering (IPO)</h3>
+                                                <div className="flex flex-col h-72">
+                                                    <div className="flex justify-between items-start mb-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg w-1/3 text-center">
+                                                            <div className="text-blue-400 font-bold mb-2">Private Company</div>
+                                                            <div className="text-sm mb-2">Seeks capital for:</div>
+                                                            <div className="text-xs text-gray-300">• Growth & expansion</div>
+                                                            <div className="text-xs text-gray-300">• Debt reduction</div>
+                                                            <div className="text-xs text-gray-300">• Liquidity for founders</div>
+                                                            <div className="text-xs text-gray-300">• Enhanced visibility</div>
+                                                        </div>
+
+                                                        <div className="flex flex-col items-center justify-center w-1/4">
+                                                            <div className="text-yellow-400 font-semibold mb-2">
+                                                                IPO Process
+                                                            </div>
+                                                            <div className="space-y-2 text-xs text-center">
+                                                                <div className="bg-gray-600 p-1 rounded">1. Select underwriters</div>
+                                                                <div className="bg-gray-600 p-1 rounded">2. Due diligence</div>
+                                                                <div className="bg-gray-600 p-1 rounded">3. File prospectus</div>
+                                                                <div className="bg-gray-600 p-1 rounded">4. Set initial price</div>
+                                                                <div className="bg-gray-600 p-1 rounded">5. Road show</div>
+                                                                <div className="bg-gray-600 p-1 rounded">6. Allocate shares</div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="bg-gray-800 p-3 rounded-lg w-1/3 text-center">
+                                                            <div className="text-green-400 font-bold mb-2">Public Investors</div>
+                                                            <div className="text-sm mb-2">Purchase shares for:</div>
+                                                            <div className="text-xs text-gray-300">• Growth potential</div>
+                                                            <div className="text-xs text-gray-300">• Income through dividends</div>
+                                                            <div className="text-xs text-gray-300">• Portfolio diversification</div>
+                                                            <div className="text-xs text-gray-300">• Early access to companies</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-gray-800 p-3 rounded-lg mb-4">
+                                                        <h4 className="text-sm font-semibold text-center text-purple-400 mb-2">IPO Details</h4>
+                                                        <div className="grid grid-cols-3 gap-2 text-xs">
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">Share Price</div>
+                                                                <div className="text-gray-300">Set based on company valuation & market conditions</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">Offered Shares</div>
+                                                                <div className="text-gray-300">Number of new or existing shares for sale</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">Target Raise</div>
+                                                                <div className="text-gray-300">Total capital raised through the offering</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="text-sm font-semibold text-center text-purple-400 mb-2">Market Debut</h4>
+                                                        <div className="flex justify-between items-center">
+                                                            <div className="text-center w-1/4">
+                                                                <div className="text-xs font-semibold">Opening Bell</div>
+                                                                <div className="text-xs text-gray-300">Trading begins</div>
+                                                            </div>
+                                                            <div className="w-2/4 flex items-center">
+                                                                <div className="h-1 w-full bg-gradient-to-r from-blue-500 to-green-500 rounded"></div>
+                                                            </div>
+                                                            <div className="text-center w-1/4">
+                                                                <div className="text-xs font-semibold">Public Company</div>
+                                                                <div className="text-xs text-gray-300">Listed on exchange</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 2: Stock Trading */}
+                                        {currentStep === 2 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 2: Secondary Market Trading</h3>
+                                                <div className="flex flex-col h-72 space-y-4">
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-sm font-semibold text-center text-blue-400 mb-2">Stock Exchange</h4>
+                                                            <div className="space-y-2 text-xs">
+                                                                <div className="bg-gray-700 p-2 rounded-lg">
+                                                                    <div className="font-semibold">Centralized Marketplace</div>
+                                                                    <div className="text-gray-300">NYSE, NASDAQ, London Stock Exchange</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded-lg">
+                                                                    <div className="font-semibold">Price Discovery</div>
+                                                                    <div className="text-gray-300">Real-time valuation based on supply & demand</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded-lg">
+                                                                    <div className="font-semibold">Trading Hours</div>
+                                                                    <div className="text-gray-300">Set hours with pre/post market sessions</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-sm font-semibold text-center text-green-400 mb-2">Market Participants</h4>
+                                                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                                                <div className="bg-gray-700 p-2 rounded-lg">
+                                                                    <div className="font-semibold">Retail Investors</div>
+                                                                    <div className="text-gray-300">Individual market participants</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded-lg">
+                                                                    <div className="font-semibold">Institutional Investors</div>
+                                                                    <div className="text-gray-300">Funds, banks, insurance companies</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded-lg">
+                                                                    <div className="font-semibold">Market Makers</div>
+                                                                    <div className="text-gray-300">Provide liquidity & match orders</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-2 rounded-lg">
+                                                                    <div className="font-semibold">Algorithmic Traders</div>
+                                                                    <div className="text-gray-300">Computer-driven trading systems</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="text-sm font-semibold text-center text-purple-400 mb-2">Order Types & Trading Mechanism</h4>
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="space-y-2 text-xs">
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Market Orders:</span>
+                                                                        <div className="text-gray-300">Execute immediately at current market price</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Limit Orders:</span>
+                                                                        <div className="text-gray-300">Execute only at specified price or better</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Stop Orders:</span>
+                                                                        <div className="text-gray-300">Execute when stock reaches trigger price</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-2 text-xs">
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Order Book:</span>
+                                                                        <div className="text-gray-300">List of buy/sell orders organized by price</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Bid-Ask Spread:</span>
+                                                                        <div className="text-gray-300">Difference between highest buy & lowest sell price</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Trade Execution:</span>
+                                                                        <div className="text-gray-300">Matching of compatible buy & sell orders</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Modified Price Determinants section with centered text and content */}
+                                                    <div className="text-center bg-gray-700 p-3 rounded-lg flex flex-col items-center justify-center">
+                                                        <div className="text-sm font-semibold text-white mb-1">Price Determinants</div>
+                                                        <div className="grid grid-cols-4 gap-2 text-xs w-full max-w-md">
+                                                            <div className="bg-gray-800 p-1 rounded text-center">Company Performance</div>
+                                                            <div className="bg-gray-800 p-1 rounded text-center">Market Sentiment</div>
+                                                            <div className="bg-gray-800 p-1 rounded text-center">Economic Data</div>
+                                                            <div className="bg-gray-800 p-1 rounded text-center">Industry Trends</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {/* Step 3: Shareholder Rights */}
+                                        {currentStep === 3 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 3: Shareholder Rights & Responsibilities</h3>
+                                                <div className="flex flex-col h-72 space-y-4 overflow-y-auto">
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-sm font-semibold text-center text-blue-400 mb-2">Ownership Rights</h4>
+                                                            <div className="space-y-3 text-xs">
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Voting Rights</span>
+                                                                        <div className="text-gray-300">Elect board members, approve major corporate actions</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Dividend Rights</span>
+                                                                        <div className="text-gray-300">Receive distributed profits if declared by board</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Capital Appreciation</span>
+                                                                        <div className="text-gray-300">Benefit from increases in stock price</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Information Access</span>
+                                                                        <div className="text-gray-300">Receive financial reports & corporate communications</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-sm font-semibold text-center text-green-400 mb-2">Corporate Governance</h4>
+                                                            <div className="space-y-3 text-xs">
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Board of Directors</span>
+                                                                        <div className="text-gray-300">Oversees company strategy & management</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Annual Meetings</span>
+                                                                        <div className="text-gray-300">Forum for shareholders to vote & ask questions</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Proxy Voting</span>
+                                                                        <div className="text-gray-300">Authorize others to vote on your behalf</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Shareholder Proposals</span>
+                                                                        <div className="text-gray-300">Submit items for consideration at meetings</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="text-sm font-semibold text-center text-purple-400 mb-2">Corporate Actions & Shareholder Impact</h4>
+                                                        <div className="grid grid-cols-2 gap-3 text-xs">
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">Dividends</div>
+                                                                <div className="text-gray-300">Cash distributions to shareholders</div>
+                                                                <div className="text-gray-300 mt-1">Types: Cash, Stock, Special</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">Stock Splits</div>
+                                                                <div className="text-gray-300">Increase shares while maintaining value</div>
+                                                                <div className="text-gray-300 mt-1">Example: 2-for-1 split doubles shares</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">Mergers & Acquisitions</div>
+                                                                <div className="text-gray-300">Combining with or buying other companies</div>
+                                                                <div className="text-gray-300 mt-1">Usually requires shareholder approval</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">Share Buybacks</div>
+                                                                <div className="text-gray-300">Company repurchases its own shares</div>
+                                                                <div className="text-gray-300 mt-1">Often increases share price & EPS</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="text-center bg-gray-700 p-3 rounded-lg">
+                                                        <div className="text-sm font-semibold text-white mb-1">Shareholder Vs. Stakeholder Interests</div>
+                                                        <div className="text-xs text-gray-300">
+                                                            Companies must balance shareholder returns with interests of employees, customers, suppliers, communities, and other stakeholders, often leading to considerations beyond pure profit maximization.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 4: Stock Valuation */}
+                                        {currentStep === 4 && (
+                                            <div className="absolute inset-0 p-4">
+                                                <h3 className="text-lg font-semibold mb-3 text-center text-green-400">Step 4: Stock Valuation Methods</h3>
+                                                <div className="flex flex-col h-72 space-y-4 overflow-y-auto">
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-sm font-semibold text-center text-blue-400 mb-2">Fundamental Analysis</h4>
+                                                            <div className="space-y-2 text-xs">
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Financial Statement Analysis</span>
+                                                                        <div className="text-gray-300">Review of balance sheet, income statement, cash flow</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Discounted Cash Flow (DCF)</span>
+                                                                        <div className="text-gray-300">Present value of projected future cash flows</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Dividend Discount Model</span>
+                                                                        <div className="text-gray-300">Value based on expected future dividends</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Economic Moat Assessment</span>
+                                                                        <div className="text-gray-300">Competitive advantages & business sustainability</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-sm font-semibold text-center text-green-400 mb-2">Technical Analysis</h4>
+                                                            <div className="space-y-2 text-xs">
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Price Chart Patterns</span>
+                                                                        <div className="text-gray-300">Head & shoulders, triangles, support/resistance</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Moving Averages</span>
+                                                                        <div className="text-gray-300">Average price over specific time periods</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Momentum Indicators</span>
+                                                                        <div className="text-gray-300">RSI, MACD, stochastic oscillator</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-start">
+                                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-semibold">Volume Analysis</span>
+                                                                        <div className="text-gray-300">Trading volume patterns & trends</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-gray-800 p-3 rounded-lg">
+                                                        <h4 className="text-sm font-semibold text-center text-purple-400 mb-2">Key Valuation Metrics</h4>
+                                                        <div className="grid grid-cols-3 gap-3 text-xs">
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">P/E Ratio</div>
+                                                                <div className="text-gray-300">Price / Earnings</div>
+                                                                <div className="text-gray-300 mt-1">Shows price relative to profit</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">P/B Ratio</div>
+                                                                <div className="text-gray-300">Price / Book Value</div>
+                                                                <div className="text-gray-300 mt-1">Compares price to assets</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">Dividend Yield</div>
+                                                                <div className="text-gray-300">Annual Dividend / Price</div>
+                                                                <div className="text-gray-300 mt-1">Income return percentage</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">EPS</div>
+                                                                <div className="text-gray-300">Earnings Per Share</div>
+                                                                <div className="text-gray-300 mt-1">Net income ÷ shares</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">PEG Ratio</div>
+                                                                <div className="text-gray-300">P/E / Growth Rate</div>
+                                                                <div className="text-gray-300 mt-1">Factors in growth potential</div>
+                                                            </div>
+                                                            <div className="bg-gray-700 p-2 rounded-lg">
+                                                                <div className="font-semibold">EBITDA Multiple</div>
+                                                                <div className="text-gray-300">Enterprise Value / EBITDA</div>
+                                                                <div className="text-gray-300 mt-1">Operating performance</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-gray-700 p-3 rounded-lg">
+                                                        <h4 className="text-sm font-semibold text-center text-white mb-2">Intrinsic Value vs. Market Price</h4>
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="text-xs text-gray-300">
+                                                                <p className="font-semibold mb-1">Intrinsic Value:</p>
+                                                                <p>The "true" value of a company based on its fundamentals, growth prospects, and risk factors. Calculated using valuation methods like DCF.</p>
+                                                            </div>
+                                                            <div className="text-xs text-gray-300">
+                                                                <p className="font-semibold mb-1">Market Price:</p>
+                                                                <p>The current trading price determined by supply and demand in the market. Influenced by fundamentals but also by sentiment, momentum, and other factors.</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-2 text-xs text-center text-gray-300">
+                                                            <p>The difference between intrinsic value and market price creates potential investment opportunities.</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3, 4].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-green-500' : 'bg-gray-500'}`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            {/* Stock Types */}
+                            {activeTab === 'types' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Types of Stocks</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-2 mb-4">
+                                        {Object.keys(stockTypes).map(type => (
+                                            <button
+                                                key={type}
+                                                className={`p-2 rounded-lg border-2 transition-colors ${stockType === type ? 'border-white bg-gray-700' : 'border-gray-600 bg-gray-800'}`}
+                                                style={{ borderLeftColor: stockTypes[type].color }}
+                                                onClick={() => setStockType(type)}
+                                            >
+                                                <div className="font-semibold" style={{ color: stockTypes[type].color }}>
+                                                    {stockTypes[type].name}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-lg mb-2" style={{ color: stockTypes[stockType].color }}>
+                                            {stockTypes[stockType].name}
+                                        </h4>
+                                        <div className="space-y-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: stockTypes[stockType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Description:</span>
+                                                    <p className="text-gray-200 text-sm">{stockTypes[stockType].description}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: stockTypes[stockType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Rights & Features:</span>
+                                                    <p className="text-gray-200 text-sm">{stockTypes[stockType].rights}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: stockTypes[stockType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Risk Profile:</span>
+                                                    <p className="text-gray-200 text-sm">{stockTypes[stockType].risk}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full mt-1.5 mr-2 flex-shrink-0" style={{ backgroundColor: stockTypes[stockType].color }}></div>
+                                                <div>
+                                                    <span className="font-semibold">Examples:</span>
+                                                    <p className="text-gray-200 text-sm">{stockTypes[stockType].examples}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4 bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-lg mb-3 text-white">Additional Stock Classifications</h4>
+                                        
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="font-semibold text-blue-400 mb-2">By Market Capitalization</h5>
+                                                <div className="space-y-2 text-sm">
+                                                    <div>
+                                                        <span className="font-semibold">Large Cap:</span>
+                                                        <p className="text-gray-300 text-xs">$10+ billion, established companies with stable growth</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Mid Cap:</span>
+                                                        <p className="text-gray-300 text-xs">$2-10 billion, growing companies with moderate risk</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Small Cap:</span>
+                                                        <p className="text-gray-300 text-xs">$300M-2B, newer companies with higher growth potential and risk</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Micro Cap:</span>
+                                                        <p className="text-gray-300 text-xs">$50-300M, speculative investments with highest risk/reward</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="font-semibold text-green-400 mb-2">By Investment Style</h5>
+                                                <div className="space-y-2 text-sm">
+                                                    <div>
+                                                        <span className="font-semibold">Dividend Stocks:</span>
+                                                        <p className="text-gray-300 text-xs">Pay regular dividends, often mature companies with stable earnings</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Blue-Chip Stocks:</span>
+                                                        <p className="text-gray-300 text-xs">Well-established, financially sound companies with reliable performance</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Cyclical Stocks:</span>
+                                                        <p className="text-gray-300 text-xs">Performance tied to economic cycles (retail, auto, travel)</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Defensive Stocks:</span>
+                                                        <p className="text-gray-300 text-xs">Perform well regardless of economic conditions (utilities, consumer staples)</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mt-3 grid grid-cols-2 gap-4">
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="font-semibold text-purple-400 mb-2">By Geography</h5>
+                                                <div className="space-y-2 text-sm">
+                                                    <div>
+                                                        <span className="font-semibold">Domestic Stocks:</span>
+                                                        <p className="text-gray-300 text-xs">Companies based in investor's home country</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">International Stocks:</span>
+                                                        <p className="text-gray-300 text-xs">Companies based in developed foreign markets</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Emerging Market Stocks:</span>
+                                                        <p className="text-gray-300 text-xs">Companies in developing economies with higher growth potential and risk</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Global Stocks:</span>
+                                                        <p className="text-gray-300 text-xs">Multinational companies with operations worldwide</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="font-semibold text-amber-400 mb-2">By Share Structure</h5>
+                                                <div className="space-y-2 text-sm">
+                                                    <div>
+                                                        <span className="font-semibold">Class A/B/C Shares:</span>
+                                                        <p className="text-gray-300 text-xs">Different voting rights or dividend priorities within same company</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Voting vs. Non-Voting:</span>
+                                                        <p className="text-gray-300 text-xs">Some shares may trade at discount due to lack of voting rights</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">ADRs:</span>
+                                                        <p className="text-gray-300 text-xs">American Depositary Receipts - foreign stocks trading on US exchanges</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Fractional Shares:</span>
+                                                        <p className="text-gray-300 text-xs">Partial shares making expensive stocks more accessible</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Stock Performance */}
+                            {activeTab === 'performance' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Stock Market Performance</h3>
+                                    
+                                    <div className="flex mb-4">
+                                        <button
+                                            className={`px-4 py-2 rounded-tl-lg rounded-bl-lg ${!showingPerformance ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingPerformance(false)}
+                                        >
+                                            Long-Term Market
+                                        </button>
+                                        <button
+                                            className={`px-4 py-2 rounded-tr-lg rounded-br-lg ${showingPerformance ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingPerformance(true)}
+                                        >
+                                            Sector Performance
+                                        </button>
+                                    </div>
+
+                                    <div className="h-64 mb-4">
+                                        <canvas ref={chartRef}></canvas>
+                                    </div>
+                                    
+                                    <div className="text-xs text-gray-400 text-center mb-4">
+                                        {showingPerformance ? 
+                                            "Annual growth rates vary significantly across sectors, with technology historically leading and utilities offering more stability." :
+                                            "Despite short-term volatility, stock markets have historically delivered long-term growth, though past performance doesn't guarantee future results."
+                                        }
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-lg mb-3 text-white">Performance Factors</h4>
+                                        
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="font-semibold text-blue-400 mb-2">Company-Specific Factors</h5>
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Earnings Growth</span>
+                                                            <p className="text-gray-300 text-xs">Consistent improvement in quarterly & annual profits</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Revenue Expansion</span>
+                                                            <p className="text-gray-300 text-xs">Top-line growth through increased sales or market share</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Management Quality</span>
+                                                            <p className="text-gray-300 text-xs">Leadership team's strategic decisions & execution</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Innovation Pipeline</span>
+                                                            <p className="text-gray-300 text-xs">New products or services driving future growth</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="font-semibold text-green-400 mb-2">Market & Economic Factors</h5>
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Interest Rates</span>
+                                                            <p className="text-gray-300 text-xs">Lower rates typically benefit stocks, higher rates can pressure valuations</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Economic Growth</span>
+                                                            <p className="text-gray-300 text-xs">GDP expansion creates supportive environment for corporate profits</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Inflation</span>
+                                                            <p className="text-gray-300 text-xs">Moderate inflation often positive, high inflation generally negative</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Market Sentiment</span>
+                                                            <p className="text-gray-300 text-xs">Investor psychology driving short-term price movements</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-4 grid grid-cols-2 gap-4">
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="font-semibold text-amber-400 mb-2">Market Cycles & Returns</h5>
+                                                <div className="space-y-1 text-sm">
+                                                    <div>
+                                                        <span className="font-semibold">Bull Markets:</span>
+                                                        <p className="text-gray-300 text-xs">Extended periods of rising prices (20%+ from lows)</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Bear Markets:</span>
+                                                        <p className="text-gray-300 text-xs">Extended periods of falling prices (20%+ from highs)</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Corrections:</span>
+                                                        <p className="text-gray-300 text-xs">10-20% declines, typically shorter-term</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Historical Returns:</span>
+                                                        <p className="text-gray-300 text-xs">7-10% average annual returns over long time periods</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Market Timing:</span>
+                                                        <p className="text-gray-300 text-xs">Consistently timing market tops & bottoms historically difficult</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="font-semibold text-purple-400 mb-2">Performance Metrics</h5>
+                                                <div className="space-y-1 text-sm">
+                                                    <div>
+                                                        <span className="font-semibold">Total Return:</span>
+                                                        <p className="text-gray-300 text-xs">Price appreciation + dividends</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Alpha:</span>
+                                                        <p className="text-gray-300 text-xs">Performance relative to benchmark index</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Beta:</span>
+                                                        <p className="text-gray-300 text-xs">Volatility compared to overall market</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Sharpe Ratio:</span>
+                                                        <p className="text-gray-300 text-xs">Risk-adjusted return measurement</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Drawdown:</span>
+                                                        <p className="text-gray-300 text-xs">Peak-to-trough decline magnitude</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Stock Investing */}
+                            {activeTab === 'investing' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-green-400">Investing in Stocks</h3>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg mb-4">
+                                        <h4 className="font-semibold text-lg mb-3 text-white">Investment Approaches</h4>
+                                        
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="font-semibold text-blue-400 mb-2">Buy & Hold</h5>
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Long-Term Perspective</span>
+                                                            <p className="text-gray-300 text-xs">Focus on multi-year or multi-decade time horizons</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Compounding Benefits</span>
+                                                            <p className="text-gray-300 text-xs">Allows earnings & dividends to compound over time</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Lower Transaction Costs</span>
+                                                            <p className="text-gray-300 text-xs">Fewer trades means lower commission expenses</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Tax Efficiency</span>
+                                                            <p className="text-gray-300 text-xs">Potential for favorable long-term capital gains treatment</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="font-semibold text-green-400 mb-2">Active Trading</h5>
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Short-Term Focus</span>
+                                                            <p className="text-gray-300 text-xs">Days, weeks or months rather than years</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Technical Analysis</span>
+                                                            <p className="text-gray-300 text-xs">Chart patterns, indicators & price action</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Higher Time Commitment</span>
+                                                            <p className="text-gray-300 text-xs">Requires more constant market monitoring</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-green-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Higher Transaction Costs</span>
+                                                            <p className="text-gray-300 text-xs">More frequent trading incurs more costs</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-4 grid grid-cols-2 gap-4">
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="font-semibold text-amber-400 mb-2">Value Investing</h5>
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-amber-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Fundamental Analysis</span>
+                                                            <p className="text-gray-300 text-xs">Focus on intrinsic value vs. market price</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-amber-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Margin of Safety</span>
+                                                            <p className="text-gray-300 text-xs">Buying below estimated intrinsic value</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-amber-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Contrarian Mindset</span>
+                                                            <p className="text-gray-300 text-xs">Often buying when others are fearful</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="font-semibold text-purple-400 mb-2">Growth Investing</h5>
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-purple-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Revenue/Earnings Growth</span>
+                                                            <p className="text-gray-300 text-xs">Prioritizing expansion over current valuation</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-purple-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Emerging Trends</span>
+                                                            <p className="text-gray-300 text-xs">Focus on innovative companies & new markets</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-start">
+                                                        <div className="w-3 h-3 rounded-full bg-purple-500 mt-1 mr-2 flex-shrink-0"></div>
+                                                        <div>
+                                                            <span className="font-semibold">Higher Volatility</span>
+                                                            <p className="text-gray-300 text-xs">Often more price fluctuation than value stocks</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg mb-4">
+                                        <h4 className="font-semibold text-lg mb-3 text-white">Risk Management</h4>
+                                        
+                                        <div className="space-y-3">
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold">Diversification</span>
+                                                    <p className="text-gray-300 text-sm">Spreading investments across multiple stocks, sectors, and asset classes to reduce company-specific risk.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold">Position Sizing</span>
+                                                    <p className="text-gray-300 text-sm">Limiting the percentage of portfolio allocated to any single stock to manage potential losses.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold">Dollar-Cost Averaging</span>
+                                                    <p className="text-gray-300 text-sm">Investing fixed amounts at regular intervals to reduce the impact of volatility and market timing risk.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold">Stop-Loss Orders</span>
+                                                    <p className="text-gray-300 text-sm">Automatic sell orders at predetermined price levels to limit downside risk.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                <div>
+                                                    <span className="font-semibold">Time Horizon Matching</span>
+                                                    <p className="text-gray-300 text-sm">Aligning investment approach with your intended holding period and financial goals.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-lg mb-3 text-white">Investment Vehicles</h4>
+                                        
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="font-semibold text-blue-400 mb-2">Individual Stocks</h5>
+                                                <div className="space-y-1 text-sm">
+                                                    <div>
+                                                        <span className="font-semibold">Pros:</span>
+                                                        <p className="text-gray-300 text-xs">Direct ownership, targeted exposure, no fees</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Cons:</span>
+                                                        <p className="text-gray-300 text-xs">Higher concentration risk, requires research</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Best For:</span>
+                                                        <p className="text-gray-300 text-xs">Investors who can research companies & manage a portfolio</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="font-semibold text-green-400 mb-2">Index Funds</h5>
+                                                <div className="space-y-1 text-sm">
+                                                    <div>
+                                                        <span className="font-semibold">Pros:</span>
+                                                        <p className="text-gray-300 text-xs">Instant diversification, low fees, passive approach</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Cons:</span>
+                                                        <p className="text-gray-300 text-xs">No potential to outperform market, includes all stocks in index</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Best For:</span>
+                                                        <p className="text-gray-300 text-xs">Long-term investors preferring passive approach</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-3 grid grid-cols-2 gap-4">
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="font-semibold text-amber-400 mb-2">ETFs</h5>
+                                                <div className="space-y-1 text-sm">
+                                                    <div>
+                                                        <span className="font-semibold">Pros:</span>
+                                                        <p className="text-gray-300 text-xs">Trade like stocks, sector targeting, intraday liquidity</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Cons:</span>
+                                                        <p className="text-gray-300 text-xs">May encourage trading, bid-ask spreads, some have high fees</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Best For:</span>
+                                                        <p className="text-gray-300 text-xs">Tactical asset allocation, targeted exposure to themes/sectors</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                <h5 className="font-semibold text-purple-400 mb-2">Mutual Funds</h5>
+                                                <div className="space-y-1 text-sm">
+                                                    <div>
+                                                        <span className="font-semibold">Pros:</span>
+                                                        <p className="text-gray-300 text-xs">Professional management, diversification, automatic reinvestment</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Cons:</span>
+                                                        <p className="text-gray-300 text-xs">Higher fees, end-of-day pricing, potential tax implications</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-semibold">Best For:</span>
+                                                        <p className="text-gray-300 text-xs">Retirement accounts, hands-off investors</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-green-400">Key Stock Market Terms</div>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <span className="font-semibold">Dividend:</span> 
+                                        <p className="text-gray-300">Distribution of profits to shareholders</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Market Cap:</span> 
+                                        <p className="text-gray-300">Total market value of a company's shares</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Volatility:</span> 
+                                        <p className="text-gray-300">Magnitude of price fluctuations</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">IPO:</span> 
+                                        <p className="text-gray-300">Initial Public Offering - first sale of stock</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Earnings Per Share:</span> 
+                                        <p className="text-gray-300">Net income divided by outstanding shares</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold">Market Order:</span> 
+                                        <p className="text-gray-300">Trade executed at current market price</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<StocksVisual />);
+    </script>
+</body>
+</html>
