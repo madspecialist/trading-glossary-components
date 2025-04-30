@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treasury Bills Visualization</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Set dark background by default */
+        body {
+            background-color: #111827;
+            margin: 0;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const TreasuryBillsVisual = () => {
+            const [isDarkMode, setIsDarkMode] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('process');
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const [showingComparison, setShowingComparison] = React.useState(false);
+            const chartRef = React.useRef(null);
+            const [chart, setChart] = React.useState(null);
+            const brandColor = "#079A4F"; // Your brand green color
+
+            React.useEffect(() => {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                setIsDarkMode(darkModeQuery.matches);
+
+                const handler = (e) => setIsDarkMode(e.matches);
+                darkModeQuery.addEventListener('change', handler);
+
+                return () => darkModeQuery.removeEventListener('change', handler);
+            }, []);
+            
+            const nextStep = () => {
+                setCurrentStep(prev => prev < 4 ? prev + 1 : 1);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev > 1 ? prev - 1 : 4);
+            };
+
+            // Updated chart rendering function
+            const renderChart = () => {
+                if (!chartRef.current) return;
+                
+                if (chart) {
+                    chart.destroy();
+                }
+
+                const ctx = chartRef.current.getContext('2d');
+                
+                if (showingComparison) {
+                    // Comparison of T-bills with other investments
+                    const investments = ["T-Bills (4-week)", "T-Bills (52-week)", "High-Yield Savings", "Money Market Fund", "Short-Term CD"];
+                    const yields = [5.1, 5.4, 4.5, 4.7, 4.8]; // Example yields (%)
+                    const backgroundColors = [
+                        '#3B82F6', // Blue for T-Bills
+                        '#4B94F7', // Lighter blue for longer T-Bills
+                        '#8B5CF6', // Purple
+                        '#F59E0B', // Amber
+                        '#10B981'  // Emerald
+                    ];
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: investments,
+                            datasets: [{
+                                label: 'Yield (%)',
+                                data: yields,
+                                backgroundColor: backgroundColors,
+                                borderColor: 'rgba(255, 255, 255, 0.3)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    displayColors: true
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Annual Yield (%)',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    setChart(newChart);
+                } else {
+                    // T-bill maturity and discount rates
+                    const maturities = ["4-week", "8-week", "13-week", "26-week", "52-week"];
+                    const discountRates = [5.05, 5.08, 5.15, 5.20, 5.30]; // Example discount rates (%)
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: maturities,
+                            datasets: [{
+                                label: 'Discount Rate (%)',
+                                data: discountRates,
+                                borderColor: '#3B82F6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.4,
+                                fill: true,
+                                pointBackgroundColor: '#3B82F6',
+                                pointRadius: 5,
+                                pointHoverRadius: 7
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    backgroundColor: isDarkMode ? '#374151' : 'white',
+                                    titleColor: isDarkMode ? '#fff' : '#000',
+                                    bodyColor: isDarkMode ? '#fff' : '#000',
+                                    borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    displayColors: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Discount Rate (%)',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Maturity Period',
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    },
+                                    grid: {
+                                        color: isDarkMode ? '#374151' : '#e5e7eb'
+                                    },
+                                    ticks: {
+                                        color: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    setChart(newChart);
+                }
+            };
+
+            // Render chart when showingComparison or isDarkMode changes
+            React.useEffect(() => {
+                renderChart();
+            }, [showingComparison, isDarkMode]);
+            
+            // Render chart when activeTab changes to 'features'
+            React.useEffect(() => {
+                if (activeTab === 'features') {
+                    // Short timeout to ensure the DOM is ready
+                    setTimeout(renderChart, 50);
+                }
+            }, [activeTab]);
+
+            return (
+                <div className="min-h-screen bg-gray-900 py-8 text-white">
+                    <div className="w-full max-w-2xl mx-auto p-4">
+                        <div className="rounded-lg shadow-lg p-6 bg-gray-800">
+                            <h2 className="text-2xl font-bold mb-4 text-white">
+                                Treasury Bills (T-Bills)
+                            </h2>
+                            
+                            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="text-sm text-gray-400 mb-1">Definition</div>
+                                <p className="text-gray-200">
+                                    Short-term debt obligations issued by the U.S. government with maturities ranging from a few days to 52 weeks. T-bills are sold at a discount to face value and do not pay interest directly; instead, investors earn the difference between the purchase price and face value at maturity.
+                                </p>
+                            </div>
+
+                            <div className="mb-4 flex">
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'process' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tl-lg rounded-bl-lg`}
+                                    onClick={() => setActiveTab('process')}
+                                >
+                                    How They Work
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'features' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('features')}
+                                >
+                                    Features
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'market' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    onClick={() => setActiveTab('market')}
+                                >
+                                    Market Role
+                                </button>
+                                <button
+                                    className={`px-4 py-2 ${activeTab === 'investing' ? 'bg-blue-800 text-white' : 'bg-gray-700 text-gray-300'} rounded-tr-lg rounded-br-lg`}
+                                    onClick={() => setActiveTab('investing')}
+                                >
+                                    Investing
+                                </button>
+                            </div>
+
+                            {/* How Treasury Bills Work */}
+                            {activeTab === 'process' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">How Treasury Bills Work</h3>
+                                    
+                                    <div className="relative h-96 mb-4 bg-gray-700 rounded-lg overflow-hidden">
+                                        <div className="absolute inset-0 overflow-y-auto p-4">
+                                            {/* Step 1: Issuance & Auction */}
+                                            {currentStep === 1 && (
+                                                <div>
+                                                    <h3 className="text-lg font-semibold mb-3 text-center text-blue-400">Step 1: Issuance & Auction</h3>
+                                                    <div className="flex flex-col">
+                                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                                <h4 className="text-yellow-400 font-semibold text-center mb-2">U.S. Treasury</h4>
+                                                                <div className="space-y-2 text-sm">
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">Announcement</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">The Treasury Department announces T-bill auctions for specific maturities.</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">Release Schedule</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">
+                                                                            <div>• 4-week & 8-week: Weekly</div>
+                                                                            <div>• 13-week & 26-week: Weekly</div>
+                                                                            <div>• 52-week: Every 4 weeks</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">Denominations</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">Minimum purchase of $100 with $100 increments thereafter.</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                                <h4 className="text-blue-400 font-semibold text-center mb-2">Auction Process</h4>
+                                                                <div className="space-y-2 text-sm">
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">Bidding Types</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">
+                                                                            <div>• <span className="font-semibold">Competitive:</span> Specify yield/discount rate</div>
+                                                                            <div>• <span className="font-semibold">Non-competitive:</span> Accept determined rate</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">Dutch Auction</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">All successful bidders receive the same determined rate regardless of their bid.</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">Participants</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">Primary dealers, institutional investors, and individual investors via TreasuryDirect.</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-green-400 font-semibold text-center mb-2">Example Auction</h4>
+                                                            <div className="flex justify-between items-center">
+                                                                <div className="text-center p-2 bg-gray-700 rounded-lg w-1/4">
+                                                                    <div className="text-sm font-semibold">Treasury Offers</div>
+                                                                    <div className="text-xs text-gray-300">13-week T-bills</div>
+                                                                    <div className="text-xs font-semibold text-blue-400">$50 billion</div>
+                                                                    <div className="text-xs text-gray-300">Face Value</div>
+                                                                </div>
+                                                                <div className="text-center">→</div>
+                                                                <div className="text-center p-2 bg-gray-700 rounded-lg w-1/4">
+                                                                    <div className="text-sm font-semibold">Bids Received</div>
+                                                                    <div className="text-xs text-gray-300">From various investors</div>
+                                                                    <div className="text-xs font-semibold text-purple-400">$120 billion</div>
+                                                                    <div className="text-xs text-gray-300">Total demand</div>
+                                                                </div>
+                                                                <div className="text-center">→</div>
+                                                                <div className="text-center p-2 bg-gray-700 rounded-lg w-1/4">
+                                                                    <div className="text-sm font-semibold">Rate Set</div>
+                                                                    <div className="text-xs text-gray-300">Discount rate</div>
+                                                                    <div className="text-xs font-semibold text-green-400">5.15%</div>
+                                                                    <div className="text-xs text-gray-300">All accepted bids</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Step 2: Purchase & Discount */}
+                                            {currentStep === 2 && (
+                                                <div>
+                                                    <h3 className="text-lg font-semibold mb-3 text-center text-blue-400">Step 2: Purchase & Discount</h3>
+                                                    <div className="flex flex-col">
+                                                        <div className="bg-gray-800 p-4 rounded-lg mb-4">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-3">The Discount Mechanism</h4>
+                                                            <div className="flex items-center justify-center mb-4">
+                                                                <div className="bg-gray-700 p-3 rounded-lg text-center w-1/3">
+                                                                    <div className="text-sm font-semibold">Purchase Price</div>
+                                                                    <div className="text-blue-400 text-lg font-bold">$975</div>
+                                                                    <div className="text-xs text-gray-300">(Discounted)</div>
+                                                                </div>
+                                                                <div className="flex flex-col items-center mx-4">
+                                                                    <div className="text-sm">Held to</div>
+                                                                    <div className="text-sm">Maturity</div>
+                                                                    <div className="w-16 h-1 bg-blue-500 my-1"></div>
+                                                                    <div className="text-xs text-gray-300">3 months</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-3 rounded-lg text-center w-1/3">
+                                                                    <div className="text-sm font-semibold">Maturity Value</div>
+                                                                    <div className="text-green-400 text-lg font-bold">$1,000</div>
+                                                                    <div className="text-xs text-gray-300">(Face Value)</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="p-3 bg-gray-700 rounded-lg text-center">
+                                                                <span className="font-semibold">Investor's Return:</span> 
+                                                                <span className="text-green-400 font-semibold"> $25</span>
+                                                                <span> or </span>
+                                                                <span className="text-green-400 font-semibold">2.56%</span>
+                                                                <span> for 3 months (</span>
+                                                                <span className="text-green-400 font-semibold">~10.26%</span>
+                                                                <span> annualized)</span>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                                <h4 className="text-yellow-400 font-semibold text-center mb-2">Discount Rate Formula</h4>
+                                                                <div className="space-y-3 text-sm">
+                                                                    <div className="bg-gray-700 p-2 rounded text-center">
+                                                                        <div className="font-semibold mb-1">Discount Rate</div>
+                                                                        <div>= [(Face Value - Purchase Price) / Face Value] × (360 / Days to Maturity) × 100</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded text-center">
+                                                                        <div className="font-semibold mb-1">Example</div>
+                                                                        <div>= [($1,000 - $975) / $1,000] × (360 / 91) × 100</div>
+                                                                        <div>= [0.025] × 3.96 × 100</div>
+                                                                        <div>= 9.9% (discount rate)</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                                <h4 className="text-green-400 font-semibold text-center mb-2">Investment Yield Formula</h4>
+                                                                <div className="space-y-3 text-sm">
+                                                                    <div className="bg-gray-700 p-2 rounded text-center">
+                                                                        <div className="font-semibold mb-1">Bond Equivalent Yield</div>
+                                                                        <div>= [(Face Value - Purchase Price) / Purchase Price] × (365 / Days to Maturity) × 100</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded text-center">
+                                                                        <div className="font-semibold mb-1">Example</div>
+                                                                        <div>= [($1,000 - $975) / $975] × (365 / 91) × 100</div>
+                                                                        <div>= [0.0256] × 4.01 × 100</div>
+                                                                        <div>= 10.26% (bond equivalent yield)</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Step 3: Secondary Market */}
+                                            {currentStep === 3 && (
+                                                <div>
+                                                    <h3 className="text-lg font-semibold mb-3 text-center text-blue-400">Step 3: Secondary Market Trading</h3>
+                                                    <div className="flex flex-col">
+                                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                                <h4 className="text-purple-400 font-semibold text-center mb-2">Market Characteristics</h4>
+                                                                <div className="space-y-2 text-sm">
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">High Liquidity</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">T-bills are among the most actively traded securities in the world.</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">Narrow Spreads</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">Minimal difference between buy and sell prices due to high trading volume.</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">Dealer Network</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">Primary dealers provide continuous trading and market-making in T-bills.</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                                <h4 className="text-blue-400 font-semibold text-center mb-2">Price Factors</h4>
+                                                                <div className="space-y-2 text-sm">
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">Interest Rate Changes</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">
+                                                                            <div>• Rates ↑ = T-bill prices ↓</div>
+                                                                            <div>• Rates ↓ = T-bill prices ↑</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">Time to Maturity</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">As maturity approaches, price converges toward face value.</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">Market Demand</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">Flight-to-safety in market downturns can increase T-bill prices.</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-800 p-3 rounded-lg">
+                                                            <h4 className="text-green-400 font-semibold text-center mb-2">Trading Scenario Example</h4>
+                                                            <div className="flex justify-between items-center">
+                                                                <div className="text-center p-2 bg-gray-700 rounded-lg w-1/4">
+                                                                    <div className="text-sm font-semibold">Initial Purchase</div>
+                                                                    <div className="text-xs text-gray-300">13-week T-bill</div>
+                                                                    <div className="text-xs font-semibold text-blue-400">$975</div>
+                                                                    <div className="text-xs text-gray-300">Discount rate: 5.15%</div>
+                                                                </div>
+                                                                <div className="text-center">→</div>
+                                                                <div className="text-center p-2 bg-gray-700 rounded-lg w-1/4">
+                                                                    <div className="text-sm font-semibold">Market Shift</div>
+                                                                    <div className="text-xs text-gray-300">After 4 weeks</div>
+                                                                    <div className="text-xs font-semibold text-red-400">Rates rise to 5.35%</div>
+                                                                    <div className="text-xs text-gray-300">Fed policy change</div>
+                                                                </div>
+                                                                <div className="text-center">→</div>
+                                                                <div className="text-center p-2 bg-gray-700 rounded-lg w-1/4">
+                                                                    <div className="text-sm font-semibold">Secondary Sale</div>
+                                                                    <div className="text-xs text-gray-300">9 weeks remaining</div>
+                                                                    <div className="text-xs font-semibold text-red-400">$984</div>
+                                                                    <div className="text-xs text-gray-300">Lower than expected</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="mt-3 p-2 text-xs text-gray-300 bg-gray-700 rounded text-center">
+                                                                In this example, the investor sold early for a $9 gain instead of waiting for the full $25 at maturity. The price was affected by both the remaining time to maturity (which increased the price) and rising interest rates (which decreased the price).
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Step 4: Maturity & Reinvestment */}
+                                            {currentStep === 4 && (
+                                                <div>
+                                                    <h3 className="text-lg font-semibold mb-3 text-center text-blue-400">Step 4: Maturity & Reinvestment</h3>
+                                                    <div className="flex flex-col">
+                                                        <div className="bg-gray-800 p-4 rounded-lg mb-4">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-3">Maturity Process</h4>
+                                                            <div className="flex items-center justify-center mb-3">
+                                                                <div className="bg-gray-700 p-3 rounded-lg text-center w-1/3">
+                                                                    <div className="text-sm font-semibold">T-Bill Matures</div>
+                                                                    <div className="text-blue-400 text-lg">
+                                                                        <span className="text-xs">Original Purchase: </span>
+                                                                        <span className="font-bold">$975</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex flex-col items-center mx-4">
+                                                                    <div className="w-16 h-1 bg-green-500 my-1"></div>
+                                                                    <div className="text-xs text-gray-300">Automatic process</div>
+                                                                </div>
+                                                                <div className="bg-gray-700 p-3 rounded-lg text-center w-1/3">
+                                                                    <div className="text-sm font-semibold">Payment Received</div>
+                                                                    <div className="text-green-400 text-lg font-bold">$1,000</div>
+                                                                    <div className="text-xs text-gray-300">(Face Value)</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="p-3 bg-gray-700 rounded-lg text-center mb-3">
+                                                                <div className="text-sm font-semibold mb-1">Payment Methods</div>
+                                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                                    <div className="bg-gray-800 p-2 rounded">
+                                                                        <span className="font-semibold">TreasuryDirect:</span> Direct deposit to linked bank account
+                                                                    </div>
+                                                                    <div className="bg-gray-800 p-2 rounded">
+                                                                        <span className="font-semibold">Broker:</span> Credited to investment account
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                                <h4 className="text-green-400 font-semibold text-center mb-2">Reinvestment Options</h4>
+                                                                <div className="space-y-2 text-sm">
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">T-Bill Ladder</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">Purchase multiple T-bills with staggered maturities for regular income.</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">Auto-Reinvestment</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">Some platforms offer automatic reinvestment into new T-bills at maturity.</div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">Diversification</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">Allocate to different maturities based on cash flow needs and interest rate outlook.</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="bg-gray-800 p-3 rounded-lg">
+                                                                <h4 className="text-yellow-400 font-semibold text-center mb-2">Reinvestment Risk</h4>
+                                                                <div className="space-y-2 text-sm">
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">Interest Rate Environment</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">
+                                                                            <div>• If rates fall: New T-bills offer lower returns</div>
+                                                                            <div>• If rates rise: Opportunity to earn higher returns</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="bg-gray-700 p-2 rounded">
+                                                                        <span className="font-semibold">Mitigation Strategy</span>
+                                                                        <div className="text-xs text-gray-300 mt-1">T-bill laddering creates multiple reinvestment opportunities and averages out interest rate risk.</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-gray-700 p-3 rounded-lg">
+                                                            <h4 className="text-blue-400 font-semibold text-center mb-2">T-Bill Ladder Example</h4>
+                                                            <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                                                                <div className="bg-blue-900 bg-opacity-30 p-2 rounded-lg">
+                                                                    <div className="font-semibold">4-week T-bill</div>
+                                                                    <div>$1,000</div>
+                                                                    <div className="text-gray-300">Matures 5/29</div>
+                                                                </div>
+                                                                <div className="bg-blue-900 bg-opacity-50 p-2 rounded-lg">
+                                                                    <div className="font-semibold">13-week T-bill</div>
+                                                                    <div>$1,000</div>
+                                                                    <div className="text-gray-300">Matures 7/31</div>
+                                                                </div>
+                                                                <div className="bg-blue-900 bg-opacity-70 p-2 rounded-lg">
+                                                                    <div className="font-semibold">26-week T-bill</div>
+                                                                    <div>$1,000</div>
+                                                                    <div className="text-gray-300">Matures 10/30</div>
+                                                                </div>
+                                                                <div className="bg-blue-900 bg-opacity-90 p-2 rounded-lg">
+                                                                    <div className="font-semibold">52-week T-bill</div>
+                                                                    <div>$1,000</div>
+                                                                    <div className="text-gray-300">Matures 4/29/26</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="mt-2 text-xs text-gray-300 text-center">
+                                                                A $4,000 investment spread across different maturities provides liquidity every few months while capturing yields across the maturity spectrum.
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button 
+                                            onClick={prevStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Previous
+                                        </button>
+                                        <div className="flex space-x-2">
+                                            {[1, 2, 3, 4].map(i => (
+                                                <div 
+                                                    key={i}
+                                                    className={`w-2 h-2 rounded-full ${currentStep === i ? 'bg-blue-500' : 'bg-gray-500'}`}
+                                                    onClick={() => setCurrentStep(i)}
+                                                ></div>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={nextStep}
+                                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Treasury Bills Features */}
+                            {activeTab === 'features' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Key Features of Treasury Bills</h3>
+                                    
+                                    <div className="flex mb-4">
+                                        <button
+                                            className={`px-4 py-2 rounded-tl-lg rounded-bl-lg ${!showingComparison ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingComparison(false)}
+                                        >
+                                            T-Bill Discount Rates
+                                        </button>
+                                        <button
+                                            className={`px-4 py-2 rounded-tr-lg rounded-br-lg ${showingComparison ? 'bg-gray-700 text-white' : 'bg-gray-600 text-gray-300'}`}
+                                            onClick={() => setShowingComparison(true)}
+                                        >
+                                            Yield Comparison
+                                        </button>
+                                    </div>
+
+                                    <div className="h-64 mb-4">
+                                        <canvas ref={chartRef}></canvas>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-3 rounded-lg text-xs text-gray-300 text-center mb-4">
+                                        {showingComparison ? 
+                                            "This chart compares current yields of T-bills with other short-term investment options. T-bills typically offer competitive yields with significantly lower risk than alternatives." : 
+                                            "This chart shows how discount rates typically increase with maturity length. Longer maturities generally offer higher yields to compensate for the longer time commitment."
+                                        }
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Safety & Risk Profile</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Extremely Low Risk:</span> Backed by the full faith and credit of the U.S. government.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Default Protection:</span> Considered among the safest investments in the world.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Market Risk:</span> Minimal price fluctuation due to short maturities.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Inflation Risk:</span> Short terms limit exposure to long-term inflation.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Liquidity Features</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Highly Liquid:</span> Easily bought and sold in the secondary market.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Narrow Bid-Ask Spreads:</span> Minimal transaction costs when trading.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Short Maturities:</span> Options from as short as a few days to 52 weeks.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">High Trading Volume:</span> One of the most actively traded securities globally.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Tax Treatment</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Federal Taxation:</span> Interest income (discount) is subject to federal income tax.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">State & Local Exemption:</span> Interest is exempt from state and local income taxes.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Reporting:</span> Discount reported as interest income on Form 1099-INT.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Tax Advantage:</span> State tax exemption makes yields more attractive in high-tax states.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Purchase & Holding Options</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">TreasuryDirect:</span> Purchase directly from the government at auction (min $100).
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Brokers:</span> Purchase through financial institutions (may have higher minimums).
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">ETFs & Mutual Funds:</span> Indirect exposure through funds specializing in T-bills.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <p className="text-gray-200 text-sm">
+                                                        <span className="font-semibold">Competitive vs. Non-Competitive:</span> Specify yield or accept market-determined rate.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Market Role */}
+                            {activeTab === 'market' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Role in Financial Markets</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Benchmark Function</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Risk-Free Rate Reference</span>
+                                                        <p className="text-gray-300 text-xs">T-bill rates serve as the baseline "risk-free" rate for pricing other assets.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Yield Curve Foundation</span>
+                                                        <p className="text-gray-300 text-xs">Short-end anchor of the Treasury yield curve that influences all interest rates.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Economic Indicator</span>
+                                                        <p className="text-gray-300 text-xs">Changes in T-bill rates reflect market expectations about inflation and monetary policy.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Monetary Policy Tool</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Federal Reserve Operations</span>
+                                                        <p className="text-gray-300 text-xs">The Fed buys and sells T-bills to manage money supply and short-term interest rates.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Rate Transmission</span>
+                                                        <p className="text-gray-300 text-xs">Changes in the Fed Funds rate quickly impact T-bill yields which affect broader markets.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Liquidity Management</span>
+                                                        <p className="text-gray-300 text-xs">Central banks use T-bills to add or remove liquidity from the financial system.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Safe-Haven Asset</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Flight to Quality</span>
+                                                        <p className="text-gray-300 text-xs">Investors flock to T-bills during market stress, often driving yields lower.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Global Reserve Asset</span>
+                                                        <p className="text-gray-300 text-xs">Foreign governments and central banks hold T-bills as part of their reserves.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Market Stabilizer</span>
+                                                        <p className="text-gray-300 text-xs">T-bill market provides stability during periods of financial turbulence.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Cash Management Vehicle</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Institutional Cash Management</span>
+                                                        <p className="text-gray-300 text-xs">Corporations use T-bills to manage short-term cash while earning interest.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Money Market Fund Holdings</span>
+                                                        <p className="text-gray-300 text-xs">T-bills are core components of money market funds, indirectly serving millions of investors.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Banking Reserves</span>
+                                                        <p className="text-gray-300 text-xs">Financial institutions hold T-bills as highly liquid, safe assets to meet regulatory requirements.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-blue-400 mb-2">Government Funding Tool</h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Short-Term Financing</span>
+                                                        <p className="text-gray-300 text-xs">The U.S. Treasury uses T-bills to fund short-term government operations and manage cash flow.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Debt Management</span>
+                                                        <p className="text-gray-300 text-xs">T-bills allow the government to diversify its debt portfolio across different maturities.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Budget Gap Bridging</span>
+                                                        <p className="text-gray-300 text-xs">T-bills help smooth out differences between government revenue collection and spending timelines.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Market Responsiveness</span>
+                                                        <p className="text-gray-300 text-xs">T-bills can be quickly issued in various amounts to respond to changing funding needs.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Investing in Treasury Bills */}
+                            {activeTab === 'investing' && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400">Investing in Treasury Bills</h3>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Purchase Methods</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">TreasuryDirect.gov</span>
+                                                        <p className="text-gray-300 text-xs">Purchase directly from the U.S. Treasury with no fees or commissions. Minimum $100 investment.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Brokerage Accounts</span>
+                                                        <p className="text-gray-300 text-xs">Most online brokerages offer T-bills with varying minimum investments and possible transaction fees.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Banks & Financial Institutions</span>
+                                                        <p className="text-gray-300 text-xs">Some banks offer T-bills to their customers, often with higher minimums ($1,000+).</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Secondary Market</span>
+                                                        <p className="text-gray-300 text-xs">T-bills can be purchased after initial auction through dealers and electronic trading platforms.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Investment Strategies</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Cash Management</span>
+                                                        <p className="text-gray-300 text-xs">Use T-bills for temporary cash holdings while earning competitive interest rates.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Safety-First Portfolio</span>
+                                                        <p className="text-gray-300 text-xs">Allocate portion of investment portfolio to T-bills for capital preservation.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Laddering Strategy</span>
+                                                        <p className="text-gray-300 text-xs">Stagger maturities to balance liquidity needs and maximize returns across interest rate environments.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Rate Speculation</span>
+                                                        <p className="text-gray-300 text-xs">Position based on interest rate expectations (shorter duration when rates rising, longer when falling).</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Pros of T-Bill Investing</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Safety & Security</span>
+                                                        <p className="text-gray-300 text-xs">Virtually risk-free investment backed by the U.S. government.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Liquidity</span>
+                                                        <p className="text-gray-300 text-xs">Easily bought and sold with minimal transaction costs.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">State Tax Exemption</span>
+                                                        <p className="text-gray-300 text-xs">Interest exempt from state and local income taxes.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Low Minimum Investment</span>
+                                                        <p className="text-gray-300 text-xs">Accessible starting at just $100 through TreasuryDirect.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-gray-700 p-4 rounded-lg">
+                                            <h4 className="font-semibold text-blue-400 mb-2">Cons of T-Bill Investing</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Lower Potential Returns</span>
+                                                        <p className="text-gray-300 text-xs">Generally lower yields compared to higher-risk investments like stocks.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Inflation Risk</span>
+                                                        <p className="text-gray-300 text-xs">Returns may not keep pace with inflation, resulting in loss of purchasing power.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Interest Rate Risk</span>
+                                                        <p className="text-gray-300 text-xs">If sold before maturity, rising rates will decrease T-bill market value.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Federal Tax Liability</span>
+                                                        <p className="text-gray-300 text-xs">Interest is still subject to federal income tax, reducing after-tax returns.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <h4 className="font-semibold text-blue-400 mb-2">Best Practices for T-Bill Investors</h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Compare Rates</span>
+                                                        <p className="text-gray-300 text-xs">Check current T-bill rates against high-yield savings and CDs before investing.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Understand Taxation</span>
+                                                        <p className="text-gray-300 text-xs">Consider your tax situation when evaluating the after-tax yield of T-bills.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Match to Time Horizon</span>
+                                                        <p className="text-gray-300 text-xs">Select maturities that align with when you'll need the money.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Monitor Auction Calendar</span>
+                                                        <p className="text-gray-300 text-xs">Stay informed about upcoming T-bill auctions to plan purchases.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Consider Direct Purchase</span>
+                                                        <p className="text-gray-300 text-xs">Use TreasuryDirect to avoid fees and receive the full yield benefit.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                                                    <div>
+                                                        <span className="font-semibold">Diversify Maturities</span>
+                                                        <p className="text-gray-300 text-xs">Build a ladder of different maturity dates to manage interest rate risk.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+                                <div className="font-semibold mb-2 text-blue-400">Key Points About Treasury Bills</div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-blue-900 bg-opacity-30 p-3 rounded-lg">
+                                        <div className="text-blue-400 font-semibold mb-1">Discount Security</div>
+                                        <div className="text-sm text-gray-300">T-bills don't pay periodic interest; instead, they're sold at a discount to face value</div>
+                                    </div>
+                                    <div className="bg-green-900 bg-opacity-30 p-3 rounded-lg">
+                                        <div className="text-green-400 font-semibold mb-1">Safest Investment</div>
+                                        <div className="text-sm text-gray-300">Backed by the full faith and credit of the U.S. government</div>
+                                    </div>
+                                    <div className="bg-yellow-900 bg-opacity-30 p-3 rounded-lg">
+                                        <div className="text-yellow-400 font-semibold mb-1">Maturity Options</div>
+                                        <div className="text-sm text-gray-300">Available in 4-week, 8-week, 13-week, 26-week, and 52-week terms</div>
+                                    </div>
+                                    <div className="bg-purple-900 bg-opacity-30 p-3 rounded-lg">
+                                        <div className="text-purple-400 font-semibold mb-1">Tax Advantages</div>
+                                        <div className="text-sm text-gray-300">Interest exempt from state and local income taxes</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<TreasuryBillsVisual />);
+    </script>
+</body>
+</html>
